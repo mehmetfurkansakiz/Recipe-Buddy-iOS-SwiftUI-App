@@ -1,13 +1,6 @@
-//
-//  Recipe.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import Foundation
 
-struct Recipe: Identifiable {
+struct Recipe: Identifiable, Hashable {
     let id: UUID
     let name: String
     let description: String
@@ -18,6 +11,14 @@ struct Recipe: Identifiable {
     let categories: [Category]
     let rating: Double
     let imageName: String
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: Recipe, rhs: Recipe) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 struct RecipeIngredient: Identifiable {

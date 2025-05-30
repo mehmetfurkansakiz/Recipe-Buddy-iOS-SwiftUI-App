@@ -1,18 +1,10 @@
-//
-//  ShoppingListView.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import SwiftUI
 
 struct ShoppingListView: View {
     @ObservedObject var viewModel: ShoppingListViewModel
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) var dismiss: DismissAction
     
     var body: some View {
-        NavigationView {
             VStack {
                 if viewModel.shoppingItems.isEmpty {
                     EmptyShoppingListView()
@@ -34,36 +26,39 @@ struct ShoppingListView: View {
                             }
                         }
                     }
-                    .listStyle(InsetGroupedListStyle())
                     
                     VStack(spacing: 8) {
                         Button(action: {
                             viewModel.clearCheckedItems()
                         }) {
                             HStack {
-                                Image(systemName: "trash")
+                                Image("trash.icon")
+                                    .resizable()
+                                    .frame(width: 24, height: 24)
                                 Text("Seçili Öğeleri Temizle")
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color(.FF_2_A_1_F).opacity(0.8))
-                            .foregroundStyle(.FFFFFF)
+                            .background(Color("FF2A1F").opacity(0.8))
+                            .foregroundStyle(Color("FFFFFF"))
                             .cornerRadius(8)
                         }
                         .disabled(!viewModel.hasCheckedItems)
-                        .opacity(viewModel.hasCheckedItems ? 1 : 0.6)
+                        .opacity(viewModel.hasCheckedItems ? 1.0 : 0.6)
                         
-                        Button(action: {
-                            viewModel.showingShareSheet = true
-                        }) {
+                        ShareLink(item: viewModel.generateShoppingListText(),
+                                  subject: Text("Alışveriş Listesi"),
+                                  message: Text(viewModel.generateShoppingListText())) {
                             HStack {
-                                Image(systemName: "square.and.arrow.up")
+                                Image("share.icon")
+                                    .resizable()
+                                    .frame(width: 24, height: 24)
                                 Text("Listeyi Paylaş")
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color(._33_C_759))
-                            .foregroundStyle(.FFFFFF)
+                            .background(Color("33C759"))
+                            .foregroundStyle(Color("FFFFFF"))
                             .cornerRadius(8)
                         }
                     }
@@ -71,32 +66,46 @@ struct ShoppingListView: View {
                 }
             }
             .navigationTitle("Alışveriş Listesi")
-            .navigationBarItems(
-                leading: Button(action: {
-                    presentationMode.wrappedValue.dismiss()
-                }) {
-                    Text("Kapat")
-                        .foregroundStyle(.EBA_72_B)
-                },
-                trailing: Menu {
+            .navigationBarBackButtonHidden()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        viewModel.clearAllItems()
+                        dismiss()
                     }) {
-                        Label("Tüm Listeyi Temizle", systemImage: "trash")
+                        Text("Kapat")
+                            .foregroundStyle(Color("EBA72B"))
                     }
-                    
-                    Button(action: {
-                        viewModel.sortItems()
-                    }) {
-                        Label("Alfabetik Sırala", systemImage: "arrow.up.arrow.down")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundStyle(.EBA_72_B)
                 }
-            )
-            .sheet(isPresented: $viewModel.showingShareSheet) {
-                ShareSheet(items: [viewModel.generateShoppingListText()])
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button(action: {
+                            viewModel.clearAllItems()
+                        }) {
+                            HStack {
+                                Text("Tüm Listeyi Temizle")
+                                Image("trash.icon")
+                                    .resizable()
+                                    .frame(width: 18, height: 18)
+                            }
+                        }
+                        
+                        Button(action: {
+                            viewModel.sortItems()
+                        }) {
+                            HStack {
+                                Text("Alfabetik Sırala")
+                                Image("arrow.up.down.icon")
+                                    .resizable()
+                                    .frame(width: 24, height: 24)
+                            }
+                        }
+                    } label: {
+                        Image("more.horizontal.icon")
+                            .resizable()
+                            .frame(width: 24, height: 24)
+                            .foregroundStyle(Color("EBA72B"))
+                    }
+                }
             }
             .alert(isPresented: $viewModel.showingClearAlert) {
                 Alert(
@@ -108,7 +117,6 @@ struct ShoppingListView: View {
                     secondaryButton: .cancel()
                 )
             }
-        }
     }
 }
 

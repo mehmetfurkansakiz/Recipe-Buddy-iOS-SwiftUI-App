@@ -1,10 +1,3 @@
-//
-//  RecipeCardView.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import SwiftUI
 
 struct RecipeCardView: View {
@@ -12,39 +5,44 @@ struct RecipeCardView: View {
     let width: CGFloat
     
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 8) {
             Image(recipe.imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: width - 16, height: 150)
+                .frame(minWidth: (width - 16), maxWidth: .infinity, minHeight: 150, maxHeight: .infinity)
                 .clipped()
                 .cornerRadius(8)
             
             Text(recipe.name)
                 .font(.headline)
                 .lineLimit(1)
-                .foregroundStyle(._181818)
+                .foregroundStyle(Color("181818"))
             
-            HStack {
-                Image(systemName: "clock")
-                    .foregroundStyle(.A_3_A_3_A_3)
+            HStack(spacing: 8) {
+                Image("clock.icon")
+                    .resizable()
+                    .foregroundStyle(Color("A3A3A3"))
+                    .frame(width: 18, height: 18)
                 Text("\(recipe.cookingTime) dk")
                     .font(.caption)
-                    .foregroundStyle(.A_3_A_3_A_3)
+                    .foregroundStyle(Color("A3A3A3"))
                 
                 Spacer()
                 
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.FFCB_1_F)
+                Image("star.fill.icon")
+                    .resizable()
+                    .foregroundStyle(Color("FFCB1F"))
+                    .frame(width: 18, height: 18)
                 Text(String(format: "%.1f", recipe.rating))
                     .font(.caption)
-                    .foregroundStyle(.A_3_A_3_A_3)
+                    .foregroundStyle(Color("A3A3A3"))
             }
         }
         .padding(8)
-        .background(Color(.FBFBFB))
+        .background(Color("FBFBFB"))
         .cornerRadius(8)
         .shadow(radius: 2)
-        .frame(width: width)
+        .frame(minWidth: width, maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 }

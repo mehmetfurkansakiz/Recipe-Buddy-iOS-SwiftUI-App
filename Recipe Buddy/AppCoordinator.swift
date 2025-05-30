@@ -1,10 +1,3 @@
-//
-//  Untitled.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import SwiftUI
 
 class AppCoordinator: ObservableObject {
@@ -21,49 +14,31 @@ class AppCoordinator: ObservableObject {
     }
     
     private func configureNavigationBarAppearance() {
-        // NavigationBar configure
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor.systemBackground
         
-        // title style
         appearance.titleTextAttributes = [
-            .foregroundColor: UIColor(named: "181818") ?? UIColor.black
+            .foregroundColor: UIColor(named: "181818") ?? UIColor(named: "000000")!
         ]
         appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(named: "181818") ?? UIColor.black
+            .foregroundColor: UIColor(named: "181818") ?? UIColor(named: "000000")!
         ]
         
-        // back button appearance
         UINavigationBar.appearance().tintColor = UIColor(named: "EBA72B")
         
-        // NavigationBar görünümünü ayarla
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
     }
     
+    func showMainTabView() {
+        self.rootView = AnyView(
+            MainTabView(coordinator: self)
+        )
+    }
+    
     func showHomeView() {
-        self.rootView = AnyView(
-            HomeView()
-                .accentColor(Color("EBA72B")) // SwiftUI 2.0
-                .tint(Color("EBA72B")) // SwiftUI 3.0
-        )
-    }
-    
-    func showRecipeDetail(recipe: Recipe) {
-        self.rootView = AnyView(
-            RecipeDetailView(recipe: recipe)
-                .accentColor(Color("EBA72B"))
-                .tint(Color("EBA72B"))
-        )
-    }
-    
-    func showShoppingList() {
-        self.rootView = AnyView(
-            ShoppingListView(viewModel: ShoppingListViewModel())
-                .accentColor(Color("EBA72B"))
-                .tint(Color("EBA72B"))
-        )
+        showMainTabView()
     }
 }

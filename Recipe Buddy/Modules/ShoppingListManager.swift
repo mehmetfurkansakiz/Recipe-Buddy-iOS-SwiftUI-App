@@ -1,10 +1,3 @@
-//
-//  ShoppingListManager.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import Foundation
 
 class ShoppingListManager {

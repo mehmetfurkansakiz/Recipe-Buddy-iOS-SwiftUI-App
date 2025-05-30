@@ -1,82 +1,75 @@
-//
-//  RecipeDetailView.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import SwiftUI
 
 struct RecipeDetailView: View {
     let recipe: Recipe
     @StateObject private var viewModel: RecipeDetailViewModel
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss: DismissAction
     
     init(recipe: Recipe) {
         self.recipe = recipe
         _viewModel = StateObject(wrappedValue: RecipeDetailViewModel(recipe: recipe))
         
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithTransparentBackground()
-        UINavigationBar.appearance().standardAppearance = appearance
-        UINavigationBar.appearance().scrollEdgeAppearance = appearance
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                recipeImageHeader
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    recipeInfoSection
+        ZStack(alignment: .top) {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    recipeImageHeader
                     
-                    Divider()
-                    
-                    ingredientsSection
-                    
-                    Divider()
-                    
-                    preparationSection
-                    
-                    Divider()
-                    
-                    addToShoppingListButton
+                    VStack(alignment: .leading, spacing: 16) {
+                        recipeInfoSection
+                        
+                        Divider()
+                        
+                        ingredientsSection
+                        
+                        Divider()
+                        
+                        preparationSection
+                        
+                        Divider()
+                        
+                        addToShoppingListButton
+                        
+                        Spacer(minLength: 120)
+                    }
+                    .padding()
                 }
-                .padding()
             }
+            .navigationBarBackButtonHidden()
+            .ignoresSafeArea(edges: .top)
         }
-        .scrollIndicators(.hidden)
-        .navigationBarHidden(true)
-        .edgesIgnoringSafeArea(.top)
     }
     
     // MARK: - View Components
-    
     private var recipeImageHeader: some View {
-        GeometryReader { geometry in
+        GeometryReader { geo in
             ZStack(alignment: .topLeading) {
                 Image(recipe.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: geometry.size.width, height: 300)
+                    .frame(width: geo.size.width, height: geo.size.height)
                     .clipped()
-                
-                // back button
                 Button(action: {
-                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title2)
-                        .foregroundStyle(Color(.FFFFFF))
-                        .padding(10)
-                        .background(Circle().fill(Color.black.opacity(0.5)))
+                    ZStack(alignment: .center) {
+                        Circle()
+                            .fill(Color("000000").opacity(0.5))
+                            .frame(width: 48, height: 48)
+                        
+                        Image(systemName: "chevron.left")
+                            .font(.title2)
+                            .foregroundStyle(Color("FFFFFF"))
+                            
+                    }
                 }
-                .padding(.top, 50)
                 .padding(.leading, 16)
+                .padding(.top, 48)
             }
         }
-        .frame(height: 300)
-        .edgesIgnoringSafeArea(.top)
+        .frame(minHeight: 300)
     }
     
     private var recipeInfoSection: some View {
@@ -84,8 +77,8 @@ struct RecipeDetailView: View {
             HStack {
                 Text(recipe.name)
                     .font(.largeTitle)
+                    .foregroundStyle(Color("181818"))
                     .fontWeight(.bold)
-                    .foregroundStyle(._181818)
                 
                 Spacer()
                 
@@ -93,19 +86,19 @@ struct RecipeDetailView: View {
                     viewModel.toggleFavorite()
                 }) {
                     Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
-                        .font(.title2)
-                        .foregroundStyle(viewModel.isFavorite ? .FF_2_A_1_F : .A_3_A_3_A_3)
+                        .font(.title)
+                        .foregroundStyle(viewModel.isFavorite ? Color("FF2A1F") : Color("A3A3A3"))
                 }
             }
             
             Text(recipe.description)
                 .font(.subheadline)
-                .foregroundStyle(._303030)
+                .foregroundStyle(Color("303030"))
             
             HStack {
-                RecipeInfoBadge(icon: "clock", text: "\(recipe.cookingTime) dk")
-                RecipeInfoBadge(icon: "person.2", text: "\(recipe.servings) kişilik")
-                RecipeInfoBadge(icon: "star.fill", text: String(format: "%.1f", recipe.rating))
+                RecipeInfoBadge(icon: "alarm.icon", text: "\(recipe.cookingTime) dk", color: Color("EBA72B"))
+                RecipeInfoBadge(icon: "people.icon", text: "\(recipe.servings)", color: Color("EBA72B"))
+                RecipeInfoBadge(icon: "star.fill.icon", text: "\(recipe.rating)",  color: Color("FFCB1F"))
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
@@ -113,10 +106,10 @@ struct RecipeDetailView: View {
                     ForEach(recipe.categories) { category in
                         Text(category.name)
                             .font(.caption)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color(.EBA_72_B).opacity(0.2))
-                            .foregroundStyle(.EBA_72_B)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color("EBA72B").opacity(0.2))
+                            .foregroundStyle(Color("EBA72B"))
                             .cornerRadius(8)
                     }
                 }
@@ -125,28 +118,31 @@ struct RecipeDetailView: View {
     }
     
     private var ingredientsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Malzemeler")
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundStyle(._181818)
+                .foregroundStyle(Color("181818"))
             
             ForEach(recipe.ingredients) { ingredient in
                 HStack {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.EBA_72_B)
+                    Image("circle.fill.icon")
+                        .resizable()
+                        .foregroundStyle(Color("EBA72B"))
+                        .frame(width: 12, height: 12)
                     
                     Text("\(String(format: "%.1f", ingredient.amount)) \(ingredient.unit) \(ingredient.ingredient.name)")
-                        .foregroundStyle(._303030)
+                        .foregroundStyle(Color("303030"))
                     
                     Spacer()
                     
                     Button(action: {
                         viewModel.toggleIngredientSelection(ingredient)
                     }) {
-                        Image(systemName: viewModel.isIngredientSelected(ingredient.ingredient) ? "checkmark.square.fill" : "square")
-                            .foregroundStyle(viewModel.isIngredientSelected(ingredient.ingredient) ? ._33_C_759 : .A_3_A_3_A_3)
+                        Image(viewModel.isIngredientSelected(ingredient.ingredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
+                            .resizable()
+                            .foregroundStyle(viewModel.isIngredientSelected(ingredient.ingredient) ? Color("33C759") : Color("A3A3A3"))
+                            .frame(width: 18, height: 18)
                     }
                 }
                 .padding(.vertical, 4)
@@ -157,7 +153,7 @@ struct RecipeDetailView: View {
             }) {
                 Text(viewModel.areAllIngredientsSelected ? "Tüm Seçimleri Kaldır" : "Tümünü Seç")
                     .font(.subheadline)
-                    .foregroundStyle(.EBA_72_B).opacity(0.8)
+                    .foregroundStyle(Color("EBA72B").opacity(0.8))
             }
             .padding(.top, 8)
         }
@@ -168,17 +164,16 @@ struct RecipeDetailView: View {
             Text("Hazırlanışı")
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundStyle(._181818)
+                .foregroundStyle(Color("181818"))
             
             ForEach(Array(recipe.steps.enumerated()), id: \.offset) { index, step in
                 HStack(alignment: .top) {
                     Text("\(index + 1).")
                         .font(.headline)
-                        .foregroundStyle(.EBA_72_B)
+                        .foregroundStyle(Color("A3A3A3"))
                     
                     Text(step)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .foregroundStyle(._303030)
+                        .foregroundStyle(Color("303030"))
                 }
                 .padding(.vertical, 4)
             }
@@ -190,15 +185,24 @@ struct RecipeDetailView: View {
             viewModel.addSelectedIngredientsToShoppingList()
             viewModel.showingShoppingListAlert = true
         }) {
-            HStack {
-                Image(systemName: "cart.badge.plus")
-                Text("Seçili Malzemeleri Alışveriş Listesine Ekle")
+            VStack {
+                HStack(spacing: 8) {
+                    Image("cart.icon")
+                        .resizable()
+                        .frame(width: 18, height: 18)
+                        .foregroundStyle(Color("FFFFFF"))
+                    
+                    Text("Seçili Malzemeleri Alışveriş Listesine Ekle")
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color(.EBA_72_B))
-            .foregroundStyle(.FFFFFF)
-            .cornerRadius(10)
+            .background(Color("EBA72B"))
+            .foregroundStyle(Color("FFFFFF"))
+            .cornerRadius(8)
         }
         .disabled(viewModel.selectedIngredients.isEmpty)
         .opacity(viewModel.selectedIngredients.isEmpty ? 0.6 : 1)
@@ -216,7 +220,7 @@ struct RecipeDetailView: View {
     let viewModel = HomeViewModel()
     viewModel.loadRecipes()
     
-    return NavigationView {
+    return NavigationStack {
         if let firstRecipe = viewModel.recipes.first {
             RecipeDetailView(recipe: firstRecipe)
         }

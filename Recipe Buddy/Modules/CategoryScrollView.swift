@@ -1,10 +1,3 @@
-//
-//  CategoryScrollView.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import SwiftUI
 
 struct CategoryScrollView: View {
@@ -13,7 +6,7 @@ struct CategoryScrollView: View {
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 ForEach(categories) { category in
                     CategoryButton(
                         category: category,
@@ -24,12 +17,28 @@ struct CategoryScrollView: View {
                             } else {
                                 selectedCategory = category
                             }
-                        }
-                    )
+                        })
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 4)
         }
     }
 }
+
+struct CategoryButton: View {
+    let category: Category
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(category.name)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color("EBA72B") : Color("F2F2F7"))
+                .foregroundStyle(isSelected ? Color("FFFFFF") : Color("181818"))
+                .cornerRadius(8)
+        }
+    }
+}
+

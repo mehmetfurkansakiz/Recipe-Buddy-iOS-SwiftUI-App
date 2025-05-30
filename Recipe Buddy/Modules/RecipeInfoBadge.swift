@@ -1,30 +1,22 @@
-//
-//  RecipeInfoBadge.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import SwiftUI
 
 struct RecipeInfoBadge: View {
     let icon: String
     let text: String
+    let color: Color
     
     var body: some View {
         HStack {
-            Image(systemName: icon)
-                .foregroundStyle(.EBA_72_B)
+            Image(icon)
+                .resizable()
+                .foregroundStyle(color)
+                .frame(width: 18, height: 18)
             Text(text)
                 .font(.caption)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(Color(.F_2_F_2_F_7))
+        .background(Color("F2F2F7"))
         .cornerRadius(8)
     }
-}
-
-#Preview {
-    RecipeInfoBadge(icon: "star.fill", text: "4.9")
 }

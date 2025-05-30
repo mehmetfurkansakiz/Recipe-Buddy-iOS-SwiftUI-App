@@ -1,11 +1,5 @@
-//
-//  ShoppingListViewModel.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import Foundation
+import Combine
 
 class ShoppingListViewModel: ObservableObject {
     @Published var shoppingItems: [ShoppingItem] = []
@@ -18,18 +12,24 @@ class ShoppingListViewModel: ObservableObject {
     
     // Group items by category
     var groupedItems: [String: [ShoppingItem]] {
-        Dictionary(grouping: shoppingItems) { item in
-            if item.ingredient.name.contains("et") || item.ingredient.name.contains("tavuk") {
-                return "Et & Tavuk"
-            } else if item.ingredient.name.contains("süt") || item.ingredient.name.contains("peynir") {
-                return "Süt Ürünleri"
-            } else if item.ingredient.name.contains("un") || item.ingredient.name.contains("şeker") {
-                return "Kuru Gıda"
-            } else if item.ingredient.name.contains("domates") || item.ingredient.name.contains("salatalık") {
-                return "Sebze & Meyve"
-            } else {
-                return "Diğer"
-            }
+        return Dictionary(grouping: shoppingItems) { item in
+            getCategoryForItem(item)
+        }
+    }
+    
+    // Dummy function to get category for an item
+    private func getCategoryForItem(_ item: ShoppingItem) -> String {
+        let name = item.ingredient.name
+        if name.contains("et") || name.contains("tavuk") {
+            return "Et & Tavuk"
+        } else if name.contains("süt") || name.contains("peynir") {
+            return "Süt Ürünleri"
+        } else if name.contains("un") || name.contains("şeker") {
+            return "Kuru Gıda"
+        } else if name.contains("domates") || name.contains("salatalık") {
+            return "Sebze & Meyve"
+        } else {
+            return "Diğer"
         }
     }
     
@@ -49,7 +49,7 @@ class ShoppingListViewModel: ObservableObject {
     
     func toggleItemCheck(_ item: ShoppingItem) {
         if let index = shoppingItems.firstIndex(where: { $0.id == item.id }) {
-            shoppingItems[index].isChecked.toggle()
+            shoppingItems[index].isChecked = !shoppingItems[index].isChecked
             // save really checked items to UserDefaults or API
         }
     }

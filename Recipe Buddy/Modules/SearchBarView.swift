@@ -1,38 +1,36 @@
-//
-//  SearchBarView.swift
-//  Recipe Buddy
-//
-//  Created by furkan sakız on 16.04.2025.
-//
-
 import SwiftUI
 
 struct SearchBarView: View {
     @Binding var searchText: String
     
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.A_3_A_3_A_3)
+                .foregroundStyle(Color("A3A3A3"))
             
             TextField("Tarif Ara...", text: $searchText)
-                .padding(8)
+                .textFieldStyle(.plain)
+                .font(.system(size: 16))
+                .foregroundColor(Color("A3A3A3"))
+                .tint(Color("181818"))
             
             if !searchText.isEmpty {
                 Button(action: {
                     searchText = ""
                 }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.A_3_A_3_A_3)
+                    Image("close.circle.icon")
+                        .resizable()
+                        .foregroundStyle(Color("A3A3A3"))
+                        .frame(width: 18, height: 18)
                 }
             }
         }
+        .frame(height: 40)
         .padding(.horizontal)
         .padding(.vertical, 6)
-        .background(Color(.F_2_F_2_F_7))
+        .background(Color("F2F2F7"))
         .cornerRadius(8)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 0)
+        
     }
 }
 
