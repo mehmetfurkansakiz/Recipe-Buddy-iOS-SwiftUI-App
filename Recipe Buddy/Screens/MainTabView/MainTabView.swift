@@ -4,6 +4,7 @@ struct MainTabView: View {
     @StateObject var coordinator: AppCoordinator
     @State private var selectedTab: ContentTab = .home
     @State private var navigationPath = NavigationPath()
+    @State private var tabBarHeight: CGFloat = 0
     
     private let tabs = [
         TabItem(icon: "home.icon"),
@@ -21,6 +22,26 @@ struct MainTabView: View {
                     coordinator: coordinator
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.bottom, tabBarHeight)
+                
+                // TabBar with GeometryReader
+                VStack(spacing: 0) {
+                    GeometryReader { geo in
+                        CustomTabBar(
+                            selectedTab: Binding(
+                                get: { selectedTab.rawValue },
+                                set: { selectedTab = ContentTab(rawValue: $0)! }
+                            ),
+                            tabs: tabs
+                        )
+                        .onAppear {
+                            tabBarHeight = geo.size.height + 8
+                        }
+                    }
+                    .frame(height: 56)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
             }
             .ignoresSafeArea(.keyboard)
             
@@ -32,20 +53,6 @@ struct MainTabView: View {
             }
             .navigationDestination(for: RecipeCreate.self) { _ in
                 RecipeCreateView(viewModel: RecipeCreateViewModel())
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .bottomBar) {
-                // TabBar
-                CustomTabBar(
-                    selectedTab: Binding(
-                        get: { selectedTab.rawValue },
-                        set: { selectedTab = ContentTab(rawValue: $0)! }
-                    ),
-                    tabs: tabs
-                )
-                .padding(.horizontal, 8)
-                .padding(.bottom, 64)
             }
         }
         .preferredColorScheme(.light)
