@@ -218,7 +218,6 @@ struct RecipeDetailView: View {
 
 #Preview {
     let viewModel = HomeViewModel()
-    viewModel.loadRecipes()
     
     return NavigationStack {
         if let firstRecipe = viewModel.recipes.first {

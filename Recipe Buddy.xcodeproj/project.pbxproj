@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0FE591712DED0EBD005EF0D8 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 0FE591702DED0EBD005EF0D8 /* Auth */; };
+		0FE591732DED0EBD005EF0D8 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 0FE591722DED0EBD005EF0D8 /* PostgREST */; };
+		0FE591762DED11D8005EF0D8 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 0FE591752DED11D8005EF0D8 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		0F232DF52DAF2490002F758D /* Recipe Buddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Recipe Buddy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +29,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0FE591732DED0EBD005EF0D8 /* PostgREST in Frameworks */,
+				0FE591712DED0EBD005EF0D8 /* Auth in Frameworks */,
+				0FE591762DED11D8005EF0D8 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,6 +42,7 @@
 			isa = PBXGroup;
 			children = (
 				0F232DF72DAF2490002F758D /* Recipe Buddy */,
+				0FE591742DED11D8005EF0D8 /* Frameworks */,
 				0F232DF62DAF2490002F758D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +53,13 @@
 				0F232DF52DAF2490002F758D /* Recipe Buddy.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		0FE591742DED11D8005EF0D8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -65,6 +82,9 @@
 			);
 			name = "Recipe Buddy";
 			packageProductDependencies = (
+				0FE591702DED0EBD005EF0D8 /* Auth */,
+				0FE591722DED0EBD005EF0D8 /* PostgREST */,
+				0FE591752DED11D8005EF0D8 /* Supabase */,
 			);
 			productName = "Recipe Buddy";
 			productReference = 0F232DF52DAF2490002F758D /* Recipe Buddy.app */;
@@ -94,6 +114,9 @@
 			);
 			mainGroup = 0F232DEC2DAF2490002F758D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0FE5916F2DED0EBD005EF0D8 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0F232DF62DAF2490002F758D /* Products */;
 			projectDirPath = "";
@@ -332,6 +355,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0FE5916F2DED0EBD005EF0D8 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0FE591702DED0EBD005EF0D8 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0FE5916F2DED0EBD005EF0D8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		0FE591722DED0EBD005EF0D8 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0FE5916F2DED0EBD005EF0D8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		0FE591752DED11D8005EF0D8 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0FE5916F2DED0EBD005EF0D8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0F232DED2DAF2490002F758D /* Project object */;
 }

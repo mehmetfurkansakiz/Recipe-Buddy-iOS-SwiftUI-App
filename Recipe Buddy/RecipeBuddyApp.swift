@@ -14,6 +14,7 @@ struct RecipeBuddyApp: App {
     var body: some Scene {
         WindowGroup {
             coordinator.rootView
+                .preferredColorScheme(.light)
         }
     }
 }
