@@ -1,6 +1,6 @@
 import Foundation
 
-struct Recipe: Identifiable, Hashable {
+struct Recipe: Decodable, Identifiable, Hashable {
     let id: UUID
     let name: String
     let description: String
@@ -21,24 +21,24 @@ struct Recipe: Identifiable, Hashable {
     }
 }
 
-struct RecipeIngredient: Identifiable {
+struct RecipeIngredient: Decodable, Identifiable {
     let id: Int
     let ingredient: Ingredient
     let amount: Double
     let unit: String
 }
 
-struct Ingredient: Identifiable {
+struct Ingredient: Decodable, Identifiable {
     let id: UUID
     let name: String
 }
 
-struct Category: Identifiable {
+struct Category: Decodable, Identifiable {
     let id: UUID
     let name: String
 }
 
-struct ShoppingItem: Identifiable {
+struct ShoppingItem: Decodable, Identifiable {
     let id: UUID
     let ingredient: Ingredient
     var amount: Double

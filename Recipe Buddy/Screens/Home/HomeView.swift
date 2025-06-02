@@ -34,7 +34,10 @@ struct HomeView: View {
                     .padding(.bottom, 8)
             }
             .ignoresSafeArea(.keyboard)
-            .onAppear { viewModel.loadRecipes() }
+            .task {
+                await viewModel.fetchCategories()
+                await viewModel.fetchRecipes()
+            }
         }
         .navigationTitle("Recipe Buddy")
         .navigationBarTitleDisplayMode(.inline)

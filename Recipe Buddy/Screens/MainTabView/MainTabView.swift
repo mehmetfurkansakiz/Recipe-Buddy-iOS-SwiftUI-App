@@ -55,7 +55,6 @@ struct MainTabView: View {
                 RecipeCreateView(viewModel: RecipeCreateViewModel())
             }
         }
-        .preferredColorScheme(.light)
     }
 }
 
