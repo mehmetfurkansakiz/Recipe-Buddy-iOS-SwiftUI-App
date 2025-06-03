@@ -25,7 +25,8 @@ struct HomeView: View {
                                 spacing: 16
                             )
                         }
-                        .padding(.bottom, 56) // Space between tabbar and scroll view for shoppinglist button
+                        .padding(.bottom, 56)
+                        // Space between tabbar and scroll view for shoppinglist button
                     }
                     .background(.FBFBFB)
                 }
@@ -33,15 +34,21 @@ struct HomeView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
             }
-            .ignoresSafeArea(.keyboard)
             .task {
                 await viewModel.fetchCategories()
                 await viewModel.fetchRecipes()
             }
         }
-        .navigationTitle("Recipe Buddy")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Recipe Buddy")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color("EBA72B"))
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     navigationPath.append(RecipeCreate())
@@ -116,4 +123,9 @@ struct HomeView: View {
             .cornerRadius(8)
         }
     }
+}
+
+#Preview {
+    HomeView(navigationPath: .constant(NavigationPath()))
+        .environmentObject(HomeViewModel())
 }
