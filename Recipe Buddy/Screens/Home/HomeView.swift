@@ -28,7 +28,7 @@ struct HomeView: View {
                         .padding(.bottom, 56)
                         // Space between tabbar and scroll view for shoppinglist button
                     }
-                    .background(.FBFBFB)
+                    .background(Color("FBFBFB"))
                 }
                 shoppingListButton
                     .padding(.horizontal, 16)

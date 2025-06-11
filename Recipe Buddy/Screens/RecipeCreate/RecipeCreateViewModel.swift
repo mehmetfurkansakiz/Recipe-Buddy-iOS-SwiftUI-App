@@ -1,68 +1,137 @@
 import SwiftUI
+import PhotosUI
+import Supabase
 
+@MainActor
 class RecipeCreateViewModel: ObservableObject {
     @Published var name: String = ""
     @Published var description: String = ""
     @Published var servings: Int = 4   // default start
     @Published var cookingTime: Int = 30 // default start
     @Published var steps: [String] = [""]
-    @Published var ingredients: [SimpleIngredientInput] = [SimpleIngredientInput()]
-    @Published var categories: [Category] = []
+    
+    // Photo management
+    @Published var selectedPhotoItem: PhotosPickerItem?
+    @Published var selectedImageData: Data?
+    
+    // Category management
+    @Published var availableCategories: [Category] = []
+    @Published var selectedCategories: Set<Category> = []
+    
+    // Ingredients management
+    @Published var recipeIngredients: [RecipeIngredientInput] = []
+    @Published var allAvailableIngredients: [Ingredient] = []
+    
+    // UI state
     @Published var showSuccess: Bool = false
+    @Published var errorMessage: String?
+    @Published var isSaving: Bool = false
     
     let servingsOptions = Array(1...20)
     let timeOptions: [Int] = Array(stride(from: 5, through: 240, by: 5))
 
     var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !ingredients.contains(where: { $0.name.trimmingCharacters(in: .whitespaces).isEmpty }) &&
-        !steps.contains(where: { $0.trimmingCharacters(in: .whitespaces).isEmpty })
+        !recipeIngredients.isEmpty &&
+        !steps.contains(where: { $0.trimmingCharacters(in: .whitespaces).isEmpty }) &&
+        !selectedCategories.isEmpty &&
+        selectedImageData != nil
     }
-
-    func addIngredient() {
-        ingredients.append(SimpleIngredientInput())
-    }
-    func removeIngredient(at index: Int) {
-        if ingredients.count > 1 {
-            ingredients.remove(at: index)
+    
+    init() {
+        Task {
+            await fetchInitialData()
         }
     }
+    
+    func fetchInitialData() async {
+        async let fetchCat: () = fetchCategories()
+        async let fetchIng: () = fetchIngredients()
+        await fetchCat
+        await fetchIng
+    }
+    
+    func fetchCategories() async {
+        do {
+            self.availableCategories = try await supabase.from("categories").select().execute().value
+        } catch { errorMessage = "Kategoriler yüklenemedi: \(error.localizedDescription)" }
+    }
+    
+    func fetchIngredients() async {
+        do {
+            self.allAvailableIngredients = try await supabase.from("ingredients").select().order("name").execute().value
+        } catch { errorMessage = "Malzemeler yüklenemedi: \(error.localizedDescription)" }
+    }
+    
+    func loadImage(from item: PhotosPickerItem?) async {
+        guard let item = item else { return }
+        do {
+            self.selectedImageData = try await item.loadTransferable(type: Data.self)
+        } catch {
+            errorMessage = "Resim yüklenemedi: \(error.localizedDescription)"
+        }
+    }
+    
+    func saveRecipe() async {
+        guard isValid, let imageData = selectedImageData else { return }
+        
+        isSaving = true
+        defer { isSaving = false }
+        
+        do {
+            let imagePath = "public/\(UUID().uuidString).jpg"
+            let _ = try await supabase.storage.from("recipe_images")
+                .upload(imagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
+            
+            let recipeInsert = NewRecipe(
+                name: self.name,
+                description: self.description,
+                cookingTime: self.cookingTime,
+                servings: self.servings,
+                steps: self.steps,
+                imageName: imagePath
+            )
+            
+            let savedRecipe: Recipe = try await supabase.from("recipes")
+                .insert(recipeInsert)
+                .select()
+                .single()
+                .execute()
+                .value
+            
+            let newRecipeId = savedRecipe.id
+            
+            let recipeIngredientLinks = recipeIngredients.map { ingInput in
+                NewRecipeIngredient(recipeId: newRecipeId, ingredientId: ingInput.ingredient.id, amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0, unit: ingInput.unit)
+            }
+            try await supabase.from("recipe_ingredients").insert(recipeIngredientLinks).execute()
+            
+            let recipeCategoryLinks = selectedCategories.map { category in
+                NewRecipeCategory(recipeId: newRecipeId, categoryId: category.id)
+            }
+            try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
+            
+            showSuccess = true
+        } catch {
+            errorMessage = "Tarif kaydedilemedi: \(error.localizedDescription)"
+            print("❌ Kaydetme Hatası: \(error)")
+        }
+    }
+
+    func addOrUpdateIngredient(_ ingredientInput: RecipeIngredientInput) {
+        if let index = recipeIngredients.firstIndex(where: { $0.ingredient.id == ingredientInput.ingredient.id }) {
+            recipeIngredients[index] = ingredientInput
+        } else {
+            recipeIngredients.append(ingredientInput)
+        }
+    }
+    
+    func removeIngredient(with id: UUID) {
+        recipeIngredients.removeAll { $0.id == id }
+    }
+    
     func addStep() { steps.append("") }
     func removeStep(at index: Int) {
         if steps.count > 1 { steps.remove(at: index) }
     }
-
-    func toRecipe() -> Recipe {
-        Recipe(
-            id: UUID(),
-            name: name,
-            description: description,
-            ingredients: ingredients.enumerated().map { idx, ing in
-                RecipeIngredient(
-                    id: idx,
-                    ingredient: Ingredient(id: UUID(), name: ing.name),
-                    amount: Double(ing.amount) ?? 1.0,
-                    unit: ing.unit
-                )
-            },
-            steps: steps,
-            cookingTime: cookingTime,
-            servings: servings,
-            categories: categories,
-            rating: 0.0,
-            imageName: ""
-        )
-    }
-
-    func saveAction() {
-        guard isValid else { return }
-        showSuccess = true
-        // buraya delegate veya listeye ekleme vs. kodu ekleyebilirsiniz!
-    }
-}
-
-struct SimpleIngredientInput: Hashable {
-    var name: String = ""
-    var amount: String = ""
-    var unit: String = ""
 }
