@@ -36,9 +36,20 @@ struct NewRecipeIngredient: Encodable {
     let ingredientId: UUID
     let amount: Double
     let unit: String
+    
+    enum CodingKeys: String, CodingKey {
+        case amount, unit
+        case recipeId = "recipe_id"
+        case ingredientId = "ingredient_id"
+    }
 }
 
 struct NewRecipeCategory: Encodable {
     let recipeId: UUID
     let categoryId: UUID
+    
+    enum CodingKeys: String, CodingKey {
+        case recipeId = "recipe_id"
+        case categoryId = "category_id"
+    }
 }

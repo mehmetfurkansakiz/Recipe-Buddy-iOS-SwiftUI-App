@@ -80,7 +80,7 @@ class RecipeCreateViewModel: ObservableObject {
         
         do {
             let imagePath = "public/\(UUID().uuidString).jpg"
-            let _ = try await supabase.storage.from("recipe_images")
+            let _ = try await supabase.storage.from("recipe-images")
                 .upload(imagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
             
             let recipeInsert = NewRecipe(
@@ -92,14 +92,14 @@ class RecipeCreateViewModel: ObservableObject {
                 imageName: imagePath
             )
             
-            let savedRecipe: Recipe = try await supabase.from("recipes")
+            let savedRecipeInfo: RecipeID = try await supabase.from("recipes")
                 .insert(recipeInsert)
-                .select()
+                .select("id")
                 .single()
                 .execute()
                 .value
             
-            let newRecipeId = savedRecipe.id
+            let newRecipeId = savedRecipeInfo.id
             
             let recipeIngredientLinks = recipeIngredients.map { ingInput in
                 NewRecipeIngredient(recipeId: newRecipeId, ingredientId: ingInput.ingredient.id, amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0, unit: ingInput.unit)

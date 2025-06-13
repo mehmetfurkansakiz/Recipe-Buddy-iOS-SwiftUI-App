@@ -4,12 +4,12 @@ struct Recipe: Codable, Identifiable, Hashable {
     let id: UUID
     let name: String
     let description: String
-    let ingredients: [RecipeIngredient]
+    let ingredients: [RecipeIngredientJoin]
     let steps: [String]
     let cookingTime: Int
     let servings: Int
-    let categories: [Category]
-    let rating: Double
+    let categories: [RecipeCategoryJoin]
+    let rating: Double?
     let imageName: String
     
     func hash(into hasher: inout Hasher) {
@@ -19,16 +19,31 @@ struct Recipe: Codable, Identifiable, Hashable {
     static func == (lhs: Recipe, rhs: Recipe) -> Bool {
         lhs.id == rhs.id
     }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, ingredients, steps, servings, categories, rating
+        case cookingTime = "cooking_time"
+        case imageName = "image_name"
+    }
 }
 
-struct RecipeIngredient: Codable, Identifiable {
+struct RecipeIngredientJoin: Codable, Hashable, Identifiable {
     let id: Int
-    let ingredient: Ingredient
     let amount: Double
     let unit: String
+    let ingredient: Ingredient
 }
 
-struct Ingredient: Codable, Identifiable {
+struct RecipeCategoryJoin: Codable, Hashable, Identifiable {
+    var id: UUID { category.id }
+    let category: Category
+}
+
+struct RecipeID: Decodable {
+    let id: UUID
+}
+
+struct Ingredient: Codable, Identifiable, Hashable {
     let id: UUID
     let name: String
 }

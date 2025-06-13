@@ -39,10 +39,8 @@ struct HomeView: View {
                 await viewModel.fetchRecipes()
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .principal) {
+            ToolbarItem(placement: .navigation) {
                 Text("Recipe Buddy")
                     .font(.headline)
                     .fontWeight(.bold)

@@ -8,7 +8,6 @@ class HomeViewModel: ObservableObject {
     @Published var categories: [Category] = []
     @Published var searchText: String = ""
     @Published var selectedCategory: Category?
-    @Published var showShoppingList: Bool = false
     
     var filteredRecipes: [Recipe] {
         recipes.filter { recipe in
@@ -16,7 +15,7 @@ class HomeViewModel: ObservableObject {
                 recipe.name.lowercased().contains(searchText.lowercased())
 
             let matchesCategory = selectedCategory == nil ||
-                recipe.categories.contains(where: { $0.id == selectedCategory?.id })
+            recipe.categories.contains(where: { $0.category.id == selectedCategory?.id })
 
             return matchesSearch && matchesCategory
         }
@@ -28,6 +27,7 @@ class HomeViewModel: ObservableObject {
         do {
             let fetchedCategories: [Category] = try await supabase.from("categories")
                 .select()
+                .order("name")
                 .execute()
                 .value
             
@@ -42,16 +42,14 @@ class HomeViewModel: ObservableObject {
             let query = supabase.from("recipes")
                 .select("""
                     *,
-                    categories(*),
-                    recipe_ingredients:recipe_ingredients(*,
-                        ingredient:ingredients(*)
-                    )
+                    categories: recipe_categories(* , category: categories(*)),
+                    ingredients: recipe_ingredients(id, amount, unit, ingredient: ingredients(*))
                 """)
             
             let fetchedRecipes: [Recipe] = try await query.execute().value
             self.recipes = fetchedRecipes
         } catch {
-            print("Error fetch recipes: \(error.localizedDescription)")
+            print("Error fetch recipes: \(error)")
         }
     }
 }
