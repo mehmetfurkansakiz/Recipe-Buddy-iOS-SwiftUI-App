@@ -19,7 +19,7 @@ class RecipeDetailViewModel: ObservableObject {
         selectedIngredients.contains(ingredient.id)
     }
     
-    func toggleIngredientSelection(_ recipeIngredient: RecipeIngredient) {
+    func toggleIngredientSelection(_ recipeIngredient: RecipeIngredientJoin) {
         let ingredientId = recipeIngredient.ingredient.id
         if selectedIngredients.contains(ingredientId) {
             selectedIngredients.remove(ingredientId)

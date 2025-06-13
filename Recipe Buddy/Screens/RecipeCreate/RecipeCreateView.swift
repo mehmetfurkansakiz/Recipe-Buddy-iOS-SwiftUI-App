@@ -273,7 +273,7 @@ struct IngredientsSection: View {
                             }
                         }
                     }
-                    Text("Malzeme eklemek için dokun")
+                    Text("Malzeme seçmek için dokun")
                         .foregroundColor(Color("C2C2C2"))
                 }
                 .onTapGesture {

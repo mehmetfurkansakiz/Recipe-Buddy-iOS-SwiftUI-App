@@ -46,11 +46,23 @@ struct RecipeDetailView: View {
     private var recipeImageHeader: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                Image(recipe.imageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: geo.size.width, height: geo.size.height)
-                    .clipped()
+                let baseSupabaseURL = Secrets.supabaseURL.deletingLastPathComponent().absoluteString.replacingOccurrences(of: "/rest/v1", with: "")
+                let urlString = "\(baseSupabaseURL)/storage/v1/object/public/recipe-images/\(recipe.imageName)"
+                let imageURL = URL(string: urlString)
+                
+                AsyncImage(url: imageURL) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    ZStack {
+                        Color.gray.opacity(0.1)
+                        ProgressView()
+                    }
+                }
+                .frame(width: geo.size.width, height: max(geo.size.height, geo.frame(in: .global).minY > 0 ? geo.size.height + geo.frame(in: .global).minY : geo.size.height))
+                .clipped()
+                .offset(y: geo.frame(in: .global).minY > 0 ? -geo.frame(in: .global).minY : 0)
                 Button(action: {
                     dismiss()
                 }) {
@@ -98,13 +110,17 @@ struct RecipeDetailView: View {
             HStack {
                 RecipeInfoBadge(icon: "alarm.icon", text: "\(recipe.cookingTime) dk", color: Color("EBA72B"))
                 RecipeInfoBadge(icon: "people.icon", text: "\(recipe.servings)", color: Color("EBA72B"))
-                RecipeInfoBadge(icon: "star.fill.icon", text: "\(recipe.rating)",  color: Color("FFCB1F"))
+                if let rating = recipe.rating {
+                    RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating), color: Color("FFCB1F"))
+                } else {
+                    RecipeInfoBadge(icon: "star.icon", text: "N/A", color: Color("C2C2C2"))
+                }
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(recipe.categories) { category in
-                        Text(category.name)
+                    ForEach(recipe.categories) { recipeCategory in
+                        Text(recipeCategory.category.name)
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -124,24 +140,24 @@ struct RecipeDetailView: View {
                 .fontWeight(.bold)
                 .foregroundStyle(Color("181818"))
             
-            ForEach(recipe.ingredients) { ingredient in
+            ForEach(recipe.ingredients) { recipeIngredient in
                 HStack {
                     Image("circle.fill.icon")
                         .resizable()
                         .foregroundStyle(Color("EBA72B"))
                         .frame(width: 12, height: 12)
                     
-                    Text("\(String(format: "%.1f", ingredient.amount)) \(ingredient.unit) \(ingredient.ingredient.name)")
+                    Text("\(String(format: "%.1f", recipeIngredient.amount)) \(recipeIngredient.unit) \(recipeIngredient.ingredient.name)")
                         .foregroundStyle(Color("303030"))
                     
                     Spacer()
                     
                     Button(action: {
-                        viewModel.toggleIngredientSelection(ingredient)
+                        viewModel.toggleIngredientSelection(recipeIngredient)
                     }) {
-                        Image(viewModel.isIngredientSelected(ingredient.ingredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
+                        Image(viewModel.isIngredientSelected(recipeIngredient.ingredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
                             .resizable()
-                            .foregroundStyle(viewModel.isIngredientSelected(ingredient.ingredient) ? Color("33C759") : Color("A3A3A3"))
+                            .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient.ingredient) ? Color("33C759") : Color("A3A3A3"))
                             .frame(width: 18, height: 18)
                     }
                 }
@@ -212,16 +228,6 @@ struct RecipeDetailView: View {
                 message: Text("Seçili malzemeler alışveriş listenize eklendi."),
                 dismissButton: .default(Text("Tamam"))
             )
-        }
-    }
-}
-
-#Preview {
-    let viewModel = HomeViewModel()
-    
-    return NavigationStack {
-        if let firstRecipe = viewModel.recipes.first {
-            RecipeDetailView(recipe: firstRecipe)
         }
     }
 }
