@@ -11,8 +11,8 @@ struct SearchBarView: View {
             TextField("Tarif Ara...", text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 16))
-                .foregroundColor(Color("A3A3A3"))
-                .tint(Color("181818"))
+                .foregroundColor(Color("181818"))
+                .tint(Color("EBA72B"))
             
             if !searchText.isEmpty {
                 Button(action: {
