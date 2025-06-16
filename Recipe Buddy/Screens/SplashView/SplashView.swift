@@ -13,10 +13,5 @@ struct SplashView: View {
                 .font(.system(size: 80))
                 .padding()
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                coordinator.showHomeView()
-            }
-        }
     }
 }
