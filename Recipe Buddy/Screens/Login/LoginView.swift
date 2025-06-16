@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
+    var onAuthSuccess: () -> Void
     var onNavigateToRegister: () -> Void
     
     var body: some View {
@@ -62,6 +63,13 @@ struct LoginView: View {
                 }
                 .font(.footnote)
                 .padding(.bottom)
+                .onChange(of: viewModel.didAuthenticate) {
+                    if viewModel.didAuthenticate {
+                        DispatchQueue.main.async {
+                            onAuthSuccess()
+                        }
+                    }
+                }
             }
             .padding(.horizontal, 24)
             .alert("Hata", isPresented: .constant(viewModel.errorMessage != nil), actions: {
@@ -72,5 +80,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView(onNavigateToRegister: {})
+    LoginView(onAuthSuccess: {}, onNavigateToRegister: {})
 }
