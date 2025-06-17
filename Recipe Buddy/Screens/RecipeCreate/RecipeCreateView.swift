@@ -33,6 +33,9 @@ struct RecipeCreateView: View {
                 }
                 .padding()
             }
+            .onTapGesture {
+                endEditing()
+            }
             .navigationTitle("Yeni Tarif")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden()
@@ -94,16 +97,16 @@ struct ImagePickerSection: View {
     @Binding var selectedItem: PhotosPickerItem?
     
     var body: some View {
-        VStack {
-            if let imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 240)
-                    .clipped()
-                    .cornerRadius(12)
-            } else {
-                PhotosPicker(selection: $selectedItem, matching: .images) {
+        PhotosPicker(selection: $selectedItem, matching: .images) {
+            VStack {
+                if let imageData, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 240)
+                        .clipped()
+                        .cornerRadius(12)
+                } else {
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color("F2F2F7"))
@@ -120,6 +123,7 @@ struct ImagePickerSection: View {
                 }
             }
         }
+        .tint(Color("EBA72B"))
     }
 }
 

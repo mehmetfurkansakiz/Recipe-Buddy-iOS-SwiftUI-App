@@ -68,6 +68,9 @@ struct RegisterView: View {
                 .alert("Hata", isPresented: .constant(viewModel.errorMessage != nil), actions: {
                     Button("Tamam") { viewModel.errorMessage = nil }
                 }, message: { Text(viewModel.errorMessage ?? "") })
+                .onTapGesture {
+                    endEditing()
+                }
             }
         }
     }

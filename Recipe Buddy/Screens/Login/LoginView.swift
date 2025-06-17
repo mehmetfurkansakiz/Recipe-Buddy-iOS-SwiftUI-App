@@ -7,16 +7,20 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            Color("FBFBFB").ignoresSafeArea()
+            Color("FBFBFB")
+                .ignoresSafeArea()
+                .onTapGesture {
+                     endEditing()
+                 }
             
             VStack(spacing: 20) {
-                Spacer()
+//                Spacer()
                 
                 VStack {
-                    Image("logo.icon")
+                    Image("welcome.chef")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 80)
+                        .frame(height: 240)
                     Text("Tekrar Hoş Geldin!")
                         .font(.largeTitle).fontWeight(.bold)
                         .foregroundStyle(Color("181818"))
@@ -67,7 +71,7 @@ struct LoginView: View {
                     if viewModel.didAuthenticate {
                         DispatchQueue.main.async {
                             onAuthSuccess()
-                        }
+                        }   
                     }
                 }
             }
