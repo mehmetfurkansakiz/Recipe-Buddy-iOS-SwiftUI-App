@@ -11,6 +11,8 @@ struct Recipe: Codable, Identifiable, Hashable {
     let categories: [RecipeCategoryJoin]
     let rating: Double?
     let imageName: String
+    let userId: UUID
+    let isPublic: Bool
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -24,6 +26,8 @@ struct Recipe: Codable, Identifiable, Hashable {
         case id, name, description, ingredients, steps, servings, categories, rating
         case cookingTime = "cooking_time"
         case imageName = "image_name"
+        case userId = "user_id"
+        case isPublic = "is_public"
     }
 }
 
@@ -60,4 +64,10 @@ struct ShoppingItem: Codable, Identifiable {
     let unit: String
     let userId: UUID?
     var isChecked: Bool = false
+    
+    enum CodingKeys: String, CodingKey {
+        case id, ingredient, amount, unit
+        case userId = "user_id"
+        case isChecked = "is_checked"
+    }
 }

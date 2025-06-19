@@ -9,6 +9,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var servings: Int = 4   // default start
     @Published var cookingTime: Int = 30 // default start
     @Published var steps: [String] = [""]
+    @Published var isPublic: Bool = false // default start
     
     // Photo management
     @Published var selectedPhotoItem: PhotosPickerItem?
@@ -75,6 +76,11 @@ class RecipeCreateViewModel: ObservableObject {
     func saveRecipe() async {
         guard isValid, let imageData = selectedImageData else { return }
         
+        guard let userId = try? await supabase.auth.session.user.id else {
+            self.errorMessage = "Tarifi kaydetmek için giriş yapmalısınız."
+            return
+        }
+        
         isSaving = true
         defer { isSaving = false }
         
@@ -89,7 +95,9 @@ class RecipeCreateViewModel: ObservableObject {
                 cookingTime: self.cookingTime,
                 servings: self.servings,
                 steps: self.steps,
-                imageName: imagePath
+                imageName: imagePath,
+                userId: userId,
+                isPublic: self.isPublic
             )
             
             let savedRecipeInfo: RecipeID = try await supabase.from("recipes")

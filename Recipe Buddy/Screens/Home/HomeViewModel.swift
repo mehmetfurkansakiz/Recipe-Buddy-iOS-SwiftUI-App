@@ -39,12 +39,16 @@ class HomeViewModel: ObservableObject {
     
     func fetchRecipes() async {
         do {
+            guard let userId = try? await supabase.auth.session.user.id else {
+                self.recipes = []
+                return
+            }
+            
             let query = supabase.from("recipes")
                 .select("""
-                    *,
-                    categories: recipe_categories(* , category: categories(*)),
-                    ingredients: recipe_ingredients(id, amount, unit, ingredient: ingredients(*))
+                    ...
                 """)
+                .eq("user_id", value: userId)
             
             let fetchedRecipes: [Recipe] = try await query.execute().value
             self.recipes = fetchedRecipes

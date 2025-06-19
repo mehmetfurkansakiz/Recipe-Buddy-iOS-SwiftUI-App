@@ -14,7 +14,6 @@ struct LoginView: View {
                  }
             
             VStack(spacing: 20) {
-//                Spacer()
                 
                 VStack {
                     Image("welcome.chef")

@@ -17,7 +17,7 @@ struct RecipeCreateView: View {
                     
                     ImagePickerSection(imageData: $viewModel.selectedImageData, selectedItem: $viewModel.selectedPhotoItem)
                     
-                    BasicInfoSection(name: $viewModel.name, description: $viewModel.description, servings: $viewModel.servings, cookingTime: $viewModel.cookingTime)
+                    BasicInfoSection(name: $viewModel.name, description: $viewModel.description, servings: $viewModel.servings, cookingTime: $viewModel.cookingTime, isPublic: $viewModel.isPublic)
                     
                     CategorySelectionSection(selectedCategories: viewModel.selectedCategories, action: {
                         showingCategorySelector = true
@@ -133,6 +133,7 @@ struct BasicInfoSection: View {
     @Binding var description: String
     @Binding var servings: Int
     @Binding var cookingTime: Int
+    @Binding var isPublic: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -146,11 +147,8 @@ struct BasicInfoSection: View {
                 .tint(Color("EBA72B"))
                 .background(
                     ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color("000000").opacity(0.4))
-                            .offset(y: 1)
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color("F2F2F7"))
+                        RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.5)).offset(y: 1)
+                        RoundedRectangle(cornerRadius: 8).fill(Color("F2F2F7"))
                     }
                 )
             
@@ -160,11 +158,8 @@ struct BasicInfoSection: View {
                 .tint(Color("EBA72B"))
                 .background(
                     ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color("000000").opacity(0.4))
-                            .offset(y: 1)
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color("F2F2F7"))
+                        RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.5)).offset(y: 1)
+                        RoundedRectangle(cornerRadius: 8).fill(Color("F2F2F7"))
                     }
                 )
             
@@ -186,6 +181,13 @@ struct BasicInfoSection: View {
                 .background(Color("F2F2F7"))
                 .cornerRadius(8)
                 .shadow(color: Color("000000").opacity(0.4), radius: 1, x: 0, y: 1)
+                
+                Toggle(isOn: $isPublic) {
+                    Text("Herkese Açık")
+                        .foregroundStyle(Color("EBA72B"))
+                }
+                .tint(Color("EBA72B"))
+                .fixedSize()
             }
         }
     }
@@ -241,48 +243,46 @@ struct IngredientsSection: View {
                 .font(.headline)
                 .foregroundStyle(Color("181818"))
             Divider()
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach($recipeIngredients) { $ingredientInput in
-                        HStack {
-                            Text(ingredientInput.ingredient.name)
-                                .fontWeight(.regular)
-                                .padding(.horizontal, 8)
-                                .frame(maxWidth: .infinity, minHeight: 32,alignment: .leading)
-                                .background(Color("F2F2F7"))
-                                .foregroundStyle(Color("181818"))
-                                .cornerRadius(8)
-                                .shadow(color: Color("000000").opacity(0.4), radius: 1, x: 0, y: 1)
-                            Spacer()
-                            TextField("", text: $ingredientInput.amount, prompt: Text("Miktar").foregroundStyle(Color("A3A3A3")))
-                                .keyboardType(.decimalPad)
-                                .padding(.horizontal, 4)
-                                .frame(width: 64, height: 32, alignment: .center)
-                                .foregroundStyle(Color("181818"))
-                                .background(Color("F2F2F7"))
-                                .cornerRadius(8)
-                                .shadow(color: Color("000000").opacity(0.4), radius: 1, x: 0, y: 1)
-                            TextField("", text: $ingredientInput.unit, prompt: Text("Birim").foregroundStyle(Color("A3A3A3")))
-                                .padding(.horizontal, 4)
-                                .frame(width: 80, height: 32, alignment: .center)
-                                .foregroundStyle(Color("181818"))
-                                .background(Color("F2F2F7"))
-                                .cornerRadius(8)
-                                .shadow(color: Color("000000").opacity(0.4), radius: 1, x: 0, y: 1)
-                            Button (action: {
-                                deleteAction(ingredientInput.id)
-                            }) {
-                                Image("minus.circle.icon")
-                                    .foregroundStyle(Color("EBA72B"))
-                            }
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach($recipeIngredients) { $ingredientInput in
+                    HStack {
+                        Text(ingredientInput.ingredient.name)
+                            .fontWeight(.regular)
+                            .padding(.horizontal, 8)
+                            .frame(maxWidth: .infinity, minHeight: 32,alignment: .leading)
+                            .background(Color("F2F2F7"))
+                            .foregroundStyle(Color("181818"))
+                            .cornerRadius(8)
+                            .shadow(color: Color("000000").opacity(0.4), radius: 1, x: 0, y: 1)
+                        Spacer()
+                        TextField("", text: $ingredientInput.amount, prompt: Text("Miktar").foregroundStyle(Color("A3A3A3")))
+                            .keyboardType(.decimalPad)
+                            .padding(.horizontal, 4)
+                            .frame(width: 64, height: 32, alignment: .center)
+                            .foregroundStyle(Color("181818"))
+                            .background(Color("F2F2F7"))
+                            .cornerRadius(8)
+                            .shadow(color: Color("000000").opacity(0.4), radius: 1, x: 0, y: 1)
+                        TextField("", text: $ingredientInput.unit, prompt: Text("Birim").foregroundStyle(Color("A3A3A3")))
+                            .padding(.horizontal, 4)
+                            .frame(width: 80, height: 32, alignment: .center)
+                            .foregroundStyle(Color("181818"))
+                            .background(Color("F2F2F7"))
+                            .cornerRadius(8)
+                            .shadow(color: Color("000000").opacity(0.4), radius: 1, x: 0, y: 1)
+                        Button (action: {
+                            deleteAction(ingredientInput.id)
+                        }) {
+                            Image("minus.circle.icon")
+                                .foregroundStyle(Color("EBA72B"))
                         }
                     }
-                    Text("Malzeme seçmek için dokun")
-                        .foregroundColor(Color("C2C2C2"))
                 }
-                .onTapGesture {
-                    addAction()
-                }
+                Text("Malzeme seçmek için dokun")
+                    .foregroundColor(Color("C2C2C2"))
+                    .onTapGesture {
+                        addAction()
+                    }
             }
         }
     }

@@ -22,12 +22,16 @@ struct NewRecipe: Encodable {
     let servings: Int
     let steps: [String]
     let imageName: String
+    let userId: UUID
+    let isPublic: Bool
 
     // camelCase -> DB snake_case
     enum CodingKeys: String, CodingKey {
         case name, description, steps, servings
         case cookingTime = "cooking_time"
         case imageName = "image_name"
+        case userId = "user_id"
+        case isPublic = "is_public"
     }
 }
 
