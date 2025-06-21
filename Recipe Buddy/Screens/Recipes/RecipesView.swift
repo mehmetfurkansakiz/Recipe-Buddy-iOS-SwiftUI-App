@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
+struct RecipesView: View {
+    @StateObject private var viewModel = RecipesViewModel()
     @Binding var navigationPath: NavigationPath
     
     var body: some View {
@@ -124,6 +124,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(navigationPath: .constant(NavigationPath()))
-        .environmentObject(HomeViewModel())
+    RecipesView(navigationPath: .constant(NavigationPath()))
+        .environmentObject(RecipesViewModel())
 }

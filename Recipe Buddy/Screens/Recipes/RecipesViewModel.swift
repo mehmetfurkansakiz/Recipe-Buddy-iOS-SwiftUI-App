@@ -3,7 +3,7 @@ import Combine
 import Supabase
 
 @MainActor
-class HomeViewModel: ObservableObject {
+class RecipesViewModel: ObservableObject {
     @Published var recipes: [Recipe] = []
     @Published var categories: [Category] = []
     @Published var searchText: String = ""

@@ -84,9 +84,6 @@ struct RecipeDetailView: View {
                     .foregroundStyle(Color("181818"))
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(2)
-                    .background(.green)
-                
                 
                 if viewModel.isOwnedByCurrentUser {
                     Button(action: {
@@ -97,7 +94,6 @@ struct RecipeDetailView: View {
                             .resizable()
                             .foregroundStyle(Color("A3A3A3"))
                             .frame(width: 32, height: 32)
-                            .background(.red)
                     }
                 }
                 
