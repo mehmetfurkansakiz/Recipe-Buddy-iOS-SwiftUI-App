@@ -1,14 +1,11 @@
 import SwiftUI
 
 struct RecipeDetailView: View {
-    let recipe: Recipe
-    @StateObject private var viewModel: RecipeDetailViewModel
+    @StateObject var viewModel: RecipeDetailViewModel
     @Environment(\.dismiss) private var dismiss: DismissAction
     
-    init(recipe: Recipe) {
-        self.recipe = recipe
-        _viewModel = StateObject(wrappedValue: RecipeDetailViewModel(recipe: recipe))
-        
+    init(viewModel: RecipeDetailViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
     }
     
     var body: some View {
@@ -19,19 +16,12 @@ struct RecipeDetailView: View {
                     
                     VStack(alignment: .leading, spacing: 16) {
                         recipeInfoSection
-                        
                         Divider()
-                        
                         ingredientsSection
-                        
                         Divider()
-                        
                         preparationSection
-                        
                         Divider()
-                        
                         addToShoppingListButton
-                        
                         Spacer(minLength: 120)
                     }
                     .padding()
@@ -47,7 +37,7 @@ struct RecipeDetailView: View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
                 let baseSupabaseURL = Secrets.supabaseURL.deletingLastPathComponent().absoluteString.replacingOccurrences(of: "/rest/v1", with: "")
-                let urlString = "\(baseSupabaseURL)/storage/v1/object/public/recipe-images/\(recipe.imageName)"
+                let urlString = "\(baseSupabaseURL)/storage/v1/object/public/recipe-images/\(viewModel.recipe.imageName)"
                 let imageURL = URL(string: urlString)
                 
                 AsyncImage(url: imageURL) { image in
@@ -63,6 +53,8 @@ struct RecipeDetailView: View {
                 .frame(width: geo.size.width, height: max(geo.size.height, geo.frame(in: .global).minY > 0 ? geo.size.height + geo.frame(in: .global).minY : geo.size.height))
                 .clipped()
                 .offset(y: geo.frame(in: .global).minY > 0 ? -geo.frame(in: .global).minY : 0)
+                
+                // BackButton
                 Button(action: {
                     dismiss()
                 }) {
@@ -87,30 +79,46 @@ struct RecipeDetailView: View {
     private var recipeInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(recipe.name)
-                    .font(.largeTitle)
+                Text(viewModel.recipe.name)
+                    .font(.title)
                     .foregroundStyle(Color("181818"))
                     .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineLimit(2)
+                    .background(.green)
                 
-                Spacer()
+                
+                if viewModel.isOwnedByCurrentUser {
+                    Button(action: {
+                        // TODO: added navigation to edit recipe view
+                        print("Düzenle butonuna basıldı!")
+                    }) {
+                        Image("pencil.icon")
+                            .resizable()
+                            .foregroundStyle(Color("A3A3A3"))
+                            .frame(width: 32, height: 32)
+                            .background(.red)
+                    }
+                }
                 
                 Button(action: {
                     viewModel.toggleFavorite()
                 }) {
-                    Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
-                        .font(.title)
+                    Image(viewModel.isFavorite ? "heart.fill.icon" : "heart.icon")
+                        .resizable()
+                        .frame(width: 32, height: 32)
                         .foregroundStyle(viewModel.isFavorite ? Color("FF2A1F") : Color("A3A3A3"))
                 }
             }
             
-            Text(recipe.description)
+            Text(viewModel.recipe.description)
                 .font(.subheadline)
                 .foregroundStyle(Color("303030"))
             
             HStack {
-                RecipeInfoBadge(icon: "alarm.icon", text: "\(recipe.cookingTime) dk", color: Color("EBA72B"))
-                RecipeInfoBadge(icon: "people.icon", text: "\(recipe.servings)", color: Color("EBA72B"))
-                if let rating = recipe.rating {
+                RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color("EBA72B"))
+                RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings)", color: Color("EBA72B"))
+                if let rating = viewModel.recipe.rating {
                     RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating), color: Color("FFCB1F"))
                 } else {
                     RecipeInfoBadge(icon: "star.icon", text: "N/A", color: Color("C2C2C2"))
@@ -119,7 +127,7 @@ struct RecipeDetailView: View {
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(recipe.categories) { recipeCategory in
+                    ForEach(viewModel.recipe.categories) { recipeCategory in
                         Text(recipeCategory.category.name)
                             .font(.caption)
                             .padding(.horizontal, 8)
@@ -140,7 +148,7 @@ struct RecipeDetailView: View {
                 .fontWeight(.bold)
                 .foregroundStyle(Color("181818"))
             
-            ForEach(recipe.ingredients) { recipeIngredient in
+            ForEach(viewModel.recipe.ingredients) { recipeIngredient in
                 HStack {
                     Image("circle.fill.icon")
                         .resizable()
@@ -182,7 +190,7 @@ struct RecipeDetailView: View {
                 .fontWeight(.bold)
                 .foregroundStyle(Color("181818"))
             
-            ForEach(Array(recipe.steps.enumerated()), id: \.offset) { index, step in
+            ForEach(Array(viewModel.recipe.steps.enumerated()), id: \.offset) { index, step in
                 HStack(alignment: .top) {
                     Text("\(index + 1).")
                         .font(.headline)
@@ -229,5 +237,16 @@ struct RecipeDetailView: View {
                 dismissButton: .default(Text("Tamam"))
             )
         }
+    }
+}
+
+#Preview("Kullanıcının Kendi Tarifi (Düzenle Butonu Görünür)") {
+    NavigationStack {
+        let viewModel = RecipeDetailViewModel(
+            recipe: Recipe.mockOwnedByCurrentUser,
+            isOwnedForPreview: true
+        )
+        
+        RecipeDetailView(viewModel: viewModel)
     }
 }

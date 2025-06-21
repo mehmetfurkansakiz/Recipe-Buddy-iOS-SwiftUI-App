@@ -1,10 +1,12 @@
 import Foundation
+import Supabase
 
 class RecipeDetailViewModel: ObservableObject {
     let recipe: Recipe
     @Published var selectedIngredients: Set<UUID> = []
     @Published var isFavorite: Bool = false
     @Published var showingShoppingListAlert: Bool = false
+    @Published var isOwnedByCurrentUser = false
     
     var areAllIngredientsSelected: Bool {
         selectedIngredients.count == recipe.ingredients.count
@@ -13,6 +15,25 @@ class RecipeDetailViewModel: ObservableObject {
     init(recipe: Recipe) {
         self.recipe = recipe
         // real application would check favorites from UserDefaults or database
+        
+        Task {
+            await checkOwnership()
+        }
+    }
+    
+    // For preview purposes
+    init(recipe: Recipe, isOwnedForPreview: Bool) {
+        self.recipe = recipe
+        self.isOwnedByCurrentUser = isOwnedForPreview
+    }
+    
+    private func checkOwnership() async {
+        guard let currentUserId = try? await supabase.auth.session.user.id else {
+            self.isOwnedByCurrentUser = false
+            return
+        }
+        
+        self.isOwnedByCurrentUser = (currentUserId == self.recipe.userId)
     }
     
     func isIngredientSelected(_ ingredient: Ingredient) -> Bool {

@@ -46,7 +46,7 @@ struct MainTabView: View {
             .ignoresSafeArea(.keyboard)
             
             .navigationDestination(for: Recipe.self) { recipe in
-                RecipeDetailView(recipe: recipe)
+                RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe))
             }
             .navigationDestination(for: ShoppingList.self) { _ in
                 ShoppingListView(viewModel: ShoppingListViewModel())
