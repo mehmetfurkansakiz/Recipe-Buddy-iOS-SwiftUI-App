@@ -36,11 +36,7 @@ struct RecipeDetailView: View {
     private var recipeImageHeader: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                let baseSupabaseURL = Secrets.supabaseURL.deletingLastPathComponent().absoluteString.replacingOccurrences(of: "/rest/v1", with: "")
-                let urlString = "\(baseSupabaseURL)/storage/v1/object/public/recipe-images/\(viewModel.recipe.imageName)"
-                let imageURL = URL(string: urlString)
-                
-                AsyncImage(url: imageURL) { image in
+                AsyncImage(url: viewModel.recipe.imagePublicURL) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)

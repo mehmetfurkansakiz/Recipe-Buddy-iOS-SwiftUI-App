@@ -45,15 +45,15 @@ class RecipesViewModel: ObservableObject {
             }
             
             let query = supabase.from("recipes")
-                .select("""
-                    ...
-                """)
+                .select(Recipe.selectQuery)
                 .eq("user_id", value: userId)
-            
+                .order("created_at", ascending: false)
+
             let fetchedRecipes: [Recipe] = try await query.execute().value
             self.recipes = fetchedRecipes
+            
         } catch {
-            print("Error fetch recipes: \(error)")
+            print("❌ Error fetch my recipes: \(error)")
         }
     }
 }

@@ -1,6 +1,7 @@
 import Foundation
 import Supabase
 
+@MainActor
 class RecipeDetailViewModel: ObservableObject {
     let recipe: Recipe
     @Published var selectedIngredients: Set<UUID> = []
@@ -32,7 +33,6 @@ class RecipeDetailViewModel: ObservableObject {
             self.isOwnedByCurrentUser = false
             return
         }
-        
         self.isOwnedByCurrentUser = (currentUserId == self.recipe.userId)
     }
     

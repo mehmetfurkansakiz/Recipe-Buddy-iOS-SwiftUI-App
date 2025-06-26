@@ -83,7 +83,9 @@ extension Recipe {
             rating: 4.8,
             imageName: "iskender_mock.jpg",
             userId: MockData.currentUserId,
-            isPublic: false
+            isPublic: false, user: User(
+                id: UUID(), fullName: "Mehmet Furkan Sakız", username: "MehmetFurkan", avatarUrl: nil
+            ), createdAt: .now
         )
     }
 }
