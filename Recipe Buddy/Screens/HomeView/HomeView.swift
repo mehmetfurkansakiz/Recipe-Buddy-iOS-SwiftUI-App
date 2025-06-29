@@ -7,44 +7,58 @@ struct HomeView: View {
     var body: some View {
         ZStack {
             Color("FBFBFB").ignoresSafeArea()
-                    if !viewModel.searchText.isEmpty {
-                        VStack {
-                            HeaderView(searchText: $viewModel.searchText)
-                                .padding(.horizontal)
-                            List(viewModel.searchResults) { recipe in
-                                Button(action: { navigationPath.append(recipe) }) {
-                                    SearchResultRow(recipe: recipe)
-                                }
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                            }
-                            .listStyle(.plain)
-                        }
+            // main scrollview
+            ScrollView(.vertical, showsIndicators: false) {
+                // main vstack
+                VStack(alignment: .leading, spacing: 16) {
+                    
+                    // head and searchbar
+                    let usernameToShow = viewModel.currentUser?.fullName ?? viewModel.currentUser?.username ?? ""
+                    HeaderView(searchText: $viewModel.searchText, username: ", " + usernameToShow)
+                        .padding(.horizontal)
+                    
+                    // category filter buttons
+                    if viewModel.searchText.isEmpty {
+                        CategoryScrollView(
+                            categories: viewModel.availableCategories,
+                            selectedCategory: $viewModel.selectedCategory
+                        )
+                    }
+
+                    // content area
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 50)
                     } else {
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 30) {
-                                HeaderView(searchText: $viewModel.searchText)
-                                    .padding(.horizontal)
-                                    .padding(.bottom, 8)
-                                
-                                if viewModel.isLoading {
-                                    ProgressView()
-                                        .frame(maxWidth: .infinity, alignment: .center)
-                                        .padding(.top, 50)
-                                }
-                                ForEach(viewModel.sections) { section in
-                                    RecipeCarouselSection(
-                                        title: section.title,
-                                        recipes: section.recipes,
-                                        style: section.style,
-                                        navigationPath: $navigationPath
-                                    )
-                                }
+                        // search mode or category filtered mode
+                        if !viewModel.searchText.isEmpty {
+                            SearchResultsView(
+                                recipes: viewModel.searchResults,
+                                navigationPath: $navigationPath
+                            )
+                        } else if viewModel.selectedCategory != nil {
+                            CategoryResultsView(
+                                recipes: viewModel.categoryFilteredRecipes,
+                                isLoading: viewModel.isFetchingCategoryRecipes,
+                                navigationPath: $navigationPath
+                            )
+                        } else {
+                            // main
+                            ForEach(viewModel.sections) { section in
+                                RecipeCarouselSection(
+                                    title: section.title,
+                                    recipes: section.recipes,
+                                    style: section.style,
+                                    navigationPath: $navigationPath
+                                )
                             }
+                            .padding(.top)
                         }
-                        .padding(.top)
                     }
                 }
+            }
+        }
         .task {
             await viewModel.fetchHomePageData()
         }
@@ -56,13 +70,71 @@ struct HomeView: View {
 
 struct HeaderView: View {
     @Binding var searchText: String
+    let username: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Merhaba\(username) 👋")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color("EBA72B"))
+                .shadow(color: Color("000000").opacity(0.1), radius: 8, y: 4)
             Text("Ne pişirmek istersin?")
-                .font(.largeTitle).bold()
+                .font(.title)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color("181818"))
+                .shadow(color: Color("000000").opacity(0.1), radius: 8, y: 4)
             
             SearchBarView(searchText: $searchText)
+        }
+    }
+}
+
+struct SearchResultsView: View {
+    let recipes: [Recipe]
+    @Binding var navigationPath: NavigationPath
+
+    var body: some View {
+        VStack {
+            ForEach(recipes) { recipe in
+                Button(action: { navigationPath.append(recipe) }) {
+                    SearchResultRow(recipe: recipe)
+                }
+                .padding(.horizontal)
+                Divider().padding(.horizontal)
+            }
+        }
+    }
+}
+
+struct CategoryResultsView: View {
+    let recipes: [Recipe]
+    let isLoading: Bool
+    @Binding var navigationPath: NavigationPath
+
+    var body: some View {
+        ZStack {
+            if isLoading {
+                ProgressView()
+            } else if recipes.isEmpty {
+                Text("Bu kategoride tarif bulunamadı.")
+                    .foregroundStyle(.secondary)
+                    .padding()
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
+                    spacing: 16
+                ) {
+                    ForEach(recipes) { recipe in
+                        Button(action: { navigationPath.append(recipe) }) {
+                            // for use small 
+                            let cardWidth = (UIScreen.main.bounds.width / 2) - 24
+                            ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
         }
     }
 }
@@ -84,7 +156,7 @@ struct SearchResultRow: View {
             
             VStack(alignment: .leading) {
                 Text(recipe.name).font(.headline)
-                Text("\(recipe.user?.fullName ?? "Anonim")").font(.caption).foregroundStyle(.secondary)
+                Text("\(recipe.user?.fullName ?? "Mehmet Furkan Sakız")").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
         }
@@ -106,6 +178,8 @@ struct RecipeCarouselSection: View {
             Text(title)
                 .font(.title2).bold()
                 .padding(.horizontal)
+                .foregroundStyle(Color("EBA72B"))
+                .shadow(color: Color("000000").opacity(0.1), radius: 8, y: 4)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
@@ -137,8 +211,8 @@ struct ExploreRecipeCard: View {
                 }
             }
             .frame(width: cardWidth, height: cardWidth)
-            .shadow(color: Color("000000").opacity(0.1), radius: 8, y: 4)
             .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: Color("000000").opacity(0.1), radius: 8, y: 4)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(recipe.name)
@@ -151,6 +225,7 @@ struct ExploreRecipeCard: View {
                     .foregroundStyle(Color("303030"))
                     .lineLimit(1)
             }
+            .padding(.horizontal, 8)
         }
         .frame(width: cardWidth)
     }

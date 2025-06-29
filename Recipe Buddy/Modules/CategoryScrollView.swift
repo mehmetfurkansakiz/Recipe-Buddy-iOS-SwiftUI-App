@@ -37,7 +37,7 @@ struct CategoryButton: View {
                 .padding(.vertical, 8)
                 .background(isSelected ? Color("EBA72B") : Color("F2F2F7"))
                 .foregroundStyle(isSelected ? Color("FFFFFF") : Color("181818"))
-                .cornerRadius(8)
+                .cornerRadius(12)
         }
     }
 }

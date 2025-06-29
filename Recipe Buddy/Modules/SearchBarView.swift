@@ -29,7 +29,7 @@ struct SearchBarView: View {
         .padding(.horizontal)
         .padding(.vertical, 6)
         .background(Color("F2F2F7"))
-        .cornerRadius(8)
+        .cornerRadius(12)
         
     }
 }

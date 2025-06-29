@@ -41,21 +41,25 @@ struct RecipesView: View {
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
-                Text("Recipe Buddy")
+                Text("Tariflerim")
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundStyle(Color("EBA72B"))
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    navigationPath.append(RecipeCreate())
-                }) {
+                HStack {
+                    Text("Tarif Oluştur")
+                        .font(.headline)
+                        .fontWeight(.bold)
                     Image("plus.icon")
                         .resizable()
-                        .foregroundStyle(Color("EBA72B"))
                         .frame(width: 24, height: 24)
                 }
+                .onTapGesture(perform: {
+                    navigationPath.append(RecipeCreate())
+                })
+                .foregroundStyle(Color("EBA72B"))
             }
         }
     }
