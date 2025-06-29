@@ -1,0 +1,46 @@
+SupabaseKeys.plist
+*.xcconfig
+
+*.xcodeproj/project.xcworkspace
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+
+DerivedData/
+build/
+Build/
+.build/
+*.o
+*.hmap
+*.ipa
+*.app
+*.dSYM/
+
+
+
+# Swift Package Manager (SPM)
+
+.swiftpm/
+
+# CocoaPods
+Pods/
+# Carthage
+Carthage/
+
+
+
+# Test
+
+*.gcno
+*.gcda
+*.profdata
+*.lcov
+coverage/
+Tests.plist
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
