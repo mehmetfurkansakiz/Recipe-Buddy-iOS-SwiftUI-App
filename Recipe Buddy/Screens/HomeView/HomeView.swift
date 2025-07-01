@@ -76,7 +76,7 @@ struct HeaderView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Merhaba\(username) 👋")
+            Text("Merhaba \(username) 👋")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundStyle(Color("EBA72B"))
@@ -157,8 +157,13 @@ struct SearchResultRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
             VStack(alignment: .leading) {
-                Text(recipe.name).font(.headline)
-                Text("\(recipe.user?.fullName ?? "Mehmet Furkan Sakız")").font(.caption).foregroundStyle(.secondary)
+                Text(recipe.name)
+                    .font(.headline)
+                    .foregroundStyle(Color("181818"))
+                                     
+                Text("\(recipe.user?.fullName ?? "")")
+                    .font(.caption)
+                    .foregroundStyle(Color("303030"))
             }
             Spacer()
         }

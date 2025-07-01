@@ -39,6 +39,14 @@ struct RecipeIngredientJoin: Codable, Hashable, Identifiable {
     let amount: Double
     let unit: String
     let ingredient: Ingredient
+    
+    var formattedAmount: String {
+        if amount.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", amount)
+        } else {
+            return String(format: "%.1f", amount)
+        }
+    }
 }
 
 struct RecipeCategoryJoin: Codable, Hashable, Identifiable {
