@@ -13,6 +13,8 @@ struct RecipeInfoBadge: View {
                 .frame(width: 18, height: 18)
             Text(text)
                 .font(.caption)
+                .fontWeight(.heavy)
+                .foregroundStyle(Color("A3A3A3"))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
