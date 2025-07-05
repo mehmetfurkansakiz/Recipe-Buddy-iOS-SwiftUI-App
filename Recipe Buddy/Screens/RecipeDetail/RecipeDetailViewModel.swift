@@ -49,7 +49,7 @@ class RecipeDetailViewModel: ObservableObject {
         do {
             let favoritedRecipe: [RecipeID] = try await supabase
                 .from("favorite_recipes")
-                .select("recipe_id")
+                .select("id:recipe_id")
                 .eq("user_id", value: currentUserId)
                 .eq("recipe_id", value: self.recipe.id)
                 .execute()
