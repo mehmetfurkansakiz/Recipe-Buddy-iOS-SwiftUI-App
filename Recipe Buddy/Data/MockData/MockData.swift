@@ -80,7 +80,7 @@ extension Recipe {
                 RecipeCategoryJoin(category: categories.first(where: { $0.name == "Ana Yemek" })!),
                 RecipeCategoryJoin(category: categories.first(where: { $0.name == "Et Yemeği" }) ?? Category(id: UUID(), name: "Et Yemeği"))
             ],
-            rating: 4.8,
+            rating: 4.8, ratingCount: 300,
             imageName: "iskender_mock.jpg",
             userId: MockData.currentUserId,
             isPublic: false, user: User(
