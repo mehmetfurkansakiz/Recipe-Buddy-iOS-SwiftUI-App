@@ -89,17 +89,28 @@ struct RecipeDetailView: View {
                         Image("pencil.icon")
                             .resizable()
                             .foregroundStyle(Color("A3A3A3"))
-                            .frame(width: 32, height: 32)
+                            .frame(width: 24, height: 24)
+                    }
+                } else if viewModel.isAuthenticated {
+                    Button(action: {
+                        viewModel.showRatingSheet = true
+                    }) {
+                        Image(viewModel.userCurrentRating != nil ? "star.fill.icon" : "star.icon")
+                            .resizable()
+                            .foregroundStyle(Color("A3A3A3"))
+                            .frame(width: 24, height: 24)
                     }
                 }
                 
-                Button(action: {
-                    viewModel.toggleFavorite()
-                }) {
-                    Image(viewModel.isFavorite ? "heart.fill.icon" : "heart.icon")
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                        .foregroundStyle(viewModel.isFavorite ? Color("FF2A1F") : Color("A3A3A3"))
+                if viewModel.isAuthenticated {
+                    Button(action: {
+                        Task { await viewModel.toggleFavorite() }
+                    }) {
+                        Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
+                            .resizable()
+                            .foregroundStyle(viewModel.isFavorite ? Color("FF2A1F") : Color("A3A3A3"))
+                            .frame(width: 24, height: 24)
+                    }
                 }
             }
             
@@ -240,6 +251,17 @@ struct RecipeDetailView: View {
                 message: Text("Seçili malzemeler alışveriş listenize eklendi."),
                 dismissButton: .default(Text("Tamam"))
             )
+        }
+        .sheet(isPresented: $viewModel.showRatingSheet) {
+            RatingView(
+                currentRating: $viewModel.userCurrentRating,
+                onSave: { newRating in
+                    Task {
+                        await viewModel.submitRating(newRating)
+                    }
+                }
+            )
+            .presentationDetents([.height(200)])
         }
     }
 }

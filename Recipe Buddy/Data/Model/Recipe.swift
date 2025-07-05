@@ -10,6 +10,7 @@ struct Recipe: Codable, Identifiable, Hashable {
     let servings: Int
     let categories: [RecipeCategoryJoin]
     let rating: Double?
+    let ratingCount: Int?
     let imageName: String
     let userId: UUID
     let isPublic: Bool
@@ -27,6 +28,7 @@ struct Recipe: Codable, Identifiable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id, name, description, ingredients, steps, servings, categories, rating, user
         case cookingTime = "cooking_time"
+        case ratingCount = "rating_count"
         case imageName = "image_name"
         case userId = "user_id"
         case isPublic = "is_public"
@@ -68,6 +70,18 @@ struct Category: Codable, Identifiable, Hashable {
     let name: String
 }
 
+struct NewRating: Encodable {
+    let recipeId: UUID
+    let userId: UUID
+    let rating: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case rating
+        case recipeId = "recipe_id"
+        case userId = "user_id"
+    }
+}
+
 struct ShoppingItem: Codable, Identifiable {
     let id: UUID
     let ingredient: Ingredient
@@ -87,8 +101,8 @@ struct ShoppingItem: Codable, Identifiable {
 extension Recipe {
     var imagePublicURL: URL? {
         let urlString = Secrets.supabaseURL
-                    .absoluteString
-                    .replacingOccurrences(of: "/rest/v1", with: "")
+            .absoluteString
+            .replacingOccurrences(of: "/rest/v1", with: "")
         let fullURLString = "\(urlString)/storage/v1/object/public/recipe-images/\(self.imageName)"
         return URL(string: fullURLString)
     }
@@ -97,8 +111,8 @@ extension Recipe {
 // SQL query for selecting recipes with related data
 extension Recipe {
     static let selectQuery = """
-        id, name, description, steps, cooking_time, servings, rating, image_name, user_id, is_public, created_at,
-        user:users(id, full_name, username, avatar_url),
+        id, name, description, steps, cooking_time, servings, rating, rating_count, image_name, user_id, is_public, created_at,
+        user:users!recipes_user_id_fkey(id, full_name, username, avatar_url),
         categories:recipe_categories(category:categories(id, name)),
         ingredients:recipe_ingredients(id, amount, unit, ingredient:ingredients(id, name))
     """
