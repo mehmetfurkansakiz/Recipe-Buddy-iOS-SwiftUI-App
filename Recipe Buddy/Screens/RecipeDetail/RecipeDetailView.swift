@@ -266,10 +266,10 @@ struct RecipeDetailView: View {
     }
 }
 
-#Preview("Kullanıcının Kendi Tarifi (Düzenle Butonu Görünür)") {
+#Preview() {
     NavigationStack {
         let viewModel = RecipeDetailViewModel(
-            recipe: Recipe.mockOwnedByCurrentUser,
+            recipe: Recipe.allMocks.first!,
             isOwnedForPreview: true
         )
         

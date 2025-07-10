@@ -2,58 +2,77 @@ import Foundation
 import Combine
 import Supabase
 
+fileprivate struct FavoritedRecipeResult: Decodable, Hashable {
+    let recipe: Recipe
+}
+
 @MainActor
 class RecipesViewModel: ObservableObject {
-    @Published var recipes: [Recipe] = []
-    @Published var categories: [Category] = []
-    @Published var searchText: String = ""
-    @Published var selectedCategory: Category?
+    @Published var ownedRecipes: [Recipe] = []
+    @Published var favoritedRecipes: [Recipe] = []
     
-    var filteredRecipes: [Recipe] {
-        recipes.filter { recipe in
-            let matchesSearch = searchText.isEmpty ||
-                recipe.name.lowercased().contains(searchText.lowercased())
-
-            let matchesCategory = selectedCategory == nil ||
-            recipe.categories.contains(where: { $0.category.id == selectedCategory?.id })
-
-            return matchesSearch && matchesCategory
+    @Published var searchText = ""
+    @Published var isLoading = true
+    
+    var searchResults: [Recipe] {
+        if searchText.isEmpty {
+            return []
+        }
+        let allRecipes = ownedRecipes + favoritedRecipes
+        let uniqueRecipes = allRecipes.removingDuplicates()
+        
+        return uniqueRecipes.filter {
+            $0.name.lowercased().contains(searchText.lowercased())
         }
     }
-    
-    init() {}
-    
-    func fetchCategories() async {
+ 
+    func fetchAllMyData() async {
+        isLoading = true
+        
+        async let owned = fetchOwnedRecipes()
+        async let favorites = fetchFavoriteRecipes()
+        
         do {
-            let fetchedCategories: [Category] = try await supabase.from("categories")
-                .select()
-                .order("name")
-                .execute()
-                .value
-            
-            self.categories = fetchedCategories
+            self.ownedRecipes = try await owned
+            self.favoritedRecipes = try await favorites
         } catch {
-            print("Error fetch categories: \(error.localizedDescription)")
+            print("❌ Error fetching my data: \(error)")
         }
+        
+        isLoading = false
     }
     
-    func fetchRecipes() async {
-        do {
-            guard let userId = try? await supabase.auth.session.user.id else {
-                self.recipes = []
-                return
-            }
-            
-            let query = supabase.from("recipes")
-                .select(Recipe.selectQuery)
-                .eq("user_id", value: userId)
-                .order("created_at", ascending: false)
+    private func fetchOwnedRecipes() async throws -> [Recipe] {
+        guard let userId = try? await supabase.auth.session.user.id else { return [] }
+        
+        let response: [Recipe] = try await supabase.from("recipes")
+            .select(Recipe.selectQuery)
+            .eq("user_id", value: userId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        return response
+    }
+    
+    private func fetchFavoriteRecipes() async throws -> [Recipe] {
+        guard let userId = try? await supabase.auth.session.user.id else { return [] }
+        
+        let response: [FavoritedRecipeResult] = try await supabase.from("favorite_recipes")
+            .select("recipe:recipes(\(Recipe.selectQuery))")
+            .eq("user_id", value: userId)
+            .execute()
+            .value
+        
+        return response.map { $0.recipe }
+    }
+}
 
-            let fetchedRecipes: [Recipe] = try await query.execute().value
-            self.recipes = fetchedRecipes
-            
-        } catch {
-            print("❌ Error fetch my recipes: \(error)")
+// array unique element
+extension Array where Element: Hashable {
+    func removingDuplicates() -> [Element] {
+        var addedDict = [Element: Bool]()
+        return filter {
+            addedDict.updateValue(true, forKey: $0) == nil
         }
     }
 }

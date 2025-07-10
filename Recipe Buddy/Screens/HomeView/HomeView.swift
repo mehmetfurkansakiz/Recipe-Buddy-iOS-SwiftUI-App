@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
+    @StateObject var viewModel: HomeViewModel
     @Binding var navigationPath: NavigationPath
     
     var body: some View {
@@ -203,6 +203,6 @@ struct RecipeCarouselSection: View {
 }
 
 #Preview {
-    HomeView(navigationPath: .constant(NavigationPath()))
+    HomeView(viewModel: HomeViewModel(), navigationPath: .constant(NavigationPath()))
         .environmentObject(HomeViewModel())
 }
