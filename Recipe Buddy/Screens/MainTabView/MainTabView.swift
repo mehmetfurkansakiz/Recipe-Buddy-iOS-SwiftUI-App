@@ -66,9 +66,9 @@ struct TabContent: View {
     var body: some View {
         switch selectedTab {
         case .home:
-            HomeView(navigationPath: $navigationPath)
+            HomeView(viewModel: HomeViewModel(), navigationPath: $navigationPath)
         case .recipe:
-            RecipesView(navigationPath: $navigationPath)
+            RecipesView(viewModel: RecipesViewModel(), navigationPath: $navigationPath)
         case .settings:
             SettingsView()
         }

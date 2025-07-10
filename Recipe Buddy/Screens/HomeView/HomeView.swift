@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
+    @StateObject var viewModel: HomeViewModel
     @Binding var navigationPath: NavigationPath
     
     var body: some View {
@@ -14,7 +14,7 @@ struct HomeView: View {
                     
                     // head and searchbar
                     let usernameToShow = viewModel.currentUser?.fullName ?? viewModel.currentUser?.username ?? ""
-                    HeaderView(searchText: $viewModel.searchText, username: ", " + usernameToShow)
+                    HeaderView(searchText: $viewModel.searchText, username: usernameToShow)
                         .padding(.horizontal)
                     
                     // category filter buttons
@@ -54,6 +54,8 @@ struct HomeView: View {
                                 )
                             }
                             .padding(.top)
+                            
+                            Spacer(minLength: 64)
                         }
                     }
                 }
@@ -74,7 +76,7 @@ struct HeaderView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Merhaba\(username) 👋")
+            Text("Merhaba \(username) 👋")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundStyle(Color("EBA72B"))
@@ -127,7 +129,7 @@ struct CategoryResultsView: View {
                 ) {
                     ForEach(recipes) { recipe in
                         Button(action: { navigationPath.append(recipe) }) {
-                            // for use small 
+                            // for use small
                             let cardWidth = (UIScreen.main.bounds.width / 2) - 24
                             ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
                         }
@@ -155,8 +157,13 @@ struct SearchResultRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
             VStack(alignment: .leading) {
-                Text(recipe.name).font(.headline)
-                Text("\(recipe.user?.fullName ?? "Mehmet Furkan Sakız")").font(.caption).foregroundStyle(.secondary)
+                Text(recipe.name)
+                    .font(.headline)
+                    .foregroundStyle(Color("181818"))
+                                     
+                Text("\(recipe.user?.fullName ?? "")")
+                    .font(.caption)
+                    .foregroundStyle(Color("303030"))
             }
             Spacer()
         }
@@ -171,7 +178,7 @@ struct RecipeCarouselSection: View {
     @Binding var navigationPath: NavigationPath
     
     var body: some View {
-        let cardWidthMultiplier: CGFloat = (style == .featured) ? 0.6 : 0.3
+        let cardWidthMultiplier: CGFloat = (style == .featured) ? 0.7 : 0.40
         let cardWidth = UIScreen.main.bounds.width * cardWidthMultiplier
         
         VStack(alignment: .leading, spacing: 12) {
@@ -195,43 +202,7 @@ struct RecipeCarouselSection: View {
     }
 }
 
-
-struct ExploreRecipeCard: View {
-    let recipe: Recipe
-    let cardWidth: CGFloat
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            AsyncImage(url: recipe.imagePublicURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                ZStack {
-                    Color("F2F2F7")
-                    ProgressView()
-                }
-            }
-            .frame(width: cardWidth, height: cardWidth)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: Color("000000").opacity(0.1), radius: 8, y: 4)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(recipe.name)
-                    .font(.headline)
-                    .foregroundStyle(Color("181818"))
-                    .lineLimit(1)
-                
-                Text(recipe.user?.fullName ?? "Anonim")
-                    .font(.caption)
-                    .foregroundStyle(Color("303030"))
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 8)
-        }
-        .frame(width: cardWidth)
-    }
-}
-
 #Preview {
-    HomeView(navigationPath: .constant(NavigationPath()))
+    HomeView(viewModel: HomeViewModel(), navigationPath: .constant(NavigationPath()))
         .environmentObject(HomeViewModel())
 }
