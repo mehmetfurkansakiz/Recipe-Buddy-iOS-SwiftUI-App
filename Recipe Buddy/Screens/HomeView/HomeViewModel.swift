@@ -81,8 +81,9 @@ class HomeViewModel: ObservableObject {
         async let newest = fetchSection(title: "En Yeniler", ordering: "created_at", style: .standard)
         
         do {
-            let (fetchedSections, _, _) = try await ([topRated, newest], userProfileFetch, categoriesFetch)
-            await userProfileFetch // wait userprofile fetch
+            let fetchedSections = try await [topRated, newest]
+            await userProfileFetch
+            await categoriesFetch
             
             self.sections = fetchedSections.filter { !$0.recipes.isEmpty }
         } catch {

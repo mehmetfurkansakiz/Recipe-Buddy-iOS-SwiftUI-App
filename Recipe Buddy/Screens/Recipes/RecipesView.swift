@@ -1,11 +1,10 @@
 import SwiftUI
 
 struct RecipesView: View {
-    @StateObject private var viewModel = RecipesViewModel()
+    @StateObject var viewModel: RecipesViewModel
     @Binding var navigationPath: NavigationPath
     
     var body: some View {
-        GeometryReader { geo in
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
                     ScrollView(.vertical, showsIndicators: false) {
@@ -14,19 +13,51 @@ struct RecipesView: View {
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
                             
-                            CategoryScrollView(
-                                categories: viewModel.categories,
-                                selectedCategory: $viewModel.selectedCategory
-                            )
-                            .padding(.bottom, 8)
-                            
-                            recipeGrid(
-                                cardWidth: (geo.size.width - 16 * 3) / 2,
-                                spacing: 16
-                            )
+                            if viewModel.isLoading {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            } else {
+                                if !viewModel.searchText.isEmpty {
+                                    List(viewModel.searchResults) { recipe in
+                                        Button(action: { navigationPath.append(recipe) }) {
+                                            SearchResultRow(recipe: recipe)
+                                        }
+                                        .listRowBackground(Color.clear)
+                                        .listRowSeparator(.hidden)
+                                    }
+                                    .listStyle(.plain)
+                                } else {
+                                    ScrollView {
+                                        VStack(alignment: .leading, spacing: 30) {
+                                            // empty state view
+                                            if viewModel.favoritedRecipes.isEmpty && viewModel.ownedRecipes.isEmpty {
+                                                emptyStateView
+                                            } else {
+                                                // Favorites
+                                                if !viewModel.favoritedRecipes.isEmpty {
+                                                    RecipeCarouselSection(
+                                                        title: "Favori Tariflerim",
+                                                        recipes: viewModel.favoritedRecipes,
+                                                        style: .standard, // Küçük kartlar
+                                                        navigationPath: $navigationPath
+                                                    )
+                                                }
+                                                // MyRecipes
+                                                if !viewModel.ownedRecipes.isEmpty {
+                                                    RecipeCarouselSection(
+                                                        title: "Oluşturduğum Tarifler",
+                                                        recipes: viewModel.ownedRecipes,
+                                                        style: .standard, // Küçük kartlar
+                                                        navigationPath: $navigationPath
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
-                        .padding(.bottom, 56)
-                        // Space between tabbar and scroll view for shoppinglist button
                     }
                     .background(Color("FBFBFB"))
                 }
@@ -34,80 +65,48 @@ struct RecipesView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
             }
-            .task {
-                await viewModel.fetchCategories()
-                await viewModel.fetchRecipes()
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Text("Tariflerim")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color("EBA72B"))
-            }
-            
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack {
-                    Text("Tarif Oluştur")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                    Image("plus.icon")
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                }
-                .onTapGesture(perform: {
-                    navigationPath.append(RecipeCreate())
-                })
-                .foregroundStyle(Color("EBA72B"))
-            }
-        }
-    }
-    
-    // MARK: - Recipe Grid
-    private func recipeGrid(cardWidth: CGFloat, spacing: CGFloat) -> some View {
-        VStack(spacing: 0) {
-            LazyVGrid(
-                columns: [
-                    GridItem(.fixed(cardWidth), spacing: spacing),
-                    GridItem(.fixed(cardWidth), spacing: spacing)
-                ],
-                spacing: 0
-            ) {
-                ForEach(viewModel.filteredRecipes) { recipe in
-                    Button {
-                        navigationPath.append(recipe)
-                    } label: {
-                        RecipeCardView(recipe: recipe, width: cardWidth)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack {
+                        Text("Tarif Oluştur")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                        Image("plus.icon")
+                            .resizable()
+                            .frame(width: 24, height: 24)
                     }
+                    .onTapGesture(perform: {
+                        navigationPath.append(RecipeCreate())
+                    })
+                    .foregroundStyle(Color("EBA72B"))
                 }
             }
-            
-            if viewModel.filteredRecipes.isEmpty {
-                emptyStateView
+            .task {
+                await viewModel.fetchAllMyData()
+                
             }
         }
-    }
     
     // MARK: - Supporting Views
     private var emptyStateView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "magnifyingglass")
+            Image(systemName: "bookmark.slash")
                 .font(.system(size: 50))
                 .foregroundColor(Color("A3A3A3"))
             
-            Text("Tarif Bulunamadı")
+            Text("Henüz Tarifiniz Yok")
                 .font(.headline)
                 .foregroundColor(Color("181818"))
             
-            Text("Farklı bir arama veya kategori seçimi yapabilirsiniz")
+            Text("Yeni bir tarif oluşturun veya Ana sayfadan beğendiklerinizi favorilerinize ekleyin.")
                 .font(.subheadline)
-                .foregroundColor(Color("A3A3A3"))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
         }
         .padding(32)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 50)
     }
     
     private var shoppingListButton: some View {
@@ -128,6 +127,6 @@ struct RecipesView: View {
 }
 
 #Preview {
-    RecipesView(navigationPath: .constant(NavigationPath()))
+    RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))
         .environmentObject(RecipesViewModel())
 }
