@@ -22,7 +22,7 @@ struct RecipeDetailView: View {
                         preparationSection
                         Divider()
                         addToShoppingListButton
-                        Spacer(minLength: 120)
+                        Spacer(minLength: 64)
                     }
                     .padding()
                 }
@@ -74,11 +74,11 @@ struct RecipeDetailView: View {
     
     private var recipeInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(alignment: .top) {
                 Text(viewModel.recipe.name)
                     .font(.title)
-                    .foregroundStyle(Color("181818"))
                     .fontWeight(.bold)
+                    .foregroundStyle(Color("181818"))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 if viewModel.isOwnedByCurrentUser {
@@ -89,17 +89,28 @@ struct RecipeDetailView: View {
                         Image("pencil.icon")
                             .resizable()
                             .foregroundStyle(Color("A3A3A3"))
-                            .frame(width: 32, height: 32)
+                            .frame(width: 24, height: 24)
+                    }
+                } else if viewModel.isAuthenticated {
+                    Button(action: {
+                        viewModel.showRatingSheet = true
+                    }) {
+                        Image(viewModel.userCurrentRating != nil ? "star.fill.icon" : "star.icon")
+                            .resizable()
+                            .foregroundStyle(Color("A3A3A3"))
+                            .frame(width: 24, height: 24)
                     }
                 }
                 
-                Button(action: {
-                    viewModel.toggleFavorite()
-                }) {
-                    Image(viewModel.isFavorite ? "heart.fill.icon" : "heart.icon")
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                        .foregroundStyle(viewModel.isFavorite ? Color("FF2A1F") : Color("A3A3A3"))
+                if viewModel.isAuthenticated {
+                    Button(action: {
+                        Task { await viewModel.toggleFavorite() }
+                    }) {
+                        Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
+                            .resizable()
+                            .foregroundStyle(viewModel.isFavorite ? Color("FF2A1F") : Color("A3A3A3"))
+                            .frame(width: 24, height: 24)
+                    }
                 }
             }
             
@@ -107,13 +118,24 @@ struct RecipeDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(Color("303030"))
             
+            if let recipeAuthor = viewModel.recipe.user?.fullName {
+                HStack {
+                    Image("user.icon")
+                        .font(.caption)
+                    Text("\(recipeAuthor)")
+                        .font(.caption)
+                }
+                .foregroundStyle(Color("A3A3A3"))
+                .padding(.top, 4)
+            }
+            
             HStack {
-                RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color("EBA72B"))
-                RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings)", color: Color("EBA72B"))
+                RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color("181818"))
+                RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings)", color: Color("181818"))
                 if let rating = viewModel.recipe.rating {
                     RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating), color: Color("FFCB1F"))
                 } else {
-                    RecipeInfoBadge(icon: "star.icon", text: "N/A", color: Color("C2C2C2"))
+                    RecipeInfoBadge(icon: "star.icon", text: "0(0)", color: Color("C2C2C2"))
                 }
             }
             
@@ -147,8 +169,8 @@ struct RecipeDetailView: View {
                         .foregroundStyle(Color("EBA72B"))
                         .frame(width: 12, height: 12)
                     
-                    Text("\(String(format: "%.1f", recipeIngredient.amount)) \(recipeIngredient.unit) \(recipeIngredient.ingredient.name)")
-                        .foregroundStyle(Color("303030"))
+                    Text("\(recipeIngredient.formattedAmount) \(recipeIngredient.unit) \(recipeIngredient.ingredient.name)")
+                                .foregroundStyle(Color("303030"))
                     
                     Spacer()
                     
@@ -169,6 +191,7 @@ struct RecipeDetailView: View {
             }) {
                 Text(viewModel.areAllIngredientsSelected ? "Tüm Seçimleri Kaldır" : "Tümünü Seç")
                     .font(.subheadline)
+                    .fontWeight(.heavy)
                     .foregroundStyle(Color("EBA72B").opacity(0.8))
             }
             .padding(.top, 8)
@@ -229,13 +252,24 @@ struct RecipeDetailView: View {
                 dismissButton: .default(Text("Tamam"))
             )
         }
+        .sheet(isPresented: $viewModel.showRatingSheet) {
+            RatingView(
+                currentRating: $viewModel.userCurrentRating,
+                onSave: { newRating in
+                    Task {
+                        await viewModel.submitRating(newRating)
+                    }
+                }
+            )
+            .presentationDetents([.height(200)])
+        }
     }
 }
 
-#Preview("Kullanıcının Kendi Tarifi (Düzenle Butonu Görünür)") {
+#Preview() {
     NavigationStack {
         let viewModel = RecipeDetailViewModel(
-            recipe: Recipe.mockOwnedByCurrentUser,
+            recipe: Recipe.allMocks.first!,
             isOwnedForPreview: true
         )
         

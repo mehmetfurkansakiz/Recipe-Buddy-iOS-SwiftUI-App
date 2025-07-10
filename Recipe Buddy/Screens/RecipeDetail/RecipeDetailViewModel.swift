@@ -8,6 +8,10 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var isFavorite: Bool = false
     @Published var showingShoppingListAlert: Bool = false
     @Published var isOwnedByCurrentUser = false
+    @Published var isAuthenticated = false
+    @Published var isSaving: Bool = false
+    @Published var showRatingSheet = false
+    @Published var userCurrentRating: Int?
     
     var areAllIngredientsSelected: Bool {
         selectedIngredients.count == recipe.ingredients.count
@@ -15,10 +19,11 @@ class RecipeDetailViewModel: ObservableObject {
     
     init(recipe: Recipe) {
         self.recipe = recipe
-        // real application would check favorites from UserDefaults or database
         
         Task {
-            await checkOwnership()
+            await checkAuthAndOwnershipStatus()
+            await checkIfFavorite()
+            await fetchUserRating()
         }
     }
     
@@ -28,12 +33,49 @@ class RecipeDetailViewModel: ObservableObject {
         self.isOwnedByCurrentUser = isOwnedForPreview
     }
     
-    private func checkOwnership() async {
+    private func checkAuthAndOwnershipStatus() async {
         guard let currentUserId = try? await supabase.auth.session.user.id else {
+            self.isAuthenticated = false
             self.isOwnedByCurrentUser = false
             return
         }
+        self.isAuthenticated = true
         self.isOwnedByCurrentUser = (currentUserId == self.recipe.userId)
+    }
+    
+    private func checkIfFavorite() async {
+        guard let currentUserId = try? await supabase.auth.session.user.id else { return }
+        
+        do {
+            let favoritedRecipe: [RecipeID] = try await supabase
+                .from("favorite_recipes")
+                .select("id:recipe_id")
+                .eq("user_id", value: currentUserId)
+                .eq("recipe_id", value: self.recipe.id)
+                .execute()
+                .value
+            
+            self.isFavorite = !favoritedRecipe.isEmpty
+        } catch {
+            print("❌ Error checking favorite status: \(error)")
+        }
+    }
+    
+    private func fetchUserRating() async {
+        guard let currentUserId = try? await supabase.auth.session.user.id else { return }
+            
+        do {
+            let existingRating: [String: Int] = try await supabase.from("recipe_ratings")
+                .select("rating")
+                .eq("user_id", value: currentUserId)
+                .eq("recipe_id", value: self.recipe.id)
+                .single()
+                .execute()
+                .value
+            self.userCurrentRating = existingRating["rating"]
+        } catch {
+            self.userCurrentRating = nil
+        }
     }
     
     func isIngredientSelected(_ ingredient: Ingredient) -> Bool {
@@ -59,9 +101,50 @@ class RecipeDetailViewModel: ObservableObject {
         }
     }
     
-    func toggleFavorite() {
-        isFavorite.toggle()
-        // real application would save to UserDefaults or database
+    func toggleFavorite() async {
+        isSaving = true
+        defer { isSaving = false }
+        
+        guard let currentUserId = try? await supabase.auth.session.user.id else { return }
+        
+        let isNowFavorited = !self.isFavorite
+        do {
+            if isNowFavorited {
+                try await supabase.from("favorite_recipes")
+                    .insert(["user_id": currentUserId, "recipe_id": self.recipe.id])
+                    .execute()
+            } else {
+                try await supabase.from("favorite_recipes")
+                    .delete()
+                    .eq("user_id", value: currentUserId)
+                    .eq("recipe_id", value: self.recipe.id)
+                    .execute()
+            }
+            
+            self.isFavorite = isNowFavorited
+        } catch {
+            print("❌ Error toggling favorite: \(error)")
+        }
+    }
+    
+    func submitRating(_ rating: Int) async {
+        guard let currentUserId = try? await supabase.auth.session.user.id else { return }
+        
+        let ratingData = NewRating(
+            recipeId: self.recipe.id,
+            userId: currentUserId,
+            rating: rating
+        )
+        
+        do {
+            try await supabase.from("recipe_ratings")
+                .upsert(ratingData)
+                .execute()
+            
+            self.userCurrentRating = rating
+        } catch {
+            print("❌ Error submitting rating: \(error)")
+        }
     }
     
     func addSelectedIngredientsToShoppingList() {
