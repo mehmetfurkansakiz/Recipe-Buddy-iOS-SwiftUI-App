@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ShoppingListView: View {
-    @ObservedObject var viewModel: ShoppingListViewModel
-    @Environment(\.dismiss) var dismiss: DismissAction
+    @StateObject var viewModel: ShoppingListViewModel
+    @Binding var navigationPath: NavigationPath
     
     var body: some View {
             VStack {
@@ -65,16 +65,10 @@ struct ShoppingListView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Alışveriş Listesi")
-            .navigationBarBackButtonHidden()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("Kapat")
-                            .foregroundStyle(Color("EBA72B"))
-                    }
+                    Text("Alışveriş Sepetim")
+                        .foregroundStyle(Color("EBA72B"))
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -121,6 +115,5 @@ struct ShoppingListView: View {
 }
 
 #Preview {
-    let viewModel = ShoppingListViewModel()
-    return ShoppingListView(viewModel: viewModel)
+    ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: .constant(NavigationPath()))
 }
