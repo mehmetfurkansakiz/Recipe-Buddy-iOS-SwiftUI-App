@@ -61,9 +61,6 @@ struct RecipesView: View {
                     }
                     .background(Color("FBFBFB"))
                 }
-                shoppingListButton
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -107,22 +104,6 @@ struct RecipesView: View {
         .padding(32)
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.top, 50)
-    }
-    
-    private var shoppingListButton: some View {
-        Button(action: {
-            navigationPath.append(ShoppingList())
-        }) {
-            HStack {
-                Image(systemName: "cart")
-                Text("Alışveriş Listemi Göster")
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color("EBA72B"))
-            .foregroundColor(Color("FFFFFF"))
-            .cornerRadius(8)
-        }
     }
 }
 

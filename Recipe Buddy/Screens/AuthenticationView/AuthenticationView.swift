@@ -38,3 +38,7 @@ struct AuthenticationView: View {
         }
     }
 }
+
+#Preview {
+    AuthenticationView(onAuthSuccess: {})
+}
