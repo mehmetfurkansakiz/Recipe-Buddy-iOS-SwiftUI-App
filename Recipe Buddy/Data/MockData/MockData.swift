@@ -102,3 +102,38 @@ extension Recipe {
         ]
     }
 }
+
+// MARK: - ShoppingList Mock Data
+extension ShoppingList {
+    static var mockLists: [ShoppingList] {
+        [
+            ShoppingList(id: UUID(), name: "Haftalık Pazar Alışverişi", userId: MockData.currentUserId),
+            ShoppingList(id: UUID(), name: "Doğum Günü Partisi", userId: MockData.currentUserId)
+        ]
+    }
+}
+
+// MARK: - ShoppingListItem Mock Data
+extension ShoppingListItem {
+    static func mocks(for list: ShoppingList) -> [ShoppingListItem] {
+        let ingredients = Ingredient.mockData
+        
+        if list.name.contains("Haftalık") {
+            return [
+                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Tavuk Göğsü" }!, amount: 1, unit: "kg", userId: list.userId, isChecked: false),
+                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Domates" }!, amount: 500, unit: "gr", userId: list.userId, isChecked: true),
+                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Yumurta" }!, amount: 10, unit: "adet", userId: list.userId, isChecked: false)
+            ]
+        }
+        
+        if list.name.contains("Parti") {
+            return [
+                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Labne Peyniri" }!, amount: 600, unit: "gr", userId: list.userId, isChecked: false),
+                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Bisküvi" }!, amount: 2, unit: "paket", userId: list.userId, isChecked: false),
+                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Limon" }!, amount: 3, unit: "adet", userId: list.userId, isChecked: true)
+            ]
+        }
+        
+        return []
+    }
+}

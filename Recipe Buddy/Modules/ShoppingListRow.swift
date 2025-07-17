@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ShoppingItemRow: View {
-    let item: ShoppingItem
+    let item: ShoppingListItem
     let onToggle: () -> Void
     
     var body: some View {
