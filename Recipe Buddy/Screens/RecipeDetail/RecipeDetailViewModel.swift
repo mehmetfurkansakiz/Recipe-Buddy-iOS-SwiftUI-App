@@ -12,6 +12,8 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var isSaving: Bool = false
     @Published var showRatingSheet = false
     @Published var userCurrentRating: Int?
+    @Published var showListSelector = false
+    @Published var statusMessage: String?
     
     var areAllIngredientsSelected: Bool {
         selectedIngredients.count == recipe.ingredients.count
@@ -147,20 +149,27 @@ class RecipeDetailViewModel: ObservableObject {
         }
     }
     
+    /// start adding ingredients to shopping list
     func addSelectedIngredientsToShoppingList() {
-        // real application would use a service to manage the shopping list
-        // ShoppingListManager.shared.addItems(selectedItems)
-        let selectedItems = recipe.ingredients.filter { recipeIngredient in
-            selectedIngredients.contains(recipeIngredient.ingredient.id)
-        }.map { recipeIngredient in
-            ShoppingItem(
-                id: UUID(),
-                ingredient: recipeIngredient.ingredient,
-                amount: recipeIngredient.amount,
-                unit: recipeIngredient.unit,
-                userId: nil
-            )
+        let selected = recipe.ingredients.filter { selectedIngredients.contains($0.ingredient.id) }
+        
+        guard !selected.isEmpty else {
+            statusMessage = "Lütfen önce malzeme seçin."
+            return
         }
-        ShoppingListManager.shared.addItems(selectedItems)
+        
+        showListSelector = true
     }
+    
+    /// selected items add to shopping list
+    func add(ingredients: [RecipeIngredientJoin], to list: ShoppingList) async {
+        do {
+            try await ShoppingListService.shared.addIngredients(ingredients, to: list)
+            statusMessage = "'\(list.name)' listesine eklendi!"
+        } catch {
+            statusMessage = "Hata: Malzemeler eklenemedi."
+            print("❌ Error adding ingredients: \(error)")
+        }
+    }
+    
 }

@@ -245,13 +245,34 @@ struct RecipeDetailView: View {
         }
         .disabled(viewModel.selectedIngredients.isEmpty)
         .opacity(viewModel.selectedIngredients.isEmpty ? 0.6 : 1)
-        .alert(isPresented: $viewModel.showingShoppingListAlert) {
-            Alert(
-                title: Text("Başarılı"),
-                message: Text("Seçili malzemeler alışveriş listenize eklendi."),
-                dismissButton: .default(Text("Tamam"))
-            )
+        .sheet(isPresented: $viewModel.showListSelector) {
+            let selected = viewModel.recipe.ingredients.filter {
+                viewModel.selectedIngredients.contains($0.ingredient.id)
+            }
+            
+            ListSelectorView(ingredientsToAdd: selected) {
+                viewModel.showListSelector = false
+            }
+            .presentationDetents([.medium])
         }
+        .overlay(alignment: .bottom) {
+            if let message = viewModel.statusMessage {
+                Text(message)
+                    .padding()
+                    .background(.black.opacity(0.8))
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                viewModel.statusMessage = nil
+                            }
+                        }
+                    }
+            }
+        }
+        .animation(.spring(), value: viewModel.statusMessage)
         .sheet(isPresented: $viewModel.showRatingSheet) {
             RatingView(
                 currentRating: $viewModel.userCurrentRating,
