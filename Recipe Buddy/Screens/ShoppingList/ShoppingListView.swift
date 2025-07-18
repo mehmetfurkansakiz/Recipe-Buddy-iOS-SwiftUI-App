@@ -12,39 +12,15 @@ struct ShoppingListView: View {
                 ProgressView()
             } else if viewModel.shoppingLists.isEmpty {
                 EmptyShoppingListView()
-                // TODO: Yeni liste oluşturma alert/sheet'ini göster
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(viewModel.shoppingLists) { list in
-                            ShoppingListSectionView(
-                                list: list,
-                                items: viewModel.itemsByListID[list.id] ?? [],
-                                isExpanded: viewModel.expandedListID == list.id,
-                                onHeaderTap: {
-                                    Task { await viewModel.toggleListExpansion(listId: list.id) }
-                                },
-                                onItemToggle: { item in
-                                    Task { await viewModel.toggleItemCheck(item) }
-                                },
-                                onClearChecked: {
-                                    Task { await viewModel.clearCheckedItems(in: list) }
-                                },
-                                onClearAll: {
-                                    viewModel.clearAllItems(in: list)
-                                }
-                            )
-                            Divider().padding(.leading, 50)
-                        }
-                    }
-                }
+                listContent
             }
         }
         .navigationTitle("Alışveriş Listelerim")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { /* TODO: Yeni liste ekleme popup'ını göster */ }) {
+                Button(action: { /* TODO: Yeni liste ekleme */ }) {
                     Image(systemName: "plus")
                 }
             }
@@ -52,22 +28,31 @@ struct ShoppingListView: View {
         .task {
             await viewModel.fetchAllLists()
         }
-        .alert(
-            "Listeyi Temizle",
-            isPresented: Binding(
-                get: { viewModel.showingClearAlertForList != nil },
-                set: { if !$0 { viewModel.showingClearAlertForList = nil } }
-            ),
-            actions: {
-                Button("Temizle", role: .destructive) {
-                    Task { await viewModel.confirmClearAllItems() }
+    }
+    
+    private var listContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 0, pinnedViews: []) {
+                ForEach(viewModel.shoppingLists) { list in
+                    ShoppingListSectionView(
+                        list: list,
+                        items: viewModel.itemsByListID[list.id] ?? [],
+                        isExpanded: viewModel.expandedListID == list.id,
+                        onHeaderTap: {
+                            Task { await viewModel.toggleListExpansion(listId: list.id) }
+                        },
+                        onItemToggle: { item in
+                            Task { await viewModel.toggleItemCheck(item) }
+                        },
+                        onListDelete: {
+                            Task { await viewModel.deleteList(list) }
+                        }
+                    )
                 }
-                Button("İptal", role: .cancel) {}
-            },
-            message: {
-                Text("'\((viewModel.showingClearAlertForList?.name) ?? "")' listesindeki tüm öğeler silinecek. Emin misiniz?")
             }
-        )    }
+            .padding(.top)
+        }
+    }
 }
 
 
@@ -80,52 +65,75 @@ struct ShoppingListSectionView: View {
     let isExpanded: Bool
     let onHeaderTap: () -> Void
     let onItemToggle: (ShoppingListItem) -> Void
-    let onClearChecked: () -> Void
-    let onClearAll: () -> Void
+    let onListDelete: () -> Void
     
-    private var areAllItemsChecked: Bool { !items.isEmpty && items.allSatisfy { $0.isChecked } }
-    private var hasCheckedItems: Bool { items.contains { $0.isChecked }}
+    private var areAllItemsChecked: Bool { !items.isEmpty && items.allSatisfy(\.isChecked) }
     
     var body: some View {
         VStack(spacing: 0) {
             header
             
             if isExpanded {
-                ForEach(items) { item in
-                    ShoppingItemRow(item: item, onToggle: { onItemToggle(item) })
-                        .padding(.horizontal)
-                        .padding(.vertical, 4)
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    ShoppingItemRowView(item: item, index: index) {
+                        onItemToggle(item)
+                    }
+                    // TODO: itemlar için de basılı tutma ve düzenleme gibi özellikler
                 }
+                .padding(.horizontal, 8)
+                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
             }
         }
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
+        .padding(.vertical, 6)
     }
     
     private var header: some View {
         HStack {
-            Image(systemName: areAllItemsChecked ? "checklist.checked" : "checklist")
-                .font(.title2).foregroundStyle(areAllItemsChecked ? .gray : Color("EBA72B"))
-            
             Text(list.name)
-                .font(.headline).strikethrough(areAllItemsChecked, color: .gray)
-                .foregroundStyle(areAllItemsChecked ? .gray : Color("EBA72B"))
+                .font(.title3)
+                .fontWeight(.bold)
+            
+            Circle()
+                .frame(width: 4, height: 4)
+                .foregroundStyle(.secondary)
+                .opacity(0.5)
+            
+            Text("\(list.itemCount) adet")
+                .font(.callout)
+                .foregroundStyle(.secondary)
             
             Spacer()
             
-            Menu {
-                Button("İşaretlileri Temizle", action: onClearChecked).disabled(!hasCheckedItems)
-                Button("Tüm Listeyi Temizle", role: .destructive, action: onClearAll)
-            } label: {
-                Image(systemName: "ellipsis.circle").font(.title2)
-            }
-            .tint(.secondary)
-            
-            Image(systemName: "chevron.down")
-                .rotationEffect(.degrees(isExpanded ? 180 : 0))
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
         }
         .padding()
-        .background(Color(.systemBackground).opacity(0.001))
         .contentShape(Rectangle())
         .onTapGesture(perform: onHeaderTap)
+        .contextMenu {
+            Button {
+                // TODO: ViewModel'da düzenleme fonksiyonunu çağır
+            } label: {
+                Label("Listeyi Düzenle", systemImage: "pencil")
+            }
+            
+            Button {
+                // TODO: ViewModel'da tümünü işaretleme fonksiyonunu çağır
+            } label: {
+                Label("Tümünü İşaretle", systemImage: "checklist")
+            }
+            
+            Divider()
+            
+            Button(role: .destructive, action: onListDelete) {
+                Label("Listeyi Sil", systemImage: "trash")
+            }
+        }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
     }
 }
