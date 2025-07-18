@@ -4,10 +4,12 @@ struct ShoppingList: Codable, Identifiable, Hashable {
     let id: UUID
     let name: String
     let userId: UUID
+    let itemCount: Int
     
     enum CodingKeys: String, CodingKey {
         case id, name
         case userId = "user_id"
+        case itemCount = "item_count"
     }
 }
 

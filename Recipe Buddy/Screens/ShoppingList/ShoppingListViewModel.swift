@@ -36,28 +36,22 @@ class ShoppingListViewModel: ObservableObject {
         }
     }
     
-    /// Kullanıcının tüm alışveriş listelerini çeker.
+    /// get all shopping lists from the database
     func fetchAllLists() async {
         isLoading = true
         defer { isLoading = false }
         
-        guard let userId = try? await supabase.auth.session.user.id else { return }
+        guard (try? await supabase.auth.session.user.id) != nil else { return }
         
         do {
-            let lists: [ShoppingList] = try await supabase.from("shopping_lists")
-                .select()
-                .eq("user_id", value: userId)
-                .order("created_at", ascending: false)
+            let lists: [ShoppingList] = try await supabase
+                .rpc("get_shopping_lists_with_counts")
                 .execute()
                 .value
             
             self.shoppingLists = lists
-            
-            if lists.isEmpty {
-                await createNewList(withName: "Genel Alışveriş Listem")
-            }
         } catch {
-            print("❌ Error fetching shopping lists: \(error)")
+            print("❌ Error fetching lists via RPC: \(error)")
         }
     }
     
@@ -81,7 +75,7 @@ class ShoppingListViewModel: ObservableObject {
     
     // MARK: - List & Item Management
     
-    /// Bir listenin malzemelerini çeker veya gizler (aç/kapa).
+    /// get items to show or hide the list
     func toggleListExpansion(listId: UUID) async {
         let newExpandedID = (expandedListID == listId) ? nil : listId
 
@@ -92,16 +86,14 @@ class ShoppingListViewModel: ObservableObject {
         }
     }
     
-    /// Bir malzemenin "alındı" durumunu günceller.
+    /// update toggle item check state in the database
     func toggleItemCheck(_ item: ShoppingListItem) async {
         guard let listId = findListID(for: item) else { return }
         
-        // Önce UI'ı anında güncelle (optimistic update)
         if let itemIndex = itemsByListID[listId]?.firstIndex(where: { $0.id == item.id }) {
             itemsByListID[listId]?[itemIndex].isChecked.toggle()
         }
         
-        // Sonra veritabanını güncelle
         do {
             try await supabase.from("shopping_list_items")
                 .update(["is_checked": !item.isChecked])
@@ -109,14 +101,13 @@ class ShoppingListViewModel: ObservableObject {
                 .execute()
         } catch {
             print("❌ Error toggling item: \(error)")
-            // Hata olursa UI'ı eski haline geri döndür
             if let itemIndex = itemsByListID[listId]?.firstIndex(where: { $0.id == item.id }) {
                 itemsByListID[listId]?[itemIndex].isChecked.toggle()
             }
         }
     }
     
-    /// İşaretlenmiş öğeleri siler.
+    /// delete checked items from the database
     func clearCheckedItems(in list: ShoppingList) async {
         let checkedItemIds = (itemsByListID[list.id] ?? []).filter { $0.isChecked }.map { $0.id }
         guard !checkedItemIds.isEmpty else { return }
@@ -128,34 +119,51 @@ class ShoppingListViewModel: ObservableObject {
                 .execute()
             
             itemsByListID[list.id]?.removeAll { $0.isChecked }
+            
+            if itemsByListID[list.id]?.isEmpty ?? false {
+                await deleteList(list)
+            }
+            
         } catch {
             print("❌ Error clearing checked items: \(error)")
         }
     }
     
-    /// Tüm listeyi temizlemek için onayı başlatır.
+    /// delete all list items from the database
     func clearAllItems(in list: ShoppingList) {
         showingClearAlertForList = list
     }
     
-    /// Kullanıcı onayladıktan sonra listenin tüm içeriğini temizler.
+    /// confirm clearing all items in the list
     func confirmClearAllItems() async {
         guard let listToClear = showingClearAlertForList else { return }
         defer { showingClearAlertForList = nil }
         
+        await deleteList(listToClear)
+    }
+    
+    /// delete a shopping list and its items from the database
+    func deleteList(_ list: ShoppingList) async {
         do {
             try await supabase.from("shopping_list_items")
                 .delete()
-                .eq("list_id", value: listToClear.id)
+                .eq("list_id", value: list.id)
                 .execute()
             
-            itemsByListID[listToClear.id]?.removeAll()
+            try await supabase.from("shopping_lists")
+                .delete()
+                .eq("id", value: list.id)
+                .execute()
+            
+            shoppingLists.removeAll { $0.id == list.id }
+            itemsByListID.removeValue(forKey: list.id)
+            
         } catch {
-            print("❌ Error clearing all items: \(error)")
+            print("❌ Error deleting list \(list.id): \(error)")
         }
     }
 
-    /// Yeni bir alışveriş listesi oluşturur.
+    /// Creates a new shopping list.
     func createNewList(withName name: String) async {
         guard let userId = try? await supabase.auth.session.user.id else { return }
         
@@ -167,7 +175,7 @@ class ShoppingListViewModel: ObservableObject {
                 .execute()
                 .value
             
-            shoppingLists.insert(newList, at: 0) // Yeni listeyi en üste ekle
+            shoppingLists.insert(newList, at: 0) // add list to the top
         } catch {
             print("❌ Error creating new list: \(error)")
         }
@@ -175,7 +183,7 @@ class ShoppingListViewModel: ObservableObject {
 
     // MARK: - Helpers
     
-    /// Bir öğenin hangi listeye ait olduğunu bulur.
+    /// Finds which list an item belongs to.
     private func findListID(for item: ShoppingListItem) -> UUID? {
         for (listId, items) in itemsByListID {
             if items.contains(where: { $0.id == item.id }) {
@@ -189,7 +197,7 @@ class ShoppingListViewModel: ObservableObject {
 // MARK: - Mock Data for Previews
 extension ShoppingListViewModel {
     
-    /// Önizlemeler için kullanılan, içi dolu, sahte bir ViewModel örneği.
+    /// An example of a filled, dummy ViewModel used for previews.
     static var mock: ShoppingListViewModel {
         let vm = ShoppingListViewModel()
         
