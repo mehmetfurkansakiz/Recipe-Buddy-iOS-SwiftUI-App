@@ -16,13 +16,26 @@ struct ShoppingListView: View {
                 listContent
             }
         }
-        .navigationTitle("Alışveriş Listelerim")
-        .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { /* TODO: Yeni liste ekleme */ }) {
-                    Image(systemName: "plus")
+            ToolbarItem(placement: .topBarLeading) {
+                Text("Alışveriş Listelerim")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color("EBA72B"))
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    Text("Liste Oluştur")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    Image("plus.icon")
+                        .resizable()
+                        .frame(width: 24, height: 24)
                 }
+                .onTapGesture(perform: {
+                    /* TODO: Yeni liste ekleme */
+                })
+                .foregroundStyle(Color("EBA72B"))
             }
         }
         .task {

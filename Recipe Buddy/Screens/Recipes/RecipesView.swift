@@ -5,53 +5,52 @@ struct RecipesView: View {
     @Binding var navigationPath: NavigationPath
     
     var body: some View {
-            ZStack(alignment: .bottom) {
-                VStack(spacing: 0) {
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            SearchBarView(searchText: $viewModel.searchText)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                            
-                            if viewModel.isLoading {
-                                Spacer()
-                                ProgressView()
-                                Spacer()
-                            } else {
-                                if !viewModel.searchText.isEmpty {
-                                    List(viewModel.searchResults) { recipe in
-                                        Button(action: { navigationPath.append(recipe) }) {
-                                            SearchResultRow(recipe: recipe)
-                                        }
-                                        .listRowBackground(Color.clear)
-                                        .listRowSeparator(.hidden)
+        ZStack {
+            VStack(spacing: 0) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        SearchBarView(searchText: $viewModel.searchText)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                        
+                        if viewModel.isLoading {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        } else {
+                            if !viewModel.searchText.isEmpty {
+                                List(viewModel.searchResults) { recipe in
+                                    Button(action: { navigationPath.append(recipe) }) {
+                                        SearchResultRow(recipe: recipe)
                                     }
-                                    .listStyle(.plain)
-                                } else {
-                                    ScrollView {
-                                        VStack(alignment: .leading, spacing: 30) {
-                                            // empty state view
-                                            if viewModel.favoritedRecipes.isEmpty && viewModel.ownedRecipes.isEmpty {
-                                                emptyStateView
-                                            } else {
-                                                // Favorites
-                                                if !viewModel.favoritedRecipes.isEmpty {
-                                                    RecipeCarouselSection(
-                                                        title: "Favori Tariflerim",
-                                                        recipes: viewModel.favoritedRecipes,
-                                                        style: .standard, // Küçük kartlar
-                                                        navigationPath: $navigationPath
-                                                    )
-                                                }
-                                                // MyRecipes
-                                                if !viewModel.ownedRecipes.isEmpty {
-                                                    RecipeCarouselSection(
-                                                        title: "Oluşturduğum Tarifler",
-                                                        recipes: viewModel.ownedRecipes,
-                                                        style: .standard, // Küçük kartlar
-                                                        navigationPath: $navigationPath
-                                                    )
-                                                }
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                                }
+                                .listStyle(.plain)
+                            } else {
+                                ScrollView {
+                                    VStack(alignment: .leading, spacing: 30) {
+                                        // empty state view
+                                        if viewModel.favoritedRecipes.isEmpty && viewModel.ownedRecipes.isEmpty {
+                                            emptyStateView
+                                        } else {
+                                            // Favorites
+                                            if !viewModel.favoritedRecipes.isEmpty {
+                                                RecipeCarouselSection(
+                                                    title: "Favori Tariflerim",
+                                                    recipes: viewModel.favoritedRecipes,
+                                                    style: .standard,
+                                                    navigationPath: $navigationPath
+                                                )
+                                            }
+                                            // MyRecipes
+                                            if !viewModel.ownedRecipes.isEmpty {
+                                                RecipeCarouselSection(
+                                                    title: "Oluşturduğum Tarifler",
+                                                    recipes: viewModel.ownedRecipes,
+                                                    style: .standard,
+                                                    navigationPath: $navigationPath
+                                                )
                                             }
                                         }
                                     }
@@ -59,30 +58,37 @@ struct RecipesView: View {
                             }
                         }
                     }
-                    .background(Color("FBFBFB"))
                 }
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
-                        Text("Tarif Oluştur")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                        Image("plus.icon")
-                            .resizable()
-                            .frame(width: 24, height: 24)
-                    }
-                    .onTapGesture(perform: {
-                        navigationPath.append(RecipeCreate())
-                    })
-                    .foregroundStyle(Color("EBA72B"))
-                }
-            }
-            .task {
-                await viewModel.fetchAllMyData()
-                
+                .background(Color("FBFBFB"))
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Text("Tariflerim")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color("EBA72B"))
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    Text("Tarif Oluştur")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    Image("plus.icon")
+                        .resizable()
+                        .frame(width: 24, height: 24)
+                }
+                .onTapGesture(perform: {
+                    navigationPath.append(RecipeCreate())
+                })
+                .foregroundStyle(Color("EBA72B"))
+            }
+        }
+        .task {
+            await viewModel.fetchAllMyData()
+            
+        }
+    }
     
     // MARK: - Supporting Views
     private var emptyStateView: some View {
