@@ -4,40 +4,73 @@ import Supabase
 @MainActor
 class ShoppingListService {
     static let shared = ShoppingListService()
-    private init() {}
     
-    private let supabase = SupabaseClient(supabaseURL: Secrets.supabaseURL, supabaseKey: Secrets.supabaseKey)
-    
-    /// Mevcut kullanıcının tüm alışveriş listelerini çeker.
-    func fetchUserShoppingLists() async throws -> [ShoppingList] {
-        guard let userId = try? await supabase.auth.session.user.id else { throw URLError(.userAuthenticationRequired) }
-        
-        let lists: [ShoppingList] = try await supabase.from("shopping_lists")
-            .select()
-            .eq("user_id", value: userId)
-            .order("created_at", ascending: false)
+    /// Fetches all of the current user's lists along with their item counts via an RPC.
+    func fetchListsWithCounts() async throws -> [ShoppingList] {
+        let lists: [ShoppingList] = try await supabase
+            .rpc("get_shopping_lists_with_counts")
             .execute()
             .value
         return lists
     }
     
-    /// Verilen isimle yeni bir alışveriş listesi oluşturur ve oluşturulan listeyi geri döndürür.
-    func createNewList(withName name: String) async throws -> ShoppingList {
-        guard let userId = try? await supabase.auth.session.user.id else { throw URLError(.userAuthenticationRequired) }
-        
-        let newList: ShoppingList = try await supabase.from("shopping_lists")
-            .insert(["name": name, "user_id": userId.uuidString])
-            .select()
-            .single()
+    /// Fetches all items for a specific shopping list.
+    func fetchItems(for listId: UUID) async throws -> [ShoppingListItem] {
+        let response: [ShoppingListItem] = try await supabase.from("shopping_list_items")
+            .select("*, ingredient:ingredients(id, name)")
+            .eq("list_id", value: listId)
+            .order("is_checked", ascending: true)
+            .order("created_at", ascending: true)
             .execute()
             .value
-        return newList
+        return response
     }
     
-    /// Seçilen malzemeleri, belirtilen bir listeye akıllı bir şekilde ekler
+    /// Creates a new shopping list with a given name for the current user.
+    func createList(withName name: String) async throws {
+        guard let userId = try? await supabase.auth.session.user.id else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        let newList = ["name": name, "user_id": userId.uuidString]
+        try await supabase.from("shopping_lists").insert(newList).execute()
+    }
+    
+    /// Updates the name of a specified shopping list.
+    func updateList(_ list: ShoppingList, newName: String) async throws {
+        try await supabase.from("shopping_lists")
+            .update(["name": newName])
+            .eq("id", value: list.id)
+            .execute()
+    }
+    
+    /// Updates the 'is_checked' status of a single shopping list item.
+    func updateItemCheck(id: UUID, isChecked: Bool) async throws {
+        try await supabase.from("shopping_list_items")
+            .update(["is_checked": isChecked])
+            .eq("id", value: id)
+            .execute()
+    }
+    
+    /// Deletes a list and all of its associated items from the database.
+    func deleteList(_ list: ShoppingList) async throws {
+        
+        // 1. Delete all items associated with the list.
+        try await supabase.from("shopping_list_items")
+            .delete()
+            .eq("list_id", value: list.id)
+            .execute()
+            
+        // 2. Delete the list itself.
+        try await supabase.from("shopping_lists")
+            .delete()
+            .eq("id", value: list.id)
+            .execute()
+    }
+    
+    /// add ingredients to a shopping list
     func addIngredients(_ ingredients: [RecipeIngredientJoin], to list: ShoppingList) async throws {
         for recipeIngredient in ingredients {
-            // Bu malzeme listede zaten var mı diye kontrol et
+            // check if the ingredient already exists in the shopping list
             let existingItems: [ShoppingListItem] = try await supabase.from("shopping_list_items")
                 .select("id, amount")
                 .eq("list_id", value: list.id)
@@ -47,14 +80,14 @@ class ShoppingListService {
                 .value
 
             if let existingItem = existingItems.first {
-                // VARSA: Miktarı artır (UPDATE)
+                // if existing item found, update the amount
                 let newAmount = existingItem.amount + recipeIngredient.amount
                 try await supabase.from("shopping_list_items")
                     .update(["amount": newAmount])
                     .eq("id", value: existingItem.id)
                     .execute()
             } else {
-                // YOKSA: Yeni bir satır olarak ekle (INSERT)
+                // if does not exist, insert a new item
                 try await supabase.from("shopping_list_items")
                     .insert(ShoppingListItemInsert(from: recipeIngredient, listId: list.id))
                     .execute()

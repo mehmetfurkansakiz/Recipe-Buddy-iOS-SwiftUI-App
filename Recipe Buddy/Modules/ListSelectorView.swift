@@ -1,67 +1,70 @@
 import SwiftUI
 
 struct ListSelectorView: View {
-    let ingredientsToAdd: [RecipeIngredientJoin]
-    let onAddedToList: () -> Void
+    var onListSelected: (ShoppingList) async -> Void
+    var onCancel: () -> Void
     
     @State private var lists: [ShoppingList] = []
     @State private var isLoading = true
-    @State private var showingAlert = false
-    @State private var newListName = ""
-
+    
     var body: some View {
         NavigationStack {
             Group {
                 if isLoading {
                     ProgressView()
+                } else if lists.isEmpty {
+                    Text("Hiç alışveriş listeniz yok.")
+                        .foregroundStyle(.secondary)
                 } else {
-                    List {
-                        Button(action: { showingAlert = true }) {
-                            Label("Yeni Liste Oluştur", systemImage: "plus.circle.fill")
-                        }
-                        
-                        // Display existing lists
-                        ForEach(lists) { list in
-                            Button(action: {
-                                Task {
-                                    await add(to: list)
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "checklist")
-                                    Text(list.name)
-                                    Spacer()
-                                }
-                            }
-                            .tint(.primary)
-                        }
-                    }
+                    listBody
                 }
             }
             .navigationTitle("Listeye Ekle")
             .navigationBarTitleDisplayMode(.inline)
-            .task {
-                let fetchedList = try? await ShoppingListService.shared.fetchUserShoppingLists()
-                self.lists = fetchedList ?? []
-                isLoading = false
-                
-            }
-            .alert("Yeni Liste Oluştur", isPresented: $showingAlert) {
-                TextField("Liste Adı (Örn: Haftalık Alışveriş)", text: $newListName)
-                Button("Oluştur ve Ekle") {
-                    Task {
-                        if let newList = try? await ShoppingListService.shared.createNewList(withName: newListName) {
-                            await add(to: newList)
-                        }
-                    }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("İptal", action: onCancel)
                 }
-                Button("İptal", role: .cancel) {}
+            }
+            .task {
+                await fetchLists()
             }
         }
     }
     
-    private func add(to list: ShoppingList) async {
-        try? await ShoppingListService.shared.addIngredients(ingredientsToAdd, to: list)
-        onAddedToList()
+    private var listBody: some View {
+        List {
+            // TODO: Yeni liste oluşturma butonu için de bir closure eklenmeli.
+            
+            ForEach(lists) { list in
+                Button(action: {
+                    Task {
+                        await onListSelected(list)
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "checklist")
+                        Text(list.name)
+                        Spacer()
+                        Text("\(list.itemCount) adet")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .tint(.primary)
+            }
+        }
+    }
+    
+    private func fetchLists() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            self.lists = try await ShoppingListService.shared.fetchListsWithCounts()
+        } catch {
+            print("❌ Error fetching lists for selector: \(error.localizedDescription)")
+            self.lists = []
+        }
     }
 }
+
