@@ -246,13 +246,18 @@ struct RecipeDetailView: View {
         .disabled(viewModel.selectedIngredients.isEmpty)
         .opacity(viewModel.selectedIngredients.isEmpty ? 0.6 : 1)
         .sheet(isPresented: $viewModel.showListSelector) {
-            let selected = viewModel.recipe.ingredients.filter {
+            let selectedIngredients = viewModel.recipe.ingredients.filter {
                 viewModel.selectedIngredients.contains($0.ingredient.id)
             }
             
-            ListSelectorView(ingredientsToAdd: selected) {
-                viewModel.showListSelector = false
-            }
+            ListSelectorView(
+                onListSelected: { selectedList in
+                    await viewModel.add(ingredients: selectedIngredients, to: selectedList)
+                    viewModel.showListSelector = false
+                }, onCancel: {
+                    viewModel.showListSelector = false
+                }
+            )
             .presentationDetents([.medium])
         }
         .overlay(alignment: .bottom) {

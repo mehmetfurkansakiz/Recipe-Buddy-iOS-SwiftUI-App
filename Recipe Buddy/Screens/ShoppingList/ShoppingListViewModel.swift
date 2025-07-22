@@ -9,8 +9,13 @@ class ShoppingListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var expandedListID: UUID?
     @Published var showingClearAlertForList: ShoppingList?
+    @Published var isShowingEditSheet = false
+    @Published var listToEdit: ShoppingList?
+    @Published var listNameForSheet = ""
     
-    /// Herhangi bir listede işaretlenmiş öğe olup olmadığını kontrol eder.
+    /// A reference to the data service layer.
+        private let service = ShoppingListService.shared
+    
     func hasCheckedItems(in listId: UUID) -> Bool {
         itemsByListID[listId]?.contains { $0.isChecked } ?? false
     }
@@ -36,40 +41,30 @@ class ShoppingListViewModel: ObservableObject {
         }
     }
     
-    /// get all shopping lists from the database
+    /// Fetches all shopping lists by calling the service layer.
     func fetchAllLists() async {
         isLoading = true
         defer { isLoading = false }
         
-        guard (try? await supabase.auth.session.user.id) != nil else { return }
-        
         do {
-            let lists: [ShoppingList] = try await supabase
-                .rpc("get_shopping_lists_with_counts")
-                .execute()
-                .value
-            
-            self.shoppingLists = lists
+            self.shoppingLists = try await service.fetchListsWithCounts()
         } catch {
-            print("❌ Error fetching lists via RPC: \(error)")
+            print("❌ Error fetching lists: \(error.localizedDescription)")
         }
     }
     
+    /// Fetches the items for a specific list by calling the service.
     private func fetchItems(for listId: UUID) async {
-        // if items are already fetched for this list, do nothing
+        // This guard prevents re-fetching if data is already loaded.
         guard itemsByListID[listId] == nil else { return }
         
         do {
-            let response: [ShoppingListItem] = try await supabase.from("shopping_list_items")
-                .select("*, ingredient:ingredients(id, name)")
-                .eq("list_id", value: listId)
-                .order("is_checked", ascending: true)
-                .order("created_at", ascending: true)
-                .execute()
-                .value
-            itemsByListID[listId] = response
+            let items = try await service.fetchItems(for: listId)
+            itemsByListID[listId] = items
         } catch {
-            print("❌ Error fetching items for list \(listId): \(error)")
+            print("❌ Error fetching items for list \(listId): \(error.localizedDescription)")
+            // On failure, set an empty array to prevent repeated failed attempts.
+            itemsByListID[listId] = []
         }
     }
     
@@ -86,24 +81,24 @@ class ShoppingListViewModel: ObservableObject {
         }
     }
     
-    /// update toggle item check state in the database
+    /// Toggles the 'checked' state of an item and calls the service to persist the change.
     func toggleItemCheck(_ item: ShoppingListItem) async {
         guard let listId = findListID(for: item) else { return }
         
-        if let itemIndex = itemsByListID[listId]?.firstIndex(where: { $0.id == item.id }) {
-            itemsByListID[listId]?[itemIndex].isChecked.toggle()
-        }
+        // 1. Optimistically update the UI
+        guard let itemIndex = itemsByListID[listId]?.firstIndex(where: { $0.id == item.id }) else { return }
+        itemsByListID[listId]?[itemIndex].isChecked.toggle()
         
+        // 2. Get the new state to send to the service
+        let newCheckedState = itemsByListID[listId]?[itemIndex].isChecked ?? false
+        
+        // 3. Call the service to update the database
         do {
-            try await supabase.from("shopping_list_items")
-                .update(["is_checked": !item.isChecked])
-                .eq("id", value: item.id)
-                .execute()
+            try await service.updateItemCheck(id: item.id, isChecked: newCheckedState)
         } catch {
-            print("❌ Error toggling item: \(error)")
-            if let itemIndex = itemsByListID[listId]?.firstIndex(where: { $0.id == item.id }) {
-                itemsByListID[listId]?[itemIndex].isChecked.toggle()
-            }
+            print("❌ Error toggling item: \(error.localizedDescription)")
+            // On failure, revert the UI change
+            itemsByListID[listId]?[itemIndex].isChecked.toggle()
         }
     }
     
@@ -142,55 +137,66 @@ class ShoppingListViewModel: ObservableObject {
         await deleteList(listToClear)
     }
     
-    /// delete a shopping list and its items from the database
+    /// Deletes a shopping list by calling the service layer.
     func deleteList(_ list: ShoppingList) async {
+        isLoading = true
         do {
-            try await supabase.from("shopping_list_items")
-                .delete()
-                .eq("list_id", value: list.id)
-                .execute()
-            
-            try await supabase.from("shopping_lists")
-                .delete()
-                .eq("id", value: list.id)
-                .execute()
-            
+            try await service.deleteList(list)
+            // Optimistically update the UI by removing the list locally.
             shoppingLists.removeAll { $0.id == list.id }
-            itemsByListID.removeValue(forKey: list.id)
-            
         } catch {
-            print("❌ Error deleting list \(list.id): \(error)")
+            print("❌ Error deleting list: \(error.localizedDescription)")
+            // If the deletion fails, refetch from the server to ensure UI is in sync.
+            await fetchAllLists()
         }
+        isLoading = false
     }
-
-    /// Creates a new shopping list.
-    func createNewList(withName name: String) async {
-        guard let userId = try? await supabase.auth.session.user.id else { return }
+    
+    // MARK: - Sheet Presentation
+    
+    func presentListEditSheetForCreate() {
+        listToEdit = nil
+        listNameForSheet = ""
+        isShowingEditSheet = true
+    }
+    
+    func presentListEditSheetForUpdate(_ list: ShoppingList) {
+        listToEdit = list
+        listNameForSheet = list.name
+        isShowingEditSheet = true
+    }
+    
+    // MARK: - Create / Update Logic
+    
+    /// Saves changes by calling the appropriate service method.
+    func saveList() async {
+        let name = listNameForSheet.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        
+        isShowingEditSheet = false
+        isLoading = true
         
         do {
-            let newList: ShoppingList = try await supabase.from("shopping_lists")
-                .insert(["name": name, "user_id": userId.uuidString])
-                .select()
-                .single()
-                .execute()
-                .value
-            
-            shoppingLists.insert(newList, at: 0) // add list to the top
+            if let listToEdit {
+                // Edit Mode: Call the update service method.
+                try await service.updateList(listToEdit, newName: name)
+            } else {
+                // Create Mode: Call the create service method.
+                try await service.createList(withName: name)
+            }
         } catch {
-            print("❌ Error creating new list: \(error)")
+            print("❌ Error saving list: \(error.localizedDescription)")
         }
+        
+        // Refresh the entire list to show changes.
+        await fetchAllLists()
     }
 
     // MARK: - Helpers
     
-    /// Finds which list an item belongs to.
+    /// Finds which list an item belongs to locally.
     private func findListID(for item: ShoppingListItem) -> UUID? {
-        for (listId, items) in itemsByListID {
-            if items.contains(where: { $0.id == item.id }) {
-                return listId
-            }
-        }
-        return nil
+        return itemsByListID.first(where: { $0.value.contains(where: { $0.id == item.id }) })?.key
     }
 }
 

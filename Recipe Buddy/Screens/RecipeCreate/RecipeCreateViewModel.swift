@@ -74,10 +74,13 @@ class RecipeCreateViewModel: ObservableObject {
     }
     
     func saveRecipe() async {
-        guard isValid, let imageData = selectedImageData else { return }
+        guard isValid, let imageData = selectedImageData else {
+            self.errorMessage = "Please fill all required fields and select an image."
+            return
+        }
         
         guard let userId = try? await supabase.auth.session.user.id else {
-            self.errorMessage = "Tarifi kaydetmek için giriş yapmalısınız."
+            self.errorMessage = "You must be logged in to save a recipe."
             return
         }
         
@@ -85,10 +88,12 @@ class RecipeCreateViewModel: ObservableObject {
         defer { isSaving = false }
         
         do {
+            // MARK: 1. Upload Image (No change)
             let imagePath = "public/\(UUID().uuidString).jpg"
-            let _ = try await supabase.storage.from("recipe-images")
+            try await supabase.storage.from("recipe-images")
                 .upload(imagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
             
+            // MARK: 2. Insert Base Recipe (No change)
             let recipeInsert = NewRecipe(
                 name: self.name,
                 description: self.description,
@@ -106,24 +111,60 @@ class RecipeCreateViewModel: ObservableObject {
                 .single()
                 .execute()
                 .value
-            
             let newRecipeId = savedRecipeInfo.id
             
-            let recipeIngredientLinks = recipeIngredients.map { ingInput in
-                NewRecipeIngredient(recipeId: newRecipeId, ingredientId: ingInput.ingredient.id, amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0, unit: ingInput.unit)
+            // MARK: 3. Process Ingredients (UPDATED WITH BATCHING)
+            var validIngredientLinks: [NewRecipeIngredient] = []
+            for ingInput in recipeIngredients {
+                let validIngredient = try await findOrCreateIngredient(name: ingInput.ingredient.name)
+                let link = NewRecipeIngredient(
+                    recipeId: newRecipeId,
+                    ingredientId: validIngredient.id,
+                    amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0,
+                    unit: ingInput.unit
+                )
+                validIngredientLinks.append(link)
             }
-            try await supabase.from("recipe_ingredients").insert(recipeIngredientLinks).execute()
+            
+            let ingredientBatchSize = 50
+            for i in stride(from: 0, to: validIngredientLinks.count, by: ingredientBatchSize) {
+                let end = min(i + ingredientBatchSize, validIngredientLinks.count)
+                let batch = Array(validIngredientLinks[i..<end])
+                print("--> Inserting ingredient batch, size: \(batch.count)")
+                try await supabase.from("recipe_ingredients").insert(batch).execute()
+            }
             
             let recipeCategoryLinks = selectedCategories.map { category in
                 NewRecipeCategory(recipeId: newRecipeId, categoryId: category.id)
             }
-            try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
+            
+            let categoryBatchSize = 50
+            for i in stride(from: 0, to: recipeCategoryLinks.count, by: categoryBatchSize) {
+                let end = min(i + categoryBatchSize, recipeCategoryLinks.count)
+                let batch = Array(recipeCategoryLinks[i..<end])
+                print("--> Inserting category batch, size: \(batch.count)")
+                try await supabase.from("recipe_categories").insert(batch).execute()
+            }
             
             showSuccess = true
+            
         } catch {
-            errorMessage = "Tarif kaydedilemedi: \(error.localizedDescription)"
-            print("❌ Kaydetme Hatası: \(error)")
+            errorMessage = "Failed to save recipe: \(error.localizedDescription)"
+            print("❌ Save Error: \(error)")
         }
+    }
+    
+    /// Finds an ingredient by name, or creates it if it doesn't exist.
+    private func findOrCreateIngredient(name: String) async throws -> Ingredient {
+        let ingredient: Ingredient = try await supabase
+            .from("ingredients")
+            .upsert(["name": name], onConflict: "name")
+            .select()
+            .single()
+            .execute()
+            .value
+        
+        return ingredient
     }
 
     func addOrUpdateIngredient(_ ingredientInput: RecipeIngredientInput) {
