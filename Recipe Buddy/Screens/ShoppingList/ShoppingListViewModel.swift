@@ -12,9 +12,11 @@ class ShoppingListViewModel: ObservableObject {
     @Published var isShowingEditSheet = false
     @Published var listToEdit: ShoppingList?
     @Published var listNameForSheet = ""
+    @Published var itemsForEditingList: [RecipeIngredientInput] = []
+    @Published var newItemName = ""
     
     /// A reference to the data service layer.
-        private let service = ShoppingListService.shared
+    private let service = ShoppingListService.shared
     
     func hasCheckedItems(in listId: UUID) -> Bool {
         itemsByListID[listId]?.contains { $0.isChecked } ?? false
@@ -160,10 +162,36 @@ class ShoppingListViewModel: ObservableObject {
         isShowingEditSheet = true
     }
     
-    func presentListEditSheetForUpdate(_ list: ShoppingList) {
+    func presentListEditSheetForUpdate(_ list: ShoppingList) async {
         listToEdit = list
         listNameForSheet = list.name
-        isShowingEditSheet = true
+        
+        if itemsByListID[list.id] == nil {
+            await fetchItems(for: list.id)
+        }
+        
+        let editableItems = itemsByListID[list.id]?.map {
+            RecipeIngredientInput(ingredient: $0.ingredient, amount: $0.formattedAmount, unit: $0.unit)
+        } ?? []
+        
+        self.itemsForEditingList = editableItems
+        self.newItemName = ""
+        self.isShowingEditSheet = true
+    }
+    
+    func addItemToEditor() {
+        let trimmedName = newItemName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else { return }
+        
+        let newIngredient = Ingredient(id: UUID(), name: trimmedName)
+        let newItem = RecipeIngredientInput(ingredient: newIngredient, amount: "1", unit: "adet")
+        
+        itemsForEditingList.append(newItem)
+        newItemName = ""
+    }
+    
+    func removeItemFromEditor(at offsets: IndexSet) {
+        itemsForEditingList.remove(atOffsets: offsets)
     }
     
     // MARK: - Create / Update Logic
@@ -178,17 +206,52 @@ class ShoppingListViewModel: ObservableObject {
         
         do {
             if let listToEdit {
-                // Edit Mode: Call the update service method.
-                try await service.updateList(listToEdit, newName: name)
+                if listToEdit.name != name {
+                    try await service.updateList(listToEdit, newName: name)
+                }
+                
+                // 2. Prepare the new items for insertion
+                var newItemsToInsert: [ShoppingListItemInsert] = []
+                for itemInput in itemsForEditingList {
+                    // Find or create the ingredient to get a valid ID
+                    let validIngredient = try await service.findOrCreateIngredient(name: itemInput.ingredient.name)
+                    let itemToInsert = ShoppingListItemInsert(
+                        listId: listToEdit.id,
+                        ingredientId: validIngredient.id,
+                        amount: Double(itemInput.amount) ?? 1.0,
+                        unit: itemInput.unit
+                    )
+                    newItemsToInsert.append(itemToInsert)
+                }
+
+                try await service.replaceItems(for: listToEdit.id, with: newItemsToInsert)
+                
+                itemsByListID.removeValue(forKey: listToEdit.id)
+                
             } else {
-                // Create Mode: Call the create service method.
-                try await service.createList(withName: name)
+                // --- CREATE MODE ---
+                let newListId = try await service.createList(withName: name)
+                
+                var newItemsToInsert: [ShoppingListItemInsert] = []
+                for itemInput in itemsForEditingList {
+                    let validIngredient = try await service.findOrCreateIngredient(name: itemInput.ingredient.name)
+                    let itemToInsert = ShoppingListItemInsert (
+                        listId: newListId,
+                        ingredientId: validIngredient.id,
+                        amount: Double(itemInput.amount) ?? 1.0,
+                        unit: itemInput.unit
+                    )
+                    newItemsToInsert.append(itemToInsert)
+                }
+                if !newItemsToInsert.isEmpty {
+                    try await service.replaceItems(for: newListId, with: newItemsToInsert)
+                }
             }
         } catch {
-            print("❌ Error saving list: \(error.localizedDescription)")
+            print("❌ Error saving list with items: \(error.localizedDescription)")
         }
         
-        // Refresh the entire list to show changes.
+        // Refresh everything
         await fetchAllLists()
     }
 

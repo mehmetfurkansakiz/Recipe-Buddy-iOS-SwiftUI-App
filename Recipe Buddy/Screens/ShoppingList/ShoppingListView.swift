@@ -33,13 +33,22 @@ struct ShoppingListView: View {
                         .frame(width: 24, height: 24)
                 }
                 .onTapGesture(perform: {
-                    /* TODO: Yeni liste ekleme */
+                    viewModel.presentListEditSheetForCreate()
                 })
                 .foregroundStyle(Color("EBA72B"))
             }
         }
         .task {
             await viewModel.fetchAllLists()
+        }
+        .sheet(isPresented: $viewModel.isShowingEditSheet) {
+            ListEditView(
+                viewModel: viewModel,
+                onSave: {
+                    Task { await viewModel.saveList() }
+                },
+                onCancel: { viewModel.isShowingEditSheet = false }
+            )
         }
     }
     
@@ -59,6 +68,11 @@ struct ShoppingListView: View {
                         },
                         onListDelete: {
                             Task { await viewModel.deleteList(list) }
+                        },
+                        onListEdit: {
+                            Task {
+                                await viewModel.presentListEditSheetForUpdate(list)
+                            }
                         }
                     )
                 }
@@ -79,6 +93,7 @@ struct ShoppingListSectionView: View {
     let onHeaderTap: () -> Void
     let onItemToggle: (ShoppingListItem) -> Void
     let onListDelete: () -> Void
+    let onListEdit: () -> Void
     
     private var areAllItemsChecked: Bool { !items.isEmpty && items.allSatisfy(\.isChecked) }
     
@@ -97,8 +112,9 @@ struct ShoppingListSectionView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
             }
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
+
+        .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color("A3A3A3").opacity(0.5), lineWidth: 1))
         .padding(.horizontal)
         .padding(.vertical, 6)
     }
@@ -129,9 +145,7 @@ struct ShoppingListSectionView: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onHeaderTap)
         .contextMenu {
-            Button {
-                // TODO: ViewModel'da düzenleme fonksiyonunu çağır
-            } label: {
+            Button (action: onListEdit) {
                 Label("Listeyi Düzenle", systemImage: "pencil")
             }
             
@@ -152,9 +166,9 @@ struct ShoppingListSectionView: View {
 }
 
 // MARK: - Preview
-#Preview {
-    ShoppingListView(navigationPath: .constant(NavigationPath()))
-}
+//#Preview {
+//    ShoppingListView(navigationPath: .constant(NavigationPath()))
+//}
 
 #Preview("Dolu Alışveriş Listesi") {
     NavigationStack {
