@@ -2,7 +2,7 @@ import Foundation
 
 struct RecipeIngredientInput: Identifiable, Hashable {
     var id: UUID { ingredient.id }
-    let ingredient: Ingredient
+    var ingredient: Ingredient
     var amount: String = ""
     var unit: String = ""
 

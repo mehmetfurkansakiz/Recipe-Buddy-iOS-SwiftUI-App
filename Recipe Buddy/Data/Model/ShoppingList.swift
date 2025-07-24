@@ -49,6 +49,13 @@ struct ShoppingListItemInsert: Encodable {
         self.unit = recipeIngredient.unit
     }
     
+    init(listId: UUID, ingredientId: UUID, amount: Double, unit: String) {
+        self.listId = listId
+        self.ingredientId = ingredientId
+        self.amount = amount
+        self.unit = unit
+    }
+    
     enum CodingKeys: String, CodingKey {
         case amount, unit
         case listId = "list_id"

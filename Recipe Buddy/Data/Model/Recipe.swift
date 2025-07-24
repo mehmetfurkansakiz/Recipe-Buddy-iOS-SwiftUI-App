@@ -62,7 +62,7 @@ struct RecipeID: Decodable {
 
 struct Ingredient: Codable, Identifiable, Hashable {
     let id: UUID
-    let name: String
+    var name: String
 }
 
 struct Category: Codable, Identifiable, Hashable {

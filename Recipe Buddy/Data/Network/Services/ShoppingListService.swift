@@ -26,13 +26,25 @@ class ShoppingListService {
         return response
     }
     
-    /// Creates a new shopping list with a given name for the current user.
-    func createList(withName name: String) async throws {
+    /// Creates a new shopping list and returns the created list's UUID.
+    func createList(withName name: String) async throws -> UUID {
         guard let userId = try? await supabase.auth.session.user.id else {
             throw URLError(.userAuthenticationRequired)
         }
-        let newList = ["name": name, "user_id": userId.uuidString]
-        try await supabase.from("shopping_lists").insert(newList).execute()
+        
+        struct NewListID: Codable {
+            let id: UUID
+        }
+        
+        let result: NewListID = try await supabase
+            .from("shopping_lists")
+            .insert(["name": name, "user_id": userId.uuidString])
+            .select("id")
+            .single()
+            .execute()
+            .value
+            
+        return result.id
     }
     
     /// Updates the name of a specified shopping list.
@@ -93,5 +105,35 @@ class ShoppingListService {
                     .execute()
             }
         }
+    }
+    
+    /// Deletes all items for a given list ID and inserts a new set of items.
+    func replaceItems(for listId: UUID, with items: [ShoppingListItemInsert]) async throws {
+        // 1. Delete all existing items for this list.
+        try await supabase.from("shopping_list_items")
+            .delete()
+            .eq("list_id", value: listId)
+            .execute()
+            
+        // 2. Insert the new list of items, if any.
+        if !items.isEmpty {
+            try await supabase.from("shopping_list_items").insert(items).execute()
+        }
+    }
+    
+    /// Finds an ingredient by name, or creates it if it doesn't exist.
+    func findOrCreateIngredient(name: String) async throws -> Ingredient {
+        
+        let ingredient: Ingredient = try await supabase
+            .rpc(
+                "upsert_ingredient",
+                params: ["ingredient_name": name]
+            )
+            .select()
+            .single()
+            .execute()
+            .value
+            
+        return ingredient
     }
 }
