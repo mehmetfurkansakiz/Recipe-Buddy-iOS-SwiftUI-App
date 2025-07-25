@@ -13,7 +13,7 @@ struct ShoppingItemRow: View {
                     .frame(width: 18, height: 18)
             }
             VStack(alignment: .leading) {
-                Text(item.ingredient.name)
+                Text(item.name)
                     .bold()
                     .strikethrough(item.isChecked)
                     .foregroundStyle(item.isChecked ? Color("A3A3A3") : Color("181818"))

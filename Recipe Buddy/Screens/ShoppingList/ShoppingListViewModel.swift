@@ -12,7 +12,7 @@ class ShoppingListViewModel: ObservableObject {
     @Published var isShowingEditSheet = false
     @Published var listToEdit: ShoppingList?
     @Published var listNameForSheet = ""
-    @Published var itemsForEditingList: [RecipeIngredientInput] = []
+    @Published var itemsForEditingList: [EditableShoppingItem] = []
     @Published var newItemName = ""
     
     /// A reference to the data service layer.
@@ -162,6 +162,7 @@ class ShoppingListViewModel: ObservableObject {
         isShowingEditSheet = true
     }
     
+    // This function needs to be updated
     func presentListEditSheetForUpdate(_ list: ShoppingList) async {
         listToEdit = list
         listNameForSheet = list.name
@@ -170,8 +171,15 @@ class ShoppingListViewModel: ObservableObject {
             await fetchItems(for: list.id)
         }
         
+        // Convert the fetched items into our new editable format
         let editableItems = itemsByListID[list.id]?.map {
-            RecipeIngredientInput(ingredient: $0.ingredient, amount: $0.formattedAmount, unit: $0.unit)
+            EditableShoppingItem(
+                id: $0.id, // Use the real item ID for tracking
+                name: $0.name,
+                amount: $0.formattedAmount,
+                unit: $0.unit,
+                originalIngredientId: $0.ingredientId
+            )
         } ?? []
         
         self.itemsForEditingList = editableItems
@@ -183,8 +191,14 @@ class ShoppingListViewModel: ObservableObject {
         let trimmedName = newItemName.trimmingCharacters(in: .whitespaces)
         guard !trimmedName.isEmpty else { return }
         
-        let newIngredient = Ingredient(id: UUID(), name: trimmedName)
-        let newItem = RecipeIngredientInput(ingredient: newIngredient, amount: "1", unit: "adet")
+        // Add as a custom item with no originalIngredientId
+        let newItem = EditableShoppingItem(
+            id: UUID(), // A temporary ID for the UI
+            name: trimmedName,
+            amount: "1",
+            unit: "adet",
+            originalIngredientId: nil
+        )
         
         itemsForEditingList.append(newItem)
         newItemName = ""
@@ -206,43 +220,45 @@ class ShoppingListViewModel: ObservableObject {
         
         do {
             if let listToEdit {
+                // --- EDIT MODE ---
                 if listToEdit.name != name {
                     try await service.updateList(listToEdit, newName: name)
                 }
                 
-                // 2. Prepare the new items for insertion
-                var newItemsToInsert: [ShoppingListItemInsert] = []
-                for itemInput in itemsForEditingList {
-                    // Find or create the ingredient to get a valid ID
-                    let validIngredient = try await service.findOrCreateIngredient(name: itemInput.ingredient.name)
-                    let itemToInsert = ShoppingListItemInsert(
+                // Convert UI state to database insert model
+                let newItemsToInsert = itemsForEditingList.map {
+                    ShoppingListItemInsert(
                         listId: listToEdit.id,
-                        ingredientId: validIngredient.id,
-                        amount: Double(itemInput.amount) ?? 1.0,
-                        unit: itemInput.unit
+                        name: $0.name,
+                        amount: Double($0.amount) ?? 1.0,
+                        unit: $0.unit,
+                        ingredientId: $0.originalIngredientId  // Keep the original link, or nil if it's a custom item
                     )
-                    newItemsToInsert.append(itemToInsert)
                 }
+                
+                let listId: UUID
+                let name: String
+                let amount: Double
+                let unit: String
+                let ingredientId: UUID?
 
                 try await service.replaceItems(for: listToEdit.id, with: newItemsToInsert)
-                
                 itemsByListID.removeValue(forKey: listToEdit.id)
                 
             } else {
                 // --- CREATE MODE ---
                 let newListId = try await service.createList(withName: name)
                 
-                var newItemsToInsert: [ShoppingListItemInsert] = []
-                for itemInput in itemsForEditingList {
-                    let validIngredient = try await service.findOrCreateIngredient(name: itemInput.ingredient.name)
-                    let itemToInsert = ShoppingListItemInsert (
+                var newItemsToInsert = itemsForEditingList.map {
+                    ShoppingListItemInsert (
                         listId: newListId,
-                        ingredientId: validIngredient.id,
-                        amount: Double(itemInput.amount) ?? 1.0,
-                        unit: itemInput.unit
+                        name: $0.name,
+                        amount: Double($0.amount.replacingOccurrences(of: ",", with: ".")) ?? 1.0,
+                        unit: $0.unit,
+                        ingredientId: $0.originalIngredientId
                     )
-                    newItemsToInsert.append(itemToInsert)
                 }
+
                 if !newItemsToInsert.isEmpty {
                     try await service.replaceItems(for: newListId, with: newItemsToInsert)
                 }

@@ -12,7 +12,7 @@ struct ShoppingItemRowView: View {
                 .foregroundStyle(item.isChecked ? Color.gray : Color.orange)
                 .opacity(0.8)
             
-            Text(item.ingredient.name)
+            Text(item.name)
                 .font(.headline)
                 .strikethrough(item.isChecked, color: .secondary)
             
