@@ -17,7 +17,7 @@ class ShoppingListService {
     /// Fetches all items for a specific shopping list.
     func fetchItems(for listId: UUID) async throws -> [ShoppingListItem] {
         let response: [ShoppingListItem] = try await supabase.from("shopping_list_items")
-            .select("*, ingredient:ingredients(id, name)")
+            .select("*")
             .eq("list_id", value: listId)
             .order("is_checked", ascending: true)
             .order("created_at", ascending: true)

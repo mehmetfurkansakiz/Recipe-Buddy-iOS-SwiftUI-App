@@ -1,5 +1,7 @@
 import Foundation
 
+import Foundation
+
 // MARK: - Mock IDs
 struct MockData {
     static let currentUserId = UUID()
@@ -32,7 +34,10 @@ extension Ingredient {
             Ingredient(id: UUID(), name: "Tavuk Göğsü"),
             Ingredient(id: UUID(), name: "Marul"),
             Ingredient(id: UUID(), name: "Labne Peyniri"),
-            Ingredient(id: UUID(), name: "Limon")
+            Ingredient(id: UUID(), name: "Limon"),
+            Ingredient(id: UUID(), name: "Domates"),
+            Ingredient(id: UUID(), name: "Yumurta"),
+            Ingredient(id: UUID(), name: "Bisküvi")
         ]
     }
 }
@@ -118,19 +123,32 @@ extension ShoppingListItem {
     static func mocks(for list: ShoppingList) -> [ShoppingListItem] {
         let ingredients = Ingredient.mockData
         
+        // Helper function to safely get an ingredient.
+        func getIngredient(named name: String) -> Ingredient {
+            return ingredients.first { $0.name == name }!
+        }
+        
         if list.name.contains("Haftalık") {
+            let tavuk = getIngredient(named: "Tavuk Göğsü")
+            let domates = getIngredient(named: "Domates")
+            let yumurta = getIngredient(named: "Yumurta")
+            
             return [
-                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Tavuk Göğsü" }!, amount: 1, unit: "kg", userId: list.userId, isChecked: false),
-                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Domates" }!, amount: 500, unit: "gr", userId: list.userId, isChecked: true),
-                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Yumurta" }!, amount: 10, unit: "adet", userId: list.userId, isChecked: false)
+                ShoppingListItem(id: UUID(), name: tavuk.name, amount: 1, unit: "kg", isChecked: false, ingredientId: tavuk.id),
+                ShoppingListItem(id: UUID(), name: domates.name, amount: 500, unit: "gr", isChecked: true, ingredientId: domates.id),
+                ShoppingListItem(id: UUID(), name: yumurta.name, amount: 10, unit: "adet", isChecked: false, ingredientId: yumurta.id)
             ]
         }
         
         if list.name.contains("Parti") {
+            let labne = getIngredient(named: "Labne Peyniri")
+            let biskuvi = getIngredient(named: "Bisküvi")
+            let limon = getIngredient(named: "Limon")
+            
             return [
-                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Labne Peyniri" }!, amount: 600, unit: "gr", userId: list.userId, isChecked: false),
-                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Bisküvi" }!, amount: 2, unit: "paket", userId: list.userId, isChecked: false),
-                ShoppingListItem(id: UUID(), ingredient: ingredients.first { $0.name == "Limon" }!, amount: 3, unit: "adet", userId: list.userId, isChecked: true)
+                ShoppingListItem(id: UUID(), name: labne.name, amount: 600, unit: "gr", isChecked: false, ingredientId: labne.id),
+                ShoppingListItem(id: UUID(), name: biskuvi.name, amount: 2, unit: "paket", isChecked: false, ingredientId: biskuvi.id),
+                ShoppingListItem(id: UUID(), name: limon.name, amount: 3, unit: "adet", isChecked: true, ingredientId: limon.id)
             ]
         }
         

@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct EditableShoppingItemRow: View {
-    @Binding var item: RecipeIngredientInput
+    @Binding var item: EditableShoppingItem
     var onDelete: () -> Void
     
     var body: some View {
         HStack {
-            TextField("Malzeme Adı", text: $item.ingredient.name)
+            TextField("Malzeme Adı", text: $item.name)
             
             Spacer()
             

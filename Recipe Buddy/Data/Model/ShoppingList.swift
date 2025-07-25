@@ -15,11 +15,11 @@ struct ShoppingList: Codable, Identifiable, Hashable {
 
 struct ShoppingListItem: Codable, Identifiable, Hashable {
     let id: UUID
-    let ingredient: Ingredient
+    let name: String
     var amount: Double
     let unit: String
-    let userId: UUID?
     var isChecked: Bool
+    let ingredientId: UUID?
     
     var formattedAmount: String {
         if amount.truncatingRemainder(dividingBy: 1) == 0 {
@@ -30,35 +30,46 @@ struct ShoppingListItem: Codable, Identifiable, Hashable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, ingredient, amount, unit
-        case userId = "user_id"
+        case id, name, amount, unit
         case isChecked = "is_checked"
+        case ingredientId = "ingredient_id"
     }
 }
 
 struct ShoppingListItemInsert: Encodable {
     let listId: UUID
-    let ingredientId: UUID
+    let name: String
     let amount: Double
     let unit: String
+    let ingredientId: UUID?
     
     init(from recipeIngredient: RecipeIngredientJoin, listId: UUID) {
         self.listId = listId
+        self.name = recipeIngredient.ingredient.name
         self.ingredientId = recipeIngredient.ingredient.id
         self.amount = recipeIngredient.amount
         self.unit = recipeIngredient.unit
     }
     
-    init(listId: UUID, ingredientId: UUID, amount: Double, unit: String) {
+    init(listId: UUID, name: String, amount: Double, unit: String, ingredientId: UUID?) {
         self.listId = listId
-        self.ingredientId = ingredientId
+        self.name = name
         self.amount = amount
         self.unit = unit
+        self.ingredientId = ingredientId
     }
     
     enum CodingKeys: String, CodingKey {
-        case amount, unit
+        case name, amount, unit
         case listId = "list_id"
         case ingredientId = "ingredient_id"
     }
+}
+
+struct EditableShoppingItem: Identifiable, Hashable {
+    let id: UUID
+    var name: String
+    var amount: String
+    var unit: String
+    let originalIngredientId: UUID?
 }
