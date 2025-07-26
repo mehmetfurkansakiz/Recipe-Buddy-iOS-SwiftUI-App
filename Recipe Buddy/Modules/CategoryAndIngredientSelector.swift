@@ -97,7 +97,7 @@ struct IngredientSelectorView: View {
                         
                         ForEach(filteredIngredients) { ingredient in
                             Button(action: {
-                                viewModel.addOrUpdateIngredient(RecipeIngredientInput(ingredient: ingredient))
+                                viewModel.selectIngredientForEditing(ingredient)
                                 dismiss()
                             }) {
                                 Text(ingredient.name)

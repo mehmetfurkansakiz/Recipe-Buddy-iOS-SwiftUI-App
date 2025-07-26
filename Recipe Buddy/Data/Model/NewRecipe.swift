@@ -57,3 +57,8 @@ struct NewRecipeCategory: Encodable {
         case categoryId = "category_id"
     }
 }
+
+struct RecipeStep: Identifiable, Hashable {
+    let id = UUID()
+    var text: String
+}

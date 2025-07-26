@@ -235,12 +235,6 @@ class ShoppingListViewModel: ObservableObject {
                         ingredientId: $0.originalIngredientId  // Keep the original link, or nil if it's a custom item
                     )
                 }
-                
-                let listId: UUID
-                let name: String
-                let amount: Double
-                let unit: String
-                let ingredientId: UUID?
 
                 try await service.replaceItems(for: listToEdit.id, with: newItemsToInsert)
                 itemsByListID.removeValue(forKey: listToEdit.id)
@@ -249,7 +243,7 @@ class ShoppingListViewModel: ObservableObject {
                 // --- CREATE MODE ---
                 let newListId = try await service.createList(withName: name)
                 
-                var newItemsToInsert = itemsForEditingList.map {
+                let newItemsToInsert = itemsForEditingList.map {
                     ShoppingListItemInsert (
                         listId: newListId,
                         name: $0.name,

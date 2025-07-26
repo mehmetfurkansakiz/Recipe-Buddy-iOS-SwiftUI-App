@@ -8,7 +8,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var description: String = ""
     @Published var servings: Int = 4   // default start
     @Published var cookingTime: Int = 30 // default start
-    @Published var steps: [String] = [""]
+    @Published var steps: [RecipeStep] = [RecipeStep(text: "")]
     @Published var isPublic: Bool = false // default start
     
     // Photo management
@@ -22,11 +22,23 @@ class RecipeCreateViewModel: ObservableObject {
     // Ingredients management
     @Published var recipeIngredients: [RecipeIngredientInput] = []
     @Published var allAvailableIngredients: [Ingredient] = []
+    @Published var ingredientToEditDetails: RecipeIngredientInput?
     
     // UI state
     @Published var showSuccess: Bool = false
     @Published var errorMessage: String?
     @Published var isSaving: Bool = false
+    @Published var selection: Int = 0
+    
+    // Navigation Title for steps
+    var navigationTitle: String {
+        switch selection {
+        case 0: return "Temel Bilgiler"
+        case 1: return "Malzemeler"
+        case 2: return "Hazırlanışı"
+        default: return "Yeni Tarif"
+        }
+    }
     
     let servingsOptions = Array(1...20)
     let timeOptions: [Int] = Array(stride(from: 5, through: 240, by: 5))
@@ -34,7 +46,7 @@ class RecipeCreateViewModel: ObservableObject {
     var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         !recipeIngredients.isEmpty &&
-        !steps.contains(where: { $0.trimmingCharacters(in: .whitespaces).isEmpty }) &&
+        !steps.contains(where: { $0.text.trimmingCharacters(in: .whitespaces).isEmpty }) &&
         !selectedCategories.isEmpty &&
         selectedImageData != nil
     }
@@ -88,18 +100,19 @@ class RecipeCreateViewModel: ObservableObject {
         defer { isSaving = false }
         
         do {
-            // MARK: 1. Upload Image (No change)
+            // MARK: 1. Upload Image
             let imagePath = "public/\(UUID().uuidString).jpg"
             try await supabase.storage.from("recipe-images")
                 .upload(imagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
             
-            // MARK: 2. Insert Base Recipe (No change)
+            let stepTexts = self.steps.map { $0.text }
+            
             let recipeInsert = NewRecipe(
                 name: self.name,
                 description: self.description,
                 cookingTime: self.cookingTime,
                 servings: self.servings,
-                steps: self.steps,
+                steps: stepTexts,
                 imageName: imagePath,
                 userId: userId,
                 isPublic: self.isPublic
@@ -166,6 +179,13 @@ class RecipeCreateViewModel: ObservableObject {
         
         return ingredient
     }
+    
+    // This function replaces the old logic.
+    func selectIngredientForEditing(_ ingredient: Ingredient) {
+        let newItem = RecipeIngredientInput(ingredient: ingredient)
+        recipeIngredients.append(newItem)
+        ingredientToEditDetails = newItem
+    }
 
     func addOrUpdateIngredient(_ ingredientInput: RecipeIngredientInput) {
         if let index = recipeIngredients.firstIndex(where: { $0.ingredient.id == ingredientInput.ingredient.id }) {
@@ -179,7 +199,7 @@ class RecipeCreateViewModel: ObservableObject {
         recipeIngredients.removeAll { $0.id == id }
     }
     
-    func addStep() { steps.append("") }
+    func addStep() { steps.append(RecipeStep(text: "")) }
     func removeStep(at index: Int) {
         if steps.count > 1 { steps.remove(at: index) }
     }
