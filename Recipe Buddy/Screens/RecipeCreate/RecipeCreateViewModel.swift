@@ -29,6 +29,9 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isSaving: Bool = false
     @Published var selection: Int = 0
+    @Published var showingCategorySelector = false
+    @Published var showingIngredientSelector = false
+    @Published var IngredientAlertMessage: String?
     
     // Navigation Title for steps
     var navigationTitle: String {
@@ -180,11 +183,15 @@ class RecipeCreateViewModel: ObservableObject {
         return ingredient
     }
     
-    // This function replaces the old logic.
+    /// Selects an ingredient, checking for duplicates before adding.
     func selectIngredientForEditing(_ ingredient: Ingredient) {
-        let newItem = RecipeIngredientInput(ingredient: ingredient)
-        recipeIngredients.append(newItem)
-        ingredientToEditDetails = newItem
+        if recipeIngredients.contains(where: { $0.ingredient.id == ingredient.id }) {
+            IngredientAlertMessage = "\(ingredient.name) zaten ekli. Miktarını veya birimini değiştirmek için listedeki malzemenin üzerine dokunabilirsiniz."
+        } else {
+            let newItem = RecipeIngredientInput(ingredient: ingredient)
+            recipeIngredients.append(newItem)
+            ingredientToEditDetails = newItem
+        }
     }
 
     func addOrUpdateIngredient(_ ingredientInput: RecipeIngredientInput) {

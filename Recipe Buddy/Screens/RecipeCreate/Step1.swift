@@ -6,7 +6,7 @@ struct Step1_BasicInfo: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 16) {
                 // Image Picker
                 PhotosPicker(selection: $viewModel.selectedPhotoItem, matching: .images) {
                     ZStack {
@@ -16,7 +16,7 @@ struct Step1_BasicInfo: View {
                         } else {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color("F2F2F7"))
+                                    .fill(.thinMaterial)
                                     .frame(height: 240)
                                 
                                 VStack {
@@ -29,19 +29,47 @@ struct Step1_BasicInfo: View {
                         }
                     }
                     
-                    .frame(height: 250).cornerRadius(12)
+                    .frame(height: 240).cornerRadius(12)
                 }
                 .tint(Color("EBA72B"))
                 .onChange(of: viewModel.selectedPhotoItem) {
                     Task { await viewModel.loadImage(from: viewModel.selectedPhotoItem) }
                 }
-
+                
                 // Text Fields
                 VStack(spacing: 16) {
                     TextField("Tarif Adı", text: $viewModel.name)
                     TextField("Açıklama (Örn: Annemin meşhur tarifi...)", text: $viewModel.description, axis: .vertical)
                 }
                 .textFieldStyle(CustomTextFieldStyle())
+                
+                // Category Selector
+                Button(action: { viewModel.showingCategorySelector = true }) {
+                    HStack {
+                        if viewModel.selectedCategories.isEmpty {
+                            Text("Kategori Seç")
+                                .foregroundStyle(Color("A3A3A3"))
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(Array(viewModel.selectedCategories)) { category in
+                                        Text(category.name)
+                                            .font(.caption)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color("EBA72B").opacity(0.2))
+                                            .foregroundStyle(Color("EBA72B"))
+                                            .cornerRadius(8)
+                                    }
+                                }
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(CustomPickerStyle())
                 
                 // Pickers and Toggle
                 HStack {
@@ -53,8 +81,9 @@ struct Step1_BasicInfo: View {
                         ForEach(Array(stride(from: 5, through: 240, by: 5)), id: \.self) { Text("\($0) dk").tag($0) }
                     }.pickerStyle(.menu)
                 }
+                .tint(Color("EBA72B"))
                 .buttonStyle(CustomPickerStyle())
-
+                
                 Toggle("Herkesle Paylaş", isOn: $viewModel.isPublic)
                     .tint(Color("EBA72B"))
             }
@@ -69,8 +98,8 @@ struct CustomTextFieldStyle: TextFieldStyle {
         configuration
             .padding(12)
             .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(.systemGray4), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
     }
 }
 
@@ -80,7 +109,11 @@ struct CustomPickerStyle: ButtonStyle {
             .padding(12)
             .frame(maxWidth: .infinity)
             .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(.systemGray4), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
     }
+}
+
+#Preview {
+    Step1_BasicInfo(viewModel: RecipeCreateViewModel())
 }
