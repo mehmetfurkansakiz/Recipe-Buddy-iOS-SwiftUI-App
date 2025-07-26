@@ -4,10 +4,6 @@ struct RecipeCreateView: View {
     @ObservedObject var viewModel: RecipeCreateViewModel
     @Environment(\.dismiss) private var dismiss
     
-    // management sheet presentation
-    @State private var showingCategorySelector = false
-    @State private var showingIngredientSelector = false
-    
     var body: some View {
         VStack(spacing: 0) {
             // Custom progress indicator for steps
@@ -60,10 +56,10 @@ struct RecipeCreateView: View {
             }
         }
         // Sheets
-        .sheet(isPresented: $showingCategorySelector) {
+        .sheet(isPresented: $viewModel.showingCategorySelector) {
             CategorySelectorView(availableCategories: viewModel.availableCategories, selectedCategories: $viewModel.selectedCategories)
         }
-        .sheet(isPresented: $showingIngredientSelector) {
+        .sheet(isPresented: $viewModel.showingIngredientSelector) {
             IngredientSelectorView(viewModel: viewModel)
         }
         .alert("Hata", isPresented: .constant(viewModel.errorMessage != nil), actions: {
@@ -104,27 +100,31 @@ struct StepNavigation: View {
     var body: some View {
         HStack {
             if viewModel.selection > 0 {
-                Button("Geri") {
-                    viewModel.selection -= 1
+                Button { viewModel.selection -= 1 } label: {
+                    Label("Geri", systemImage: "chevron.left")
+                        .padding().frame(maxWidth: .infinity)
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
                 .background(.gray.opacity(0.2))
                 .clipShape(Capsule())
+                .contentShape(Rectangle())
             }
             
             if viewModel.selection < 2 {
-                Button("İleri") {
-                    viewModel.selection += 1
+                Button { viewModel.selection += 1 } label: {
+                    HStack(spacing: 4) {
+                        Text("İleri")
+                        Image(systemName: "chevron.right")
+                    }
+                    .padding().frame(maxWidth: .infinity)
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
                 .background(Color("EBA72B"))
                 .foregroundStyle(.white)
                 .clipShape(Capsule())
+                .contentShape(Rectangle())
             }
         }
-        .padding()
+        .padding([.horizontal, .bottom])
+        .padding(.top, 8)
         .background(.thinMaterial)
     }
 }
