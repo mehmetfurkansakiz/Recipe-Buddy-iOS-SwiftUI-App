@@ -38,12 +38,12 @@ struct Step2_Ingredients: View {
             IngredientSelectorView(viewModel: viewModel)
         }
         .animation(.default, value: viewModel.ingredientToEditDetails)
-        .alert("Malzeme Zaten Mevcut", isPresented: .constant(viewModel.IngredientAlertMessage != nil), actions: {
+        .alert("Malzeme Zaten Mevcut", isPresented: .constant(viewModel.ingredientAlertMessage != nil), actions: {
             Button("Tamam") {
-                viewModel.IngredientAlertMessage = nil
+                viewModel.ingredientAlertMessage = nil
             }
         }, message: {
-            Text(viewModel.IngredientAlertMessage ?? "")
+            Text(viewModel.ingredientAlertMessage ?? "")
         })
     }
 }

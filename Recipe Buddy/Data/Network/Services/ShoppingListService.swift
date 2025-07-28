@@ -79,6 +79,31 @@ class ShoppingListService {
             .execute()
     }
     
+    /// Deletes all checked items in a given list.
+    func clearCheckedItems(in list: ShoppingList, itemIds: [UUID]) async throws {
+        try await supabase.from("shopping_list_items")
+            .delete()
+            .in("id", values: itemIds)
+            .execute()
+    }
+    
+    /// Adds an array of recipe ingredients to a shopping list.
+    func addRecipeIngredients(_ ingredients: [RecipeIngredientJoin], to list: ShoppingList) async throws {
+        let itemsToInsert = ingredients.map {
+            ShoppingListItemInsert(
+                listId: list.id,
+                name: $0.name,
+                amount: $0.amount,
+                unit: $0.unit,
+                ingredientId: $0.ingredientId
+            )
+        }
+        
+        if !itemsToInsert.isEmpty {
+            try await supabase.from("shopping_list_items").insert(itemsToInsert).execute()
+        }
+    }
+    
     /// add ingredients to a shopping list
     func addIngredients(_ ingredients: [RecipeIngredientJoin], to list: ShoppingList) async throws {
         for recipeIngredient in ingredients {

@@ -23,6 +23,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var recipeIngredients: [RecipeIngredientInput] = []
     @Published var allAvailableIngredients: [Ingredient] = []
     @Published var ingredientToEditDetails: RecipeIngredientInput?
+    @Published var ingredientSearchText = ""
     
     // UI state
     @Published var showSuccess: Bool = false
@@ -31,7 +32,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var selection: Int = 0
     @Published var showingCategorySelector = false
     @Published var showingIngredientSelector = false
-    @Published var IngredientAlertMessage: String?
+    @Published var ingredientAlertMessage: String?
     
     // Service 
     private let recipeService = RecipeService.shared
@@ -44,6 +45,21 @@ class RecipeCreateViewModel: ObservableObject {
         case 2: return "Hazırlanışı"
         default: return "Yeni Tarif"
         }
+    }
+    
+    var filteredIngredients: [Ingredient] {
+        if ingredientSearchText.isEmpty {
+            return allAvailableIngredients
+        } else {
+            return allAvailableIngredients.filter {
+                $0.name.lowercased().contains(ingredientSearchText.lowercased())
+            }
+        }
+    }
+    
+    var isCustomAddButtonShown: Bool {
+        let trimmedText = ingredientSearchText.trimmingCharacters(in: .whitespaces)
+        return !trimmedText.isEmpty && !allAvailableIngredients.contains { $0.name.caseInsensitiveCompare(trimmedText) == .orderedSame }
     }
     
     let servingsOptions = Array(1...20)
@@ -64,22 +80,15 @@ class RecipeCreateViewModel: ObservableObject {
     }
     
     func fetchInitialData() async {
-        async let fetchCat: () = fetchCategories()
-        async let fetchIng: () = fetchIngredients()
-        await fetchCat
-        await fetchIng
-    }
-    
-    func fetchCategories() async {
         do {
-            self.availableCategories = try await supabase.from("categories").select().execute().value
-        } catch { errorMessage = "Kategoriler yüklenemedi: \(error.localizedDescription)" }
-    }
-    
-    func fetchIngredients() async {
-        do {
-            self.allAvailableIngredients = try await supabase.from("ingredients").select().order("name").execute().value
-        } catch { errorMessage = "Malzemeler yüklenemedi: \(error.localizedDescription)" }
+            async let categoriesTask = recipeService.fetchAllCategories()
+            async let ingredientsTask = recipeService.fetchAllIngredients()
+            
+            self.availableCategories = try await categoriesTask
+            self.allAvailableIngredients = try await ingredientsTask
+        } catch {
+            errorMessage = "Gerekli veriler yüklenemedi: \(error.localizedDescription)"
+        }
     }
     
     func loadImage(from item: PhotosPickerItem?) async {
@@ -108,23 +117,10 @@ class RecipeCreateViewModel: ObservableObject {
         }
     }
     
-    /// Finds an ingredient by name, or creates it if it doesn't exist.
-    private func findOrCreateIngredient(name: String) async throws -> Ingredient {
-        let ingredient: Ingredient = try await supabase
-            .from("ingredients")
-            .upsert(["name": name], onConflict: "name")
-            .select()
-            .single()
-            .execute()
-            .value
-        
-        return ingredient
-    }
-    
-    /// Selects an ingredient, checking for duplicates before adding.
-    func selectIngredientForEditing(_ ingredient: Ingredient) {
-        if recipeIngredients.contains(where: { $0.ingredient.id == ingredient.id }) {
-            IngredientAlertMessage = "\(ingredient.name) zaten ekli. Miktarını veya birimini değiştirmek için listedeki malzemenin üzerine dokunabilirsiniz."
+    /// Selects an ingredient, checking for duplicates before adding. Also handles custom ingredients.
+    func selectIngredient(_ ingredient: Ingredient, isCustom: Bool = false) {
+        if !isCustom && recipeIngredients.contains(where: { $0.ingredient.id == ingredient.id }) {
+            ingredientAlertMessage = "'\(ingredient.name)' zaten ekli. Miktarını veya birimini değiştirmek için listedeki malzemenin üzerine dokunabilirsiniz."
         } else {
             let newItem = RecipeIngredientInput(ingredient: ingredient)
             recipeIngredients.append(newItem)

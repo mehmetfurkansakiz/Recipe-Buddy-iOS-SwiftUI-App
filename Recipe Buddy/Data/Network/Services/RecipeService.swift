@@ -7,6 +7,16 @@ class RecipeService {
     
     // MARK: - Fetch Operations
     
+    /// Fetches all available categories.
+    func fetchAllCategories() async throws -> [Category] {
+        return try await supabase.from("categories").select().order("name").execute().value
+    }
+    
+    /// Fetches all available ingredients.
+    func fetchAllIngredients() async throws -> [Ingredient] {
+        return try await supabase.from("ingredients").select().order("name").execute().value
+    }
+    
     /// Fetches all sections for the home page (featured, newest, etc.).
     func fetchHomeSections() async throws -> [RecipeSection] {
         async let topRated = fetchSection(title: "Öne Çıkanlar", ordering: "rating", style: .featured)
