@@ -5,12 +5,14 @@ struct Step1_BasicInfo: View {
     @ObservedObject var viewModel: RecipeCreateViewModel
     
     var body: some View {
+        let imageData = viewModel.selectedImageData
+        
         ScrollView {
             VStack(spacing: 16) {
                 // Image Picker
                 PhotosPicker(selection: $viewModel.selectedPhotoItem, matching: .images) {
                     ZStack {
-                        if let imageData = viewModel.selectedImageData, let uiImage = UIImage(data: imageData) {
+                        if let data = imageData, let uiImage = UIImage(data: data) {
                             Image(uiImage: uiImage)
                                 .resizable().aspectRatio(contentMode: .fill)
                         } else {
@@ -32,8 +34,8 @@ struct Step1_BasicInfo: View {
                     .frame(height: 240).cornerRadius(12)
                 }
                 .tint(Color("EBA72B"))
-                .onChange(of: viewModel.selectedPhotoItem) {
-                    Task { await viewModel.loadImage(from: viewModel.selectedPhotoItem) }
+                .task(id: viewModel.selectedPhotoItem) {
+                    await viewModel.loadImage(from: viewModel.selectedPhotoItem)
                 }
                 
                 // Text Fields

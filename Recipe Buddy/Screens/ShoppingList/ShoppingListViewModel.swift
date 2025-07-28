@@ -110,17 +110,13 @@ class ShoppingListViewModel: ObservableObject {
         guard !checkedItemIds.isEmpty else { return }
         
         do {
-            try await supabase.from("shopping_list_items")
-                .delete()
-                .in("id", values: checkedItemIds)
-                .execute()
+            try await service.clearCheckedItems(in: list, itemIds: checkedItemIds)
             
             itemsByListID[list.id]?.removeAll { $0.isChecked }
             
             if itemsByListID[list.id]?.isEmpty ?? false {
                 await deleteList(list)
             }
-            
         } catch {
             print("❌ Error clearing checked items: \(error)")
         }

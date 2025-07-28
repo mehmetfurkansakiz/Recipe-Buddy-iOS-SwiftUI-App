@@ -59,18 +59,7 @@ struct CategorySelectorView: View {
 
 struct IngredientSelectorView: View {
     @ObservedObject var viewModel: RecipeCreateViewModel
-    @State private var searchText = ""
     @Environment(\.dismiss) var dismiss
-    
-    var filteredIngredients: [Ingredient] {
-        if searchText.isEmpty {
-            return viewModel.allAvailableIngredients
-        } else {
-            return viewModel.allAvailableIngredients.filter {
-                $0.name.lowercased().contains(searchText.lowercased())
-            }
-        }
-    }
     
     var body: some View {
         ZStack {
@@ -79,35 +68,30 @@ struct IngredientSelectorView: View {
             NavigationStack {
                 VStack {
                     List {
-                        if !searchText.isEmpty && !filteredIngredients.contains(where: { $0.name.lowercased() == searchText.lowercased() }) {
-                            Button(action: {
-                                let newIngredient = Ingredient(id: UUID(), name: searchText)
-                                viewModel.allAvailableIngredients.insert(newIngredient, at: 0)
-                                viewModel.addOrUpdateIngredient(RecipeIngredientInput(ingredient: newIngredient))
-                                dismiss()
-                            }) {
-                                HStack {
-                                    Image("plus.circle.icon")
-                                        .foregroundStyle(Color("EBA72B"))
-                                    Text("\"\(searchText)\" olarak yeni malzeme ekle")
-                                        .foregroundStyle(Color("EBA72B"))
-                                }
-                            }
-                        }
+                        if viewModel.isCustomAddButtonShown {
+                             Button(action: {
+                                 let trimmedName = viewModel.ingredientSearchText.trimmingCharacters(in: .whitespaces)
+                                 let customIngredient = Ingredient(id: UUID(), name: trimmedName)
+                                 
+                                 viewModel.selectIngredient(customIngredient, isCustom: true)
+                                 dismiss()
+                             }) {
+                                 Label("\"\(viewModel.ingredientSearchText)\" olarak özel malzeme ekle", systemImage: "plus.circle.fill")
+                                     .foregroundStyle(Color("EBA72B"))
+                             }
+                         }
                         
-                        ForEach(filteredIngredients) { ingredient in
+                        ForEach(viewModel.filteredIngredients) { ingredient in
                             Button(action: {
-                                viewModel.selectIngredientForEditing(ingredient)
+                                viewModel.selectIngredient(ingredient)
                                 dismiss()
                             }) {
                                 Text(ingredient.name)
                                     .foregroundStyle(Color("181818"))
                             }
                         }
-                        .listRowBackground(Color.clear)
                     }
-                    .searchable(text: $searchText, prompt: "Malzeme ara...")
-                    .scrollContentBackground(.hidden)
+                    .searchable(text: $viewModel.ingredientSearchText, prompt: "Malzeme ara veya yeni ekle...")
                 }
                 .navigationTitle("Malzeme Seç")
                 .navigationBarItems(trailing: Button(action: {

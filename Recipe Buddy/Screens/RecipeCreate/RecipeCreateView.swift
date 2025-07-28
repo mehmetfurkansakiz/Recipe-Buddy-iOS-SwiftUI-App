@@ -59,9 +59,6 @@ struct RecipeCreateView: View {
         .sheet(isPresented: $viewModel.showingCategorySelector) {
             CategorySelectorView(availableCategories: viewModel.availableCategories, selectedCategories: $viewModel.selectedCategories)
         }
-        .sheet(isPresented: $viewModel.showingIngredientSelector) {
-            IngredientSelectorView(viewModel: viewModel)
-        }
         .alert("Hata", isPresented: .constant(viewModel.errorMessage != nil), actions: {
             Button("Tamam") { viewModel.errorMessage = nil }
         }, message: { Text(viewModel.errorMessage ?? "") })
