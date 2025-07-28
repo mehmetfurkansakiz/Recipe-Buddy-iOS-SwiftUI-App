@@ -50,14 +50,18 @@ extension Recipe {
         let categories = Category.mockData
         let ingredients = Ingredient.mockData
         
+        func getIng(_ name: String) -> Ingredient {
+            return ingredients.first { $0.name == name }!
+        }
+        
         return [
             // Tarif 1: Mevcut kullanıcının kendi tarifi
             Recipe(
                 id: UUID(), name: "Süzme Mercimek Çorbası",
                 description: "Lokanta usulü, besleyici ve lezzetli.",
                 ingredients: [
-                    RecipeIngredientJoin(id: 1, amount: 1.5, unit: "su bardağı", ingredient: ingredients.first { $0.name == "Kırmızı Mercimek" }!),
-                    RecipeIngredientJoin(id: 2, amount: 1, unit: "adet", ingredient: ingredients.first { $0.name == "Soğan" }!)
+                    RecipeIngredientJoin(id: 1, name: "Kırmızı Mercimek", amount: 1.5, unit: "su bardağı", ingredientId: getIng("Kırmızı Mercimek").id),
+                    RecipeIngredientJoin(id: 2, name: "Soğan", amount: 1, unit: "adet", ingredientId: getIng("Soğan").id)
                 ],
                 steps: ["Soğanları kavur.", "Mercimekleri ekle.", "Blender'dan geçir."],
                 cookingTime: 30, servings: 6,
@@ -74,8 +78,8 @@ extension Recipe {
                 id: UUID(), name: "Limonlu Cheesecake",
                 description: "Ferahlatıcı ve lezzetli.",
                 ingredients: [
-                    RecipeIngredientJoin(id: 3, amount: 400, unit: "gr", ingredient: ingredients.first { $0.name == "Labne Peyniri" }!),
-                    RecipeIngredientJoin(id: 4, amount: 2, unit: "adet", ingredient: ingredients.first { $0.name == "Limon" }!)
+                    RecipeIngredientJoin(id: 3, name: "Labne Peyniri", amount: 400, unit: "gr", ingredientId: getIng("Labne Peyniri").id),
+                    RecipeIngredientJoin(id: 4, name: "Limon", amount: 2, unit: "adet", ingredientId: getIng("Limon").id)
                 ],
                 steps: ["Tabanını hazırla.", "Kremayı çırp.", "Fırında pişir."],
                 cookingTime: 90, servings: 8,
@@ -92,8 +96,8 @@ extension Recipe {
                 id: UUID(), name: "Tavuklu Sezar Salata",
                 description: "Tavuklu, krutonlu, özel sosuyla klasik.",
                 ingredients: [
-                    RecipeIngredientJoin(id: 5, amount: 1, unit: "adet", ingredient: ingredients.first { $0.name == "Tavuk Göğsü" }!),
-                    RecipeIngredientJoin(id: 6, amount: 1, unit: "göbek", ingredient: ingredients.first { $0.name == "Marul" }!)
+                    RecipeIngredientJoin(id: 5, name: "Tavuk Göğsü", amount: 1, unit: "adet", ingredientId: getIng("Tavuk Göğsü").id),
+                    RecipeIngredientJoin(id: 6, name: "Marul", amount: 1, unit: "göbek", ingredientId: getIng("Marul").id)
                 ],
                 steps: ["Tavukları pişir.", "Marulları doğra.", "Sosu ekle."],
                 cookingTime: 25, servings: 2,

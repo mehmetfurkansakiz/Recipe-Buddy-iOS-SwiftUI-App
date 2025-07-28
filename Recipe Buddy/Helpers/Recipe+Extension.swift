@@ -17,6 +17,6 @@ extension Recipe {
         id, name, description, steps, cooking_time, servings, rating, rating_count, image_name, user_id, is_public, created_at,
         user:users!recipes_user_id_fkey(id, full_name, username, avatar_url),
         categories:recipe_categories(category:categories(id, name)),
-        ingredients:recipe_ingredients(id, amount, unit, ingredient:ingredients(id, name))
+        ingredients:recipe_ingredients(id, name, amount, unit, ingredient_id)
     """
 }

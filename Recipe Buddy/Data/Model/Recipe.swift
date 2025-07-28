@@ -38,9 +38,10 @@ struct Recipe: Codable, Identifiable, Hashable {
 
 struct RecipeIngredientJoin: Codable, Hashable, Identifiable {
     let id: Int
+    let name: String
     let amount: Double
     let unit: String
-    let ingredient: Ingredient
+    let ingredientId: UUID?
     
     var formattedAmount: String {
         if amount.truncatingRemainder(dividingBy: 1) == 0 {
@@ -48,6 +49,11 @@ struct RecipeIngredientJoin: Codable, Hashable, Identifiable {
         } else {
             return String(format: "%.1f", amount)
         }
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, amount, unit
+        case ingredientId = "ingredient_id"
     }
 }
 

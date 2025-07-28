@@ -37,12 +37,13 @@ struct NewRecipe: Encodable {
 
 struct NewRecipeIngredient: Encodable {
     let recipeId: UUID
-    let ingredientId: UUID
+    let name: String
+    let ingredientId: UUID?
     let amount: Double
     let unit: String
     
     enum CodingKeys: String, CodingKey {
-        case amount, unit
+        case name, amount, unit
         case recipeId = "recipe_id"
         case ingredientId = "ingredient_id"
     }

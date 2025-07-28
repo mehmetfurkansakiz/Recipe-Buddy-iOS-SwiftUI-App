@@ -33,6 +33,9 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var showingIngredientSelector = false
     @Published var IngredientAlertMessage: String?
     
+    // Service 
+    private let recipeService = RecipeService.shared
+    
     // Navigation Title for steps
     var navigationTitle: String {
         switch selection {
@@ -89,83 +92,18 @@ class RecipeCreateViewModel: ObservableObject {
     }
     
     func saveRecipe() async {
-        guard isValid, let imageData = selectedImageData else {
-            self.errorMessage = "Please fill all required fields and select an image."
+        guard isValid else {
+            self.errorMessage = "Lütfen tüm gerekli alanları doldurun ve bir resim seçin."
             return
         }
-        
-        guard let userId = try? await supabase.auth.session.user.id else {
-            self.errorMessage = "You must be logged in to save a recipe."
-            return
-        }
-        
         isSaving = true
         defer { isSaving = false }
         
         do {
-            // MARK: 1. Upload Image
-            let imagePath = "public/\(UUID().uuidString).jpg"
-            try await supabase.storage.from("recipe-images")
-                .upload(imagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
-            
-            let stepTexts = self.steps.map { $0.text }
-            
-            let recipeInsert = NewRecipe(
-                name: self.name,
-                description: self.description,
-                cookingTime: self.cookingTime,
-                servings: self.servings,
-                steps: stepTexts,
-                imageName: imagePath,
-                userId: userId,
-                isPublic: self.isPublic
-            )
-            
-            let savedRecipeInfo: RecipeID = try await supabase.from("recipes")
-                .insert(recipeInsert)
-                .select("id")
-                .single()
-                .execute()
-                .value
-            let newRecipeId = savedRecipeInfo.id
-            
-            // MARK: 3. Process Ingredients (UPDATED WITH BATCHING)
-            var validIngredientLinks: [NewRecipeIngredient] = []
-            for ingInput in recipeIngredients {
-                let validIngredient = try await findOrCreateIngredient(name: ingInput.ingredient.name)
-                let link = NewRecipeIngredient(
-                    recipeId: newRecipeId,
-                    ingredientId: validIngredient.id,
-                    amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0,
-                    unit: ingInput.unit
-                )
-                validIngredientLinks.append(link)
-            }
-            
-            let ingredientBatchSize = 50
-            for i in stride(from: 0, to: validIngredientLinks.count, by: ingredientBatchSize) {
-                let end = min(i + ingredientBatchSize, validIngredientLinks.count)
-                let batch = Array(validIngredientLinks[i..<end])
-                print("--> Inserting ingredient batch, size: \(batch.count)")
-                try await supabase.from("recipe_ingredients").insert(batch).execute()
-            }
-            
-            let recipeCategoryLinks = selectedCategories.map { category in
-                NewRecipeCategory(recipeId: newRecipeId, categoryId: category.id)
-            }
-            
-            let categoryBatchSize = 50
-            for i in stride(from: 0, to: recipeCategoryLinks.count, by: categoryBatchSize) {
-                let end = min(i + categoryBatchSize, recipeCategoryLinks.count)
-                let batch = Array(recipeCategoryLinks[i..<end])
-                print("--> Inserting category batch, size: \(batch.count)")
-                try await supabase.from("recipe_categories").insert(batch).execute()
-            }
-            
+            try await recipeService.createRecipe(viewModel: self)
             showSuccess = true
-            
         } catch {
-            errorMessage = "Failed to save recipe: \(error.localizedDescription)"
+            errorMessage = "Tarif kaydedilemedi: \(error.localizedDescription)"
             print("❌ Save Error: \(error)")
         }
     }

@@ -32,6 +32,7 @@ class HomeViewModel: ObservableObject {
     @Published var isFetchingCategoryRecipes = false
     
     private var cancellables = Set<AnyCancellable>()
+    private let recipeService = RecipeService.shared
     
     init() {
         setupSearchDebounce()
@@ -74,22 +75,15 @@ class HomeViewModel: ObservableObject {
     func fetchHomePageData() async {
         guard sections.isEmpty else { return }
         isLoading = true
-        
-        async let userProfileFetch: () = fetchCurrentUser()
-        async let categoriesFetch: () = fetchCategories()
-        async let topRated = fetchSection(title: "Öne Çıkanlar", ordering: "rating", style: .featured)
-        async let newest = fetchSection(title: "En Yeniler", ordering: "created_at", style: .standard)
-        
         do {
-            let fetchedSections = try await [topRated, newest]
+            async let userProfileFetch: () = fetchCurrentUser()
+            async let categoriesFetch: () = fetchCategories()
+            self.sections = try await recipeService.fetchHomeSections()
             await userProfileFetch
             await categoriesFetch
-            
-            self.sections = fetchedSections.filter { !$0.recipes.isEmpty }
         } catch {
             print("❌ Error fetching home page data: \(error)")
         }
-        
         isLoading = false
     }
     

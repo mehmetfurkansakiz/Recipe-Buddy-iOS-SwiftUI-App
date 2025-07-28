@@ -80,12 +80,14 @@ class RecipeDetailViewModel: ObservableObject {
         }
     }
     
-    func isIngredientSelected(_ ingredient: Ingredient) -> Bool {
-        selectedIngredients.contains(ingredient.id)
+    func isIngredientSelected(_ recipeIngredient: RecipeIngredientJoin) -> Bool {
+        guard let id = recipeIngredient.ingredientId else { return false }
+        return selectedIngredients.contains(id)
     }
     
     func toggleIngredientSelection(_ recipeIngredient: RecipeIngredientJoin) {
-        let ingredientId = recipeIngredient.ingredient.id
+        guard let ingredientId = recipeIngredient.ingredientId else { return }
+        
         if selectedIngredients.contains(ingredientId) {
             selectedIngredients.remove(ingredientId)
         } else {
@@ -98,7 +100,9 @@ class RecipeDetailViewModel: ObservableObject {
             selectedIngredients.removeAll()
         } else {
             recipe.ingredients.forEach { recipeIngredient in
-                selectedIngredients.insert(recipeIngredient.ingredient.id)
+                if let ingredientId = recipeIngredient.ingredientId {
+                    selectedIngredients.insert(ingredientId)
+                }
             }
         }
     }
@@ -151,7 +155,10 @@ class RecipeDetailViewModel: ObservableObject {
     
     /// start adding ingredients to shopping list
     func addSelectedIngredientsToShoppingList() {
-        let selected = recipe.ingredients.filter { selectedIngredients.contains($0.ingredient.id) }
+        let selected = recipe.ingredients.filter {
+            guard let id = $0.ingredientId else { return false }
+            return selectedIngredients.contains(id)
+        }
         
         guard !selected.isEmpty else {
             statusMessage = "Lütfen önce malzeme seçin."
