@@ -86,7 +86,7 @@ class ShoppingListService {
             let existingItems: [ShoppingListItem] = try await supabase.from("shopping_list_items")
                 .select("id, amount")
                 .eq("list_id", value: list.id)
-                .eq("ingredient_id", value: recipeIngredient.ingredient.id)
+                .eq("ingredient_id", value: recipeIngredient.ingredientId)
                 .eq("unit", value: recipeIngredient.unit)
                 .execute()
                 .value

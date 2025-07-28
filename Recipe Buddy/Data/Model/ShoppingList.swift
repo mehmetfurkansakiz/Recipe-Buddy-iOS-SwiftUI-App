@@ -45,10 +45,10 @@ struct ShoppingListItemInsert: Encodable {
     
     init(from recipeIngredient: RecipeIngredientJoin, listId: UUID) {
         self.listId = listId
-        self.name = recipeIngredient.ingredient.name
-        self.ingredientId = recipeIngredient.ingredient.id
+        self.ingredientId = recipeIngredient.ingredientId
         self.amount = recipeIngredient.amount
         self.unit = recipeIngredient.unit
+        self.name = recipeIngredient.name
     }
     
     init(listId: UUID, name: String, amount: Double, unit: String, ingredientId: UUID?) {

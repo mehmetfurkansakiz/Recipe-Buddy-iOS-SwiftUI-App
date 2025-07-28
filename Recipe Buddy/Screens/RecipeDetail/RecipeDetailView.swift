@@ -169,18 +169,20 @@ struct RecipeDetailView: View {
                         .foregroundStyle(Color("EBA72B"))
                         .frame(width: 12, height: 12)
                     
-                    Text("\(recipeIngredient.formattedAmount) \(recipeIngredient.unit) \(recipeIngredient.ingredient.name)")
+                    Text("\(recipeIngredient.formattedAmount) \(recipeIngredient.unit) \(recipeIngredient.name)")
                                 .foregroundStyle(Color("303030"))
                     
                     Spacer()
                     
-                    Button(action: {
-                        viewModel.toggleIngredientSelection(recipeIngredient)
-                    }) {
-                        Image(viewModel.isIngredientSelected(recipeIngredient.ingredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
-                            .resizable()
-                            .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient.ingredient) ? Color("33C759") : Color("A3A3A3"))
-                            .frame(width: 18, height: 18)
+                    if recipeIngredient.ingredientId != nil {
+                        Button(action: {
+                            viewModel.toggleIngredientSelection(recipeIngredient)
+                        }) {
+                            Image(viewModel.isIngredientSelected(recipeIngredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
+                                .resizable()
+                                .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient) ? Color("33C759") : Color("A3A3A3"))
+                                .frame(width: 18, height: 18)
+                        }
                     }
                 }
                 .padding(.vertical, 4)
@@ -246,8 +248,9 @@ struct RecipeDetailView: View {
         .disabled(viewModel.selectedIngredients.isEmpty)
         .opacity(viewModel.selectedIngredients.isEmpty ? 0.6 : 1)
         .sheet(isPresented: $viewModel.showListSelector) {
-            let selectedIngredients = viewModel.recipe.ingredients.filter {
-                viewModel.selectedIngredients.contains($0.ingredient.id)
+            let selectedIngredients = viewModel.recipe.ingredients.filter { recipeIngredient in
+                guard let id = recipeIngredient.ingredientId else { return false }
+                return viewModel.selectedIngredients.contains(id)
             }
             
             ListSelectorView(
