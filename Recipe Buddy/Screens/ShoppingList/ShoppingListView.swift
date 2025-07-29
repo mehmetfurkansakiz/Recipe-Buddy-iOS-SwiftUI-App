@@ -16,26 +16,29 @@ struct ShoppingListView: View {
                 listContent
             }
         }
+        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Text("Alışveriş Listelerim")
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundStyle(Color("EBA72B"))
+                    .foregroundStyle(.EBA_72_B)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 HStack {
                     Text("Liste Oluştur")
                         .font(.headline)
                         .fontWeight(.bold)
+                        .foregroundStyle(.EBA_72_B)
                     Image("plus.icon")
                         .resizable()
                         .frame(width: 24, height: 24)
+                        .foregroundStyle(.EBA_72_B)
                 }
                 .onTapGesture(perform: {
                     viewModel.presentListEditSheetForCreate()
                 })
-                .foregroundStyle(Color("EBA72B"))
             }
         }
         .task {
@@ -73,6 +76,11 @@ struct ShoppingListView: View {
                             Task {
                                 await viewModel.presentListEditSheetForUpdate(list)
                             }
+                        },
+                        onToggleCheckAll: {
+                            Task {
+                                await viewModel.toggleCheckAllItems(in: list)
+                            }
                         }
                     )
                 }
@@ -87,15 +95,17 @@ struct ShoppingListView: View {
 
 /// show a list of shopping lists
 struct ShoppingListSectionView: View {
+    // Properties passed from the parent view
     let list: ShoppingList
     let items: [ShoppingListItem]
     let isExpanded: Bool
+    
+    // Closures for actions
     let onHeaderTap: () -> Void
     let onItemToggle: (ShoppingListItem) -> Void
     let onListDelete: () -> Void
     let onListEdit: () -> Void
-    
-    private var areAllItemsChecked: Bool { !items.isEmpty && items.allSatisfy(\.isChecked) }
+    let onToggleCheckAll: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -145,14 +155,12 @@ struct ShoppingListSectionView: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onHeaderTap)
         .contextMenu {
-            Button (action: onListEdit) {
+            Button(action: onListEdit) {
                 Label("Listeyi Düzenle", systemImage: "pencil")
             }
             
-            Button {
-                // TODO: ViewModel'da tümünü işaretleme fonksiyonunu çağır
-            } label: {
-                Label("Tümünü İşaretle", systemImage: "checklist")
+            Button(action: onToggleCheckAll) {
+                Label("Tümünü İşaretle/Kaldır", systemImage: "checklist")
             }
             
             Divider()
@@ -166,11 +174,8 @@ struct ShoppingListSectionView: View {
 }
 
 // MARK: - Preview
-//#Preview {
-//    ShoppingListView(navigationPath: .constant(NavigationPath()))
-//}
 
-#Preview("Dolu Alışveriş Listesi") {
+#Preview() {
     NavigationStack {
         ShoppingListView(navigationPath: .constant(NavigationPath()))
     }

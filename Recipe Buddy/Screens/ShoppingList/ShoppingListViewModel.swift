@@ -104,6 +104,25 @@ class ShoppingListViewModel: ObservableObject {
         }
     }
     
+    /// Toggles the checked state of all items in a list.
+    /// If some are unchecked, it checks all. If all are checked, it unchecks all.
+    func toggleCheckAllItems(in list: ShoppingList) async {
+        let areAllChecked = itemsByListID[list.id]?.allSatisfy { $0.isChecked } ?? false
+        let newCheckedState = !areAllChecked
+        
+        do {
+            try await service.updateCheckStatusForAllItems(listId: list.id, isChecked: newCheckedState)
+            
+            if itemsByListID[list.id] != nil {
+                for i in itemsByListID[list.id]!.indices {
+                    itemsByListID[list.id]?[i].isChecked = newCheckedState
+                }
+            }
+        } catch {
+            print("❌ Error toggling all items: \(error.localizedDescription)")
+        }
+    }
+    
     /// delete checked items from the database
     func clearCheckedItems(in list: ShoppingList) async {
         let checkedItemIds = (itemsByListID[list.id] ?? []).filter { $0.isChecked }.map { $0.id }
@@ -155,6 +174,7 @@ class ShoppingListViewModel: ObservableObject {
     func presentListEditSheetForCreate() {
         listToEdit = nil
         listNameForSheet = ""
+        itemsForEditingList = []
         isShowingEditSheet = true
     }
     

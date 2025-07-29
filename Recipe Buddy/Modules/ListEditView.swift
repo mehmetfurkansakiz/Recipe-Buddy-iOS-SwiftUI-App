@@ -24,7 +24,7 @@ struct ListEditView: View {
             saveButtonView
                 .padding()
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color("FBFBFB").ignoresSafeArea())
     }
     
     /// The header view with title and close button.
@@ -34,24 +34,22 @@ struct ListEditView: View {
                 .font(.headline).fontWeight(.bold)
             Spacer()
             Button(action: onCancel) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2).foregroundStyle(.secondary.opacity(0.5))
+                Image("close.circle.icon")
+                    .font(.title2).foregroundStyle(Color("EBA72B"))
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(.thinMaterial)
     }
     
     /// The section for entering the list name.
     private var listNameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("LİSTE ADI")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.secondary).padding(.leading, 4)
             
             TextField("Örn: Haftalık Alışveriş", text: $viewModel.listNameForSheet)
-                .padding(12)
-                .background(Color(.systemBackground))
-                .cornerRadius(10)
+                .textFieldStyle(CustomTextFieldStyle())
         }
     }
     
@@ -59,36 +57,44 @@ struct ListEditView: View {
     private var itemsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("MALZEMELER")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.secondary).padding(.leading, 4)
             
-            // List of existing/added items
-            VStack {
+            // Container for the list and the add button
+            VStack(spacing: 12) {
                 if viewModel.itemsForEditingList.isEmpty {
                     Text("Henüz malzeme eklenmedi.")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 60)
+                        .background(.thinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
                 } else {
                     ForEach($viewModel.itemsForEditingList) { $item in
                         EditableShoppingItemRow(item: $item) {
-                            // Find the index and remove it
                             if let index = viewModel.itemsForEditingList.firstIndex(where: { $0.id == item.id }) {
                                 viewModel.itemsForEditingList.remove(at: index)
                             }
                         }
                     }
                 }
-            }
-            
-            // Input for adding a new item
-            HStack {
-                TextField("Yeni Malzeme Ekle", text: $viewModel.newItemName)
-                    .focused($isTextFieldFocused)
-                Button("Ekle", action: viewModel.addItemToEditor)
+                
+                // Input for adding a new item
+                HStack {
+                    TextField("Yeni Malzeme Ekle", text: $viewModel.newItemName)
+                        .focused($isTextFieldFocused)
+                        .textFieldStyle(CustomTextFieldStyle())
+                    
+                    Button("Ekle") {
+                        withAnimation {
+                            viewModel.addItemToEditor()
+                        }
+                    }
                     .disabled(viewModel.newItemName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color("EBA72B"))
+                    .padding(.horizontal)
+                }
             }
-            .padding(12)
-            .background(Color(.systemBackground))
-            .cornerRadius(10)
         }
     }
     

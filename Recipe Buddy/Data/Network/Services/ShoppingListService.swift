@@ -63,6 +63,14 @@ class ShoppingListService {
             .execute()
     }
     
+    /// Updates the 'is_checked' status for all items in a given list.
+    func updateCheckStatusForAllItems(listId: UUID, isChecked: Bool) async throws {
+        try await supabase.from("shopping_list_items")
+            .update(["is_checked": isChecked])
+            .eq("list_id", value: listId)
+            .execute()
+    }
+    
     /// Deletes a list and all of its associated items from the database.
     func deleteList(_ list: ShoppingList) async throws {
         
@@ -145,20 +153,5 @@ class ShoppingListService {
             try await supabase.from("shopping_list_items").insert(items).execute()
         }
     }
-    
-    /// Finds an ingredient by name, or creates it if it doesn't exist.
-    func findOrCreateIngredient(name: String) async throws -> Ingredient {
-        
-        let ingredient: Ingredient = try await supabase
-            .rpc(
-                "upsert_ingredient",
-                params: ["ingredient_name": name]
-            )
-            .select()
-            .single()
-            .execute()
-            .value
-            
-        return ingredient
-    }
+
 }
