@@ -62,26 +62,29 @@ struct RecipesView: View {
                 .background(Color("FBFBFB"))
             }
         }
+        .toolbarBackground(.thinMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Text("Tariflerim")
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundStyle(Color("EBA72B"))
+                    .foregroundStyle(.EBA_72_B)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 HStack {
                     Text("Tarif Oluştur")
                         .font(.headline)
                         .fontWeight(.bold)
+                        .foregroundStyle(.EBA_72_B)
                     Image("plus.icon")
                         .resizable()
+                        .foregroundStyle(.EBA_72_B)
                         .frame(width: 24, height: 24)
                 }
                 .onTapGesture(perform: {
                     navigationPath.append(RecipeCreate())
                 })
-                .foregroundStyle(Color("EBA72B"))
             }
         }
         .task {

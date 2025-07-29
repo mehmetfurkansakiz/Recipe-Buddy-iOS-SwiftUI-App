@@ -12,19 +12,23 @@ struct EditableShoppingItemRow: View {
             
             TextField("Miktar", text: $item.amount)
                 .keyboardType(.decimalPad)
-                .frame(width: 60)
-                .multilineTextAlignment(.trailing)
+                .frame(width: 50)
+                .multilineTextAlignment(.center)
             
             TextField("Birim", text: $item.unit)
-                .frame(width: 80)
+                .frame(width: 70)
+                .autocapitalization(.none)
 
-            Button(action: onDelete) {
+            Button(action: {
+                withAnimation {
+                    onDelete()
+                }
+            }) {
                 Image(systemName: "trash")
                     .foregroundStyle(.red)
             }
+            .buttonStyle(.plain)
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(10)
+        .textFieldStyle(CustomTextFieldStyle())
     }
 }
