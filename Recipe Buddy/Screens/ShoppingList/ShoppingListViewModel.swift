@@ -22,11 +22,6 @@ class ShoppingListViewModel: ObservableObject {
         itemsByListID[listId]?.contains { $0.isChecked } ?? false
     }
     
-    func areAllItemsChecked(in list: ShoppingList) -> Bool {
-        guard let items = itemsByListID[list.id], !items.isEmpty else { return false }
-        return items.allSatisfy { $0.isChecked }
-    }
-    
     // MARK: - Initialization
     
     init() {}
@@ -50,6 +45,11 @@ class ShoppingListViewModel: ObservableObject {
         
         do {
             self.shoppingLists = try await service.fetchListsWithCounts()
+            
+            if let firstList = shoppingLists.first {
+                self.expandedListID = firstList.id
+                await fetchItems(for: firstList.id)
+            }
         } catch {
             print("❌ Error fetching lists: \(error.localizedDescription)")
         }
@@ -107,20 +107,51 @@ class ShoppingListViewModel: ObservableObject {
     /// Toggles the checked state of all items in a list.
     /// If some are unchecked, it checks all. If all are checked, it unchecks all.
     func toggleCheckAllItems(in list: ShoppingList) async {
-        let areAllChecked = itemsByListID[list.id]?.allSatisfy { $0.isChecked } ?? false
-        let newCheckedState = !areAllChecked
-        
-        do {
-            try await service.updateCheckStatusForAllItems(listId: list.id, isChecked: newCheckedState)
-            
-            if itemsByListID[list.id] != nil {
-                for i in itemsByListID[list.id]!.indices {
-                    itemsByListID[list.id]?[i].isChecked = newCheckedState
-                }
+        if itemsByListID[list.id] == nil {
+                await fetchItems(for: list.id)
             }
-        } catch {
-            print("❌ Error toggling all items: \(error.localizedDescription)")
+            
+            let areAllChecked = itemsByListID[list.id]?.allSatisfy { $0.isChecked } ?? false
+            let newCheckedState = !areAllChecked
+            
+            do {
+                try await service.updateCheckStatusForAllItems(listId: list.id, isChecked: newCheckedState)
+                
+                if itemsByListID[list.id] != nil {
+                    for i in itemsByListID[list.id]!.indices {
+                        itemsByListID[list.id]?[i].isChecked = newCheckedState
+                    }
+                }
+                
+                if let index = shoppingLists.firstIndex(where: { $0.id == list.id }) {
+                    let newCheckedCount = newCheckedState ? shoppingLists[index].itemCount : 0
+                    
+                    let updatedList = ShoppingList(
+                        id: shoppingLists[index].id,
+                        name: shoppingLists[index].name,
+                        userId: shoppingLists[index].userId,
+                        itemCount: shoppingLists[index].itemCount,
+                        checkedItemCount: newCheckedCount
+                    )
+                    
+                    shoppingLists[index] = updatedList
+                }
+                
+            } catch {
+                print("❌ Error toggling all items: \(error.localizedDescription)")
+                // On error, a full refresh is a good idea to re-sync with the database.
+                await fetchAllLists()
+            }
+    }
+    
+    func areAllItemsChecked(for list: ShoppingList) -> Bool {
+        if let items = itemsByListID[list.id] {
+            guard !items.isEmpty else { return false }
+            return items.allSatisfy { $0.isChecked }
         }
+        
+        guard list.itemCount > 0 else { return false }
+        return list.itemCount == list.checkedItemCount
     }
     
     /// delete checked items from the database

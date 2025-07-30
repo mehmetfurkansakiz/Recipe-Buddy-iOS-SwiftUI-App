@@ -63,6 +63,7 @@ struct ShoppingListView: View {
                         list: list,
                         items: viewModel.itemsByListID[list.id] ?? [],
                         isExpanded: viewModel.expandedListID == list.id,
+                        areAllItemsChecked: viewModel.areAllItemsChecked(for: list),
                         onHeaderTap: {
                             Task { await viewModel.toggleListExpansion(listId: list.id) }
                         },
@@ -73,14 +74,13 @@ struct ShoppingListView: View {
                             Task { await viewModel.deleteList(list) }
                         },
                         onListEdit: {
-                            Task {
-                                await viewModel.presentListEditSheetForUpdate(list)
-                            }
+                            Task { await viewModel.presentListEditSheetForUpdate(list) }
                         },
                         onToggleCheckAll: {
-                            Task {
-                                await viewModel.toggleCheckAllItems(in: list)
-                            }
+                            Task { await viewModel.toggleCheckAllItems(in: list) }
+                        },
+                        onClearChecked: {
+                            Task { await viewModel.clearCheckedItems(in: list) }
                         }
                     )
                 }
@@ -99,6 +99,7 @@ struct ShoppingListSectionView: View {
     let list: ShoppingList
     let items: [ShoppingListItem]
     let isExpanded: Bool
+    let areAllItemsChecked: Bool
     
     // Closures for actions
     let onHeaderTap: () -> Void
@@ -106,6 +107,7 @@ struct ShoppingListSectionView: View {
     let onListDelete: () -> Void
     let onListEdit: () -> Void
     let onToggleCheckAll: () -> Void
+    let onClearChecked: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -119,6 +121,7 @@ struct ShoppingListSectionView: View {
                     // TODO: itemlar için de basılı tutma ve düzenleme gibi özellikler
                 }
                 .padding(.horizontal, 8)
+                .padding(.bottom, 8)
                 .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
             }
         }
@@ -134,6 +137,8 @@ struct ShoppingListSectionView: View {
             Text(list.name)
                 .font(.title3)
                 .fontWeight(.bold)
+                .foregroundStyle(areAllItemsChecked ? .secondary : .primary)
+                .strikethrough(areAllItemsChecked, color: .secondary)
             
             Circle()
                 .frame(width: 4, height: 4)
@@ -157,6 +162,10 @@ struct ShoppingListSectionView: View {
         .contextMenu {
             Button(action: onListEdit) {
                 Label("Listeyi Düzenle", systemImage: "pencil")
+            }
+            
+            Button(action: onClearChecked) {
+                Label("İşaretlileri Temizle", systemImage: "eraser")
             }
             
             Button(action: onToggleCheckAll) {

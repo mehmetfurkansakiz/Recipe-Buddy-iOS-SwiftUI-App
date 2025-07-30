@@ -116,8 +116,21 @@ extension Recipe {
 extension ShoppingList {
     static var mockLists: [ShoppingList] {
         [
-            ShoppingList(id: UUID(), name: "Haftalık Pazar Alışverişi", userId: MockData.currentUserId, itemCount: 3),
-            ShoppingList(id: UUID(), name: "Doğum Günü Partisi", userId: MockData.currentUserId, itemCount: 5)
+            ShoppingList(
+                id: UUID(),
+                name: "Haftalık Pazar Alışverişi",
+                userId: MockData.currentUserId,
+                itemCount: 3,
+                checkedItemCount: 1
+            ),
+            
+            ShoppingList(
+                id: UUID(),
+                name: "Doğum Günü Partisi",
+                userId: MockData.currentUserId,
+                itemCount: 5,
+                checkedItemCount: 5
+            )
         ]
     }
 }
