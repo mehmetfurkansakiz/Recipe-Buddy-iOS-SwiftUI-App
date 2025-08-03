@@ -67,9 +67,9 @@ struct TabContent: View {
         case .recipe:
             RecipesView(viewModel: RecipesViewModel(), navigationPath: $navigationPath)
         case .shoppingList:
-            ShoppingListView(navigationPath: $navigationPath)
+            ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: $navigationPath)
         case .settings:
-            SettingsView()
+            SettingsView(viewModel: SettingsViewModel(coordinator: coordinator), navigationPath: $navigationPath)
         }
     }
 }
