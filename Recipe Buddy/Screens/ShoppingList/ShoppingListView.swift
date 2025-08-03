@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ShoppingListView: View {
-    @StateObject private var viewModel = ShoppingListViewModel()
+    @StateObject var viewModel: ShoppingListViewModel
     @Binding var navigationPath: NavigationPath
     
     var body: some View {
@@ -16,7 +16,7 @@ struct ShoppingListView: View {
                 listContent
             }
         }
-        .toolbarBackground(.regularMaterial, for: .navigationBar)
+        .toolbarBackground(.thinMaterial, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -186,6 +186,6 @@ struct ShoppingListSectionView: View {
 
 #Preview() {
     NavigationStack {
-        ShoppingListView(navigationPath: .constant(NavigationPath()))
+        ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: .constant(NavigationPath()))
     }
 }
