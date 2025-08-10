@@ -99,7 +99,7 @@ struct SearchResultsView: View {
     var body: some View {
         VStack {
             ForEach(recipes) { recipe in
-                Button(action: { navigationPath.append(recipe) }) {
+                Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                     SearchResultRow(recipe: recipe)
                 }
                 .padding(.horizontal)
@@ -128,7 +128,7 @@ struct CategoryResultsView: View {
                     spacing: 16
                 ) {
                     ForEach(recipes) { recipe in
-                        Button(action: { navigationPath.append(recipe) }) {
+                        Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                             // for use small
                             let cardWidth = (UIScreen.main.bounds.width / 2) - 24
                             ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
@@ -191,7 +191,7 @@ struct RecipeCarouselSection: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
                     ForEach(recipes) { recipe in
-                        Button(action: { navigationPath.append(recipe) }) {
+                        Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                             ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
                         }
                     }

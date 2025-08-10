@@ -75,6 +75,9 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .onTapGesture {
+            navigationPath.append(AppNavigation.profile)
+        }
     }
     
     /// Section for account-related actions.

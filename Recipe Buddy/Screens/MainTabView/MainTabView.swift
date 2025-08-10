@@ -44,12 +44,20 @@ struct MainTabView: View {
                 .padding(.horizontal, 16)
             }
             .ignoresSafeArea(.keyboard)
-            
-            .navigationDestination(for: Recipe.self) { recipe in
-                RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe))
-            }
-            .navigationDestination(for: RecipeCreate.self) { _ in
-                RecipeCreateView(viewModel: RecipeCreateViewModel())
+            .navigationDestination(for: AppNavigation.self) { destination in
+                switch destination {
+                case .recipeDetail(let recipe):
+                    RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe))
+                    
+                case .recipeCreate:
+                    RecipeCreateView(viewModel: RecipeCreateViewModel())
+                    
+                case .recipeEdit(let recipe):
+                    Text("Tarif Düzenleme Ekranı: \(recipe.name)")
+                    
+                case .profile:
+                    ProfileView()
+                }
             }
         }
     }

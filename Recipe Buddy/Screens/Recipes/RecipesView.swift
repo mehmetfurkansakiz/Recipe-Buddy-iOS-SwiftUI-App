@@ -20,7 +20,7 @@ struct RecipesView: View {
                         } else {
                             if !viewModel.searchText.isEmpty {
                                 List(viewModel.searchResults) { recipe in
-                                    Button(action: { navigationPath.append(recipe) }) {
+                                    Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                                         SearchResultRow(recipe: recipe)
                                     }
                                     .listRowBackground(Color.clear)
@@ -83,7 +83,7 @@ struct RecipesView: View {
                         .frame(width: 24, height: 24)
                 }
                 .onTapGesture(perform: {
-                    navigationPath.append(RecipeCreate())
+                    navigationPath.append(AppNavigation.recipeCreate)
                 })
             }
         }
