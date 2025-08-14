@@ -50,6 +50,28 @@ class RecipeService {
         return response.map { $0.recipe }
     }
     
+    func fetchOwnedRecipeCount() async throws -> Int {
+        guard let userId = try? await supabase.auth.session.user.id else { return 0 }
+        
+        // The standard response object contains the count when requested.
+        let response = try await supabase.from("recipes")
+            .select(count: .exact) // Ask for the count
+            .eq("user_id", value: userId)
+            .execute() // This returns a PostgrestResponse
+        
+        // The count is an optional Int on the response object.
+        return response.count ?? 0
+    }
+    
+    func fetchTotalFavoritesReceivedCount() async throws -> Int {
+        let count: Int = try await supabase
+            .rpc("get_total_favorites_for_owned_recipes")
+            .execute()
+            .value
+        
+        return count
+    }
+    
     // MARK: - Recipe Creation
         
         /// Saves a new recipe with all its components.
