@@ -88,7 +88,7 @@ struct RecipeDetailView: View {
                     }) {
                         Image("pencil.icon")
                             .resizable()
-                            .foregroundStyle(Color("A3A3A3"))
+                            .foregroundStyle(Color.A_3_A_3_A_3)
                             .frame(width: 24, height: 24)
                     }
                 } else if viewModel.isAuthenticated {
@@ -97,7 +97,7 @@ struct RecipeDetailView: View {
                     }) {
                         Image(viewModel.userCurrentRating != nil ? "star.fill.icon" : "star.icon")
                             .resizable()
-                            .foregroundStyle(Color("A3A3A3"))
+                            .foregroundStyle(viewModel.userCurrentRating != nil ? Color.FFCB_1_F : Color.A_3_A_3_A_3)
                             .frame(width: 24, height: 24)
                     }
                 }
@@ -130,12 +130,13 @@ struct RecipeDetailView: View {
             }
             
             HStack {
-                RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color("181818"))
-                RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings)", color: Color("181818"))
-                if let rating = viewModel.recipe.rating {
-                    RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating), color: Color("FFCB1F"))
+                RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color._181818)
+                RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings) porsiyon", color: Color._181818)
+                if let rating = viewModel.recipe.rating, let ratingCount = viewModel.recipe.ratingCount {
+                    RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating) + " (\(ratingCount))", color: Color.FFCB_1_F)
                 } else {
-                    RecipeInfoBadge(icon: "star.icon", text: "0(0)", color: Color("C2C2C2"))
+                    let ratingCount = viewModel.recipe.ratingCount ?? 0
+                    RecipeInfoBadge(icon: "star.icon", text: "0 (\(ratingCount))", color: Color.C_2_C_2_C_2)
                 }
             }
             
