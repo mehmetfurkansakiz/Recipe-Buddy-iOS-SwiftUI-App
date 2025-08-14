@@ -56,7 +56,7 @@ struct MainTabView: View {
                     Text("Tarif Düzenleme Ekranı: \(recipe.name)")
                     
                 case .profile:
-                    ProfileView()
+                    ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))
                 }
             }
         }
