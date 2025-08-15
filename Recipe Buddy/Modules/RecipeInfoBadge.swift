@@ -16,6 +16,7 @@ struct RecipeInfoBadge: View {
                 .fontWeight(.heavy)
                 .foregroundStyle(Color("A3A3A3"))
         }
+        .lineLimit(1)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(Color("F2F2F7"))

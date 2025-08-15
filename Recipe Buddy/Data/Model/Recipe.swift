@@ -16,6 +16,7 @@ struct Recipe: Codable, Identifiable, Hashable {
     let isPublic: Bool
     let user: User?
     let createdAt: Date
+    var favoritedCount: Int
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -33,6 +34,7 @@ struct Recipe: Codable, Identifiable, Hashable {
         case userId = "user_id"
         case isPublic = "is_public"
         case createdAt = "created_at"
+        case favoritedCount = "favorited_count"
     }
 }
 
