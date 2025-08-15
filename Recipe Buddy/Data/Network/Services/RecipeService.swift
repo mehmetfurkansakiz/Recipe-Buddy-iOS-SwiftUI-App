@@ -72,6 +72,53 @@ class RecipeService {
         return count
     }
     
+    /// Fetches the current user's rating for a specific recipe
+    func fetchUserRating(for recipeId: UUID) async throws -> Int? {
+        guard let userId = try? await supabase.auth.session.user.id else { return nil }
+        
+        struct RatingResult: Decodable {
+            let rating: Int
+        }
+        
+        do {
+            let result: RatingResult = try await supabase.from("recipe_ratings")
+                .select("rating")
+                .eq("user_id", value: userId)
+                .eq("recipe_id", value: recipeId)
+                .single()
+                .execute()
+                .value
+            return result.rating
+        } catch {
+            return nil
+        }
+    }
+    
+    // MARK: - Checks and Toggle
+    
+    /// Checks if a recipe is favorited by the current user
+    func checkIfFavorite(recipeId: UUID) async throws -> Bool {
+        guard let userId = try? await supabase.auth.session.user.id else { return false }
+        
+        let response = try await supabase.from("favorite_recipes")
+            .select(count: .exact)
+            .eq("user_id", value: userId)
+            .eq("recipe_id", value: recipeId)
+            .execute()
+            
+        return response.count ?? 0 > 0
+    }
+    
+    /// Toggles the favorite status for a recipe
+    func toggleFavorite(recipeId: UUID) async throws -> Bool {
+        let newStatus: Bool = try await supabase
+            .rpc("toggle_favorite", params: ["recipe_id_to_toggle": recipeId])
+            .execute()
+            .value
+        return newStatus
+    }
+    
+    
     // MARK: - Recipe Creation
         
         /// Saves a new recipe with all its components.

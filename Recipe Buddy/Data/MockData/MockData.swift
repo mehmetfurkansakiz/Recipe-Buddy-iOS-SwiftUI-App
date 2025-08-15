@@ -70,7 +70,7 @@ extension Recipe {
                 userId: MockData.currentUserId,
                 isPublic: true,
                 user: MockData.currentUser,
-                createdAt: Date()
+                createdAt: Date(), favoritedCount: 3
             ),
             
             // Tarif 2: Başkasına ait, favorilere eklenecek bir tarif
@@ -88,7 +88,7 @@ extension Recipe {
                 userId: MockData.otherUserId,
                 isPublic: true,
                 user: MockData.otherUser,
-                createdAt: Calendar.current.date(byAdding: .day, value: -2, to: Date())!
+                createdAt: Calendar.current.date(byAdding: .day, value: -2, to: Date())!, favoritedCount: 54
             ),
             
             // Tarif 3: Mevcut kullanıcının ikinci tarifi
@@ -106,7 +106,7 @@ extension Recipe {
                 userId: MockData.currentUserId,
                 isPublic: true,
                 user: MockData.currentUser,
-                createdAt: Calendar.current.date(byAdding: .hour, value: -3, to: Date())!
+                createdAt: Calendar.current.date(byAdding: .hour, value: -3, to: Date())!, favoritedCount: 1223
             )
         ]
     }

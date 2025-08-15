@@ -10,26 +10,33 @@ struct RecipeDetailView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    recipeImageHeader
-                    
-                    VStack(alignment: .leading, spacing: 16) {
-                        recipeInfoSection
-                        Divider()
-                        ingredientsSection
-                        Divider()
-                        preparationSection
-                        Divider()
-                        addToShoppingListButton
-                        Spacer(minLength: 64)
+            
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        recipeImageHeader
+                        
+                        VStack(alignment: .leading, spacing: 16) {
+                            recipeInfoSection
+                            Divider()
+                            ingredientsSection
+                            Divider()
+                            preparationSection
+                            Divider()
+                            addToShoppingListButton
+                            Spacer(minLength: 64)
+                        }
+                        .padding()
                     }
-                    .padding()
                 }
             }
-            .navigationBarBackButtonHidden()
-            .ignoresSafeArea(edges: .top)
         }
+        .navigationBarBackButtonHidden()
+        .ignoresSafeArea(edges: .top)
+        .animation(.default, value: viewModel.isLoading)
     }
     
     // MARK: - View Components
@@ -132,6 +139,11 @@ struct RecipeDetailView: View {
             HStack {
                 RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color._181818)
                 RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings) porsiyon", color: Color._181818)
+                RecipeInfoBadge(
+                    icon: "heart.fill.icon",
+                    text: "\(viewModel.recipe.favoritedCount)",
+                    color: Color.FF_2_A_1_F
+                )
                 if let rating = viewModel.recipe.rating, let ratingCount = viewModel.recipe.ratingCount {
                     RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating) + " (\(ratingCount))", color: Color.FFCB_1_F)
                 } else {
