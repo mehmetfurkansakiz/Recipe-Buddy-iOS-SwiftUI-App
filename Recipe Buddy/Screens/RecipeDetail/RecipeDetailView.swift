@@ -1,4 +1,5 @@
 import SwiftUI
+import NukeUI
 
 struct RecipeDetailView: View {
     @StateObject var viewModel: RecipeDetailViewModel
@@ -43,16 +44,19 @@ struct RecipeDetailView: View {
     private var recipeImageHeader: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                AsyncImage(url: viewModel.recipe.imagePublicURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    ZStack {
-                        Color.gray.opacity(0.1)
-                        ProgressView()
+                LazyImage(url: viewModel.recipe.imagePublicURL) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        ZStack {
+                            Rectangle().fill(.gray.opacity(0.1))
+                            ProgressView()
+                        }
                     }
                 }
+                .transition(.opacity.animation(.default))
                 .frame(width: geo.size.width, height: max(geo.size.height, geo.frame(in: .global).minY > 0 ? geo.size.height + geo.frame(in: .global).minY : geo.size.height))
                 .clipped()
                 .offset(y: geo.frame(in: .global).minY > 0 ? -geo.frame(in: .global).minY : 0)

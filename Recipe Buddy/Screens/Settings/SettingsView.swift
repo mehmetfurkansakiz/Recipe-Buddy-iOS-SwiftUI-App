@@ -1,4 +1,5 @@
 import SwiftUI
+import NukeUI
 
 struct SettingsView: View {
     @StateObject var viewModel: SettingsViewModel
@@ -56,12 +57,16 @@ struct SettingsView: View {
     /// A header view that displays the user's profile information.
     private func profileHeader(user: User) -> some View {
         HStack(spacing: 16) {
-            AsyncImage(url: user.avatarPublicURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.gray.opacity(0.5))
+            LazyImage(url: user.avatarPublicURL) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.gray.opacity(0.3))
+                }
             }
             .frame(width: 60, height: 60)
             .clipShape(Circle())
