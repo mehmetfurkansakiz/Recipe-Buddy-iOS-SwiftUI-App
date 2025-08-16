@@ -1,6 +1,5 @@
 import SwiftUI
 import PhotosUI
-import Supabase
 
 @MainActor
 class RecipeCreateViewModel: ObservableObject {
@@ -94,7 +93,19 @@ class RecipeCreateViewModel: ObservableObject {
     func loadImage(from item: PhotosPickerItem?) async {
         guard let item = item else { return }
         do {
-            self.selectedImageData = try await item.loadTransferable(type: Data.self)
+            // 1. Load the full image data
+            if let fullData = try await item.loadTransferable(type: Data.self),
+               let image = UIImage(data: fullData) {
+                
+                // 2. Resize and compress the image
+                let resizedData = image.jpegData(
+                    maxWidth: 1024,
+                    compressionQuality: 0.7
+                )
+                
+                // 3. Use the optimized data
+                self.selectedImageData = resizedData
+            }
         } catch {
             errorMessage = "Resim yüklenemedi: \(error.localizedDescription)"
         }

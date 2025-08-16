@@ -1,4 +1,5 @@
 import SwiftUI
+import NukeUI
 
 struct HomeView: View {
     @StateObject var viewModel: HomeViewModel
@@ -146,11 +147,13 @@ struct SearchResultRow: View {
     
     var body: some View {
         HStack {
-            AsyncImage(url: recipe.imagePublicURL, transaction: .init(animation: .easeIn)) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
+            LazyImage(url: recipe.imagePublicURL) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
                 } else {
-                    Color("F2F2F7")
+                    Color.F_2_F_2_F_7
                 }
             }
             .frame(width: 60, height: 60)

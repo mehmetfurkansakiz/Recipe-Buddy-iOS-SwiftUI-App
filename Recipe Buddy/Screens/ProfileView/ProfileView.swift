@@ -1,4 +1,5 @@
 import SwiftUI
+import NukeUI
 
 struct ProfileView: View {
     @StateObject var viewModel: ProfileViewModel
@@ -28,12 +29,16 @@ struct ProfileView: View {
     /// The main header with avatar, name, and username.
     private func profileHeader(user: User) -> some View {
         VStack(spacing: 16) {
-            AsyncImage(url: user.avatarPublicURL) { image in
-                image.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(.gray.opacity(0.3))
+            LazyImage(url: user.avatarPublicURL) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 80))
+                        .foregroundStyle(.gray.opacity(0.3))
+                }
             }
             .frame(width: 80, height: 80)
             .clipShape(Circle())
