@@ -129,9 +129,7 @@ class RecipeService {
             }
             
             // 1. Upload Image
-            let imagePath = "public/\(UUID().uuidString).jpg"
-            try await supabase.storage.from("recipe-images")
-                .upload(imagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
+            let imagePath = try await ImageUploaderService.shared.uploadImage(imageData: imageData)
             
             // 2. Insert Base Recipe
             let stepTexts = viewModel.steps.map { $0.text }

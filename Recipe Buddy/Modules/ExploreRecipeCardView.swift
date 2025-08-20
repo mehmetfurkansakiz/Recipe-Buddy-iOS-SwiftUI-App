@@ -12,7 +12,7 @@ struct ExploreRecipeCard: View {
             ZStack(alignment: .bottom) {
                 
                 // Image
-                LazyImage(url: recipe.imagePublicURL) { state in
+                LazyImage(url: recipe.imagePublicURL()) { state in
                     if let image = state.image {
                         image
                             .resizable()

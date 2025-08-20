@@ -57,7 +57,7 @@ struct SettingsView: View {
     /// A header view that displays the user's profile information.
     private func profileHeader(user: User) -> some View {
         HStack(spacing: 16) {
-            LazyImage(url: user.avatarPublicURL) { state in
+            LazyImage(url: user.avatarPublicURL()) { state in
                 if let image = state.image {
                     image
                         .resizable()

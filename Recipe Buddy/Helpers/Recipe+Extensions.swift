@@ -1,14 +1,18 @@
 import Foundation
 
-// Recipe image extension for get image supabase storage
+// Recipe image extension for get image S3 storage
 extension Recipe {
-    var imagePublicURL: URL? {
-        let urlString = Secrets.supabaseURL
-            .absoluteString
-            .replacingOccurrences(of: "/rest/v1", with: "")
-        let fullURLString = "\(urlString)/storage/v1/object/public/recipe-images/\(self.imageName)"
-        return URL(string: fullURLString)
-    }
+    func imagePublicURL(width: Int? = nil) -> URL? {
+         let cloudfrontDomain = Secrets.cloudfrontDomain
+        
+         var urlString = "\(cloudfrontDomain)/\(self.imageName)"
+         
+         if let width = width {
+             urlString += "?w=\(width)&q=80"
+         }
+         
+         return URL(string: urlString)
+     }
 }
 
 // SQL query for selecting recipes with related data

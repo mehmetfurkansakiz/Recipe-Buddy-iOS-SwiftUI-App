@@ -1,14 +1,14 @@
 import Foundation
 
 // Get full URL for user's avatar image
-extension User {
-    var avatarPublicURL: URL? {
+extension User {    
+    func avatarPublicURL(width: Int = 120) -> URL? {
         guard let avatarPath = avatarUrl, !avatarPath.isEmpty else { return nil }
         
-        let urlString = Secrets.supabaseURL
-            .absoluteString.replacingOccurrences(of: "/rest/v1", with: "")
+        let cloudfrontDomain = Secrets.cloudfrontDomain
+        var urlString = "\(cloudfrontDomain)/\(avatarPath)"
+        urlString += "?w=\(width)&q=80"
         
-        let fullURLString = "\(urlString)/storage/v1/object/public/\(avatarPath)"
-        return URL(string: fullURLString)
+        return URL(string: urlString)
     }
 }
