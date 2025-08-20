@@ -1,6 +1,5 @@
 import SwiftUI
 import PhotosUI
-import Supabase
 
 @MainActor
 class RecipeCreateViewModel: ObservableObject {
@@ -8,7 +7,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var description: String = ""
     @Published var servings: Int = 4   // default start
     @Published var cookingTime: Int = 30 // default start
-    @Published var steps: [String] = [""]
+    @Published var steps: [RecipeStep] = [RecipeStep(text: "")]
     @Published var isPublic: Bool = false // default start
     
     // Photo management
@@ -22,11 +21,45 @@ class RecipeCreateViewModel: ObservableObject {
     // Ingredients management
     @Published var recipeIngredients: [RecipeIngredientInput] = []
     @Published var allAvailableIngredients: [Ingredient] = []
+    @Published var ingredientToEditDetails: RecipeIngredientInput?
+    @Published var ingredientSearchText = ""
     
     // UI state
     @Published var showSuccess: Bool = false
     @Published var errorMessage: String?
     @Published var isSaving: Bool = false
+    @Published var selection: Int = 0
+    @Published var showingCategorySelector = false
+    @Published var showingIngredientSelector = false
+    @Published var ingredientAlertMessage: String?
+    
+    // Service 
+    private let recipeService = RecipeService.shared
+    
+    // Navigation Title for steps
+    var navigationTitle: String {
+        switch selection {
+        case 0: return "Temel Bilgiler"
+        case 1: return "Malzemeler"
+        case 2: return "Hazırlanışı"
+        default: return "Yeni Tarif"
+        }
+    }
+    
+    var filteredIngredients: [Ingredient] {
+        if ingredientSearchText.isEmpty {
+            return allAvailableIngredients
+        } else {
+            return allAvailableIngredients.filter {
+                $0.name.lowercased().contains(ingredientSearchText.lowercased())
+            }
+        }
+    }
+    
+    var isCustomAddButtonShown: Bool {
+        let trimmedText = ingredientSearchText.trimmingCharacters(in: .whitespaces)
+        return !trimmedText.isEmpty && !allAvailableIngredients.contains { $0.name.caseInsensitiveCompare(trimmedText) == .orderedSame }
+    }
     
     let servingsOptions = Array(1...20)
     let timeOptions: [Int] = Array(stride(from: 5, through: 240, by: 5))
@@ -34,7 +67,7 @@ class RecipeCreateViewModel: ObservableObject {
     var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         !recipeIngredients.isEmpty &&
-        !steps.contains(where: { $0.trimmingCharacters(in: .whitespaces).isEmpty }) &&
+        !steps.contains(where: { $0.text.trimmingCharacters(in: .whitespaces).isEmpty }) &&
         !selectedCategories.isEmpty &&
         selectedImageData != nil
     }
@@ -46,22 +79,15 @@ class RecipeCreateViewModel: ObservableObject {
     }
     
     func fetchInitialData() async {
-        async let fetchCat: () = fetchCategories()
-        async let fetchIng: () = fetchIngredients()
-        await fetchCat
-        await fetchIng
-    }
-    
-    func fetchCategories() async {
         do {
-            self.availableCategories = try await supabase.from("categories").select().execute().value
-        } catch { errorMessage = "Kategoriler yüklenemedi: \(error.localizedDescription)" }
-    }
-    
-    func fetchIngredients() async {
-        do {
-            self.allAvailableIngredients = try await supabase.from("ingredients").select().order("name").execute().value
-        } catch { errorMessage = "Malzemeler yüklenemedi: \(error.localizedDescription)" }
+            async let categoriesTask = recipeService.fetchAllCategories()
+            async let ingredientsTask = recipeService.fetchAllIngredients()
+            
+            self.availableCategories = try await categoriesTask
+            self.allAvailableIngredients = try await ingredientsTask
+        } catch {
+            errorMessage = "Gerekli veriler yüklenemedi: \(error.localizedDescription)"
+        }
     }
     
     func loadImage(from item: PhotosPickerItem?) async {
@@ -74,55 +100,30 @@ class RecipeCreateViewModel: ObservableObject {
     }
     
     func saveRecipe() async {
-        guard isValid, let imageData = selectedImageData else { return }
-        
-        guard let userId = try? await supabase.auth.session.user.id else {
-            self.errorMessage = "Tarifi kaydetmek için giriş yapmalısınız."
+        guard isValid else {
+            self.errorMessage = "Lütfen tüm gerekli alanları doldurun ve bir resim seçin."
             return
         }
-        
         isSaving = true
         defer { isSaving = false }
         
         do {
-            let imagePath = "public/\(UUID().uuidString).jpg"
-            let _ = try await supabase.storage.from("recipe-images")
-                .upload(imagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
-            
-            let recipeInsert = NewRecipe(
-                name: self.name,
-                description: self.description,
-                cookingTime: self.cookingTime,
-                servings: self.servings,
-                steps: self.steps,
-                imageName: imagePath,
-                userId: userId,
-                isPublic: self.isPublic
-            )
-            
-            let savedRecipeInfo: RecipeID = try await supabase.from("recipes")
-                .insert(recipeInsert)
-                .select("id")
-                .single()
-                .execute()
-                .value
-            
-            let newRecipeId = savedRecipeInfo.id
-            
-            let recipeIngredientLinks = recipeIngredients.map { ingInput in
-                NewRecipeIngredient(recipeId: newRecipeId, ingredientId: ingInput.ingredient.id, amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0, unit: ingInput.unit)
-            }
-            try await supabase.from("recipe_ingredients").insert(recipeIngredientLinks).execute()
-            
-            let recipeCategoryLinks = selectedCategories.map { category in
-                NewRecipeCategory(recipeId: newRecipeId, categoryId: category.id)
-            }
-            try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
-            
+            try await recipeService.createRecipe(viewModel: self)
             showSuccess = true
         } catch {
             errorMessage = "Tarif kaydedilemedi: \(error.localizedDescription)"
-            print("❌ Kaydetme Hatası: \(error)")
+            print("❌ Save Error: \(error)")
+        }
+    }
+    
+    /// Selects an ingredient, checking for duplicates before adding. Also handles custom ingredients.
+    func selectIngredient(_ ingredient: Ingredient, isCustom: Bool = false) {
+        if !isCustom && recipeIngredients.contains(where: { $0.ingredient.id == ingredient.id }) {
+            ingredientAlertMessage = "'\(ingredient.name)' zaten ekli. Miktarını veya birimini değiştirmek için listedeki malzemenin üzerine dokunabilirsiniz."
+        } else {
+            let newItem = RecipeIngredientInput(ingredient: ingredient)
+            recipeIngredients.append(newItem)
+            ingredientToEditDetails = newItem
         }
     }
 
@@ -138,7 +139,7 @@ class RecipeCreateViewModel: ObservableObject {
         recipeIngredients.removeAll { $0.id == id }
     }
     
-    func addStep() { steps.append("") }
+    func addStep() { steps.append(RecipeStep(text: "")) }
     func removeStep(at index: Int) {
         if steps.count > 1 { steps.remove(at: index) }
     }

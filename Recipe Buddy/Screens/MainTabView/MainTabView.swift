@@ -9,6 +9,7 @@ struct MainTabView: View {
     private let tabs = [
         TabItem(icon: "home.icon"),
         TabItem(icon: "cupcake.icon"),
+        TabItem(icon: "cart.icon"),
         TabItem(icon: "user.icon")
     ]
     
@@ -35,24 +36,28 @@ struct MainTabView: View {
                             tabs: tabs
                         )
                         .onAppear {
-                            tabBarHeight = geo.size.height + 8
+                            tabBarHeight -= geo.size.height
                         }
                     }
-                    .frame(height: 56)
+                    .frame(height: 40)
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 8)
             }
             .ignoresSafeArea(.keyboard)
-            
-            .navigationDestination(for: Recipe.self) { recipe in
-                RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe))
-            }
-            .navigationDestination(for: ShoppingList.self) { _ in
-                ShoppingListView(viewModel: ShoppingListViewModel())
-            }
-            .navigationDestination(for: RecipeCreate.self) { _ in
-                RecipeCreateView(viewModel: RecipeCreateViewModel())
+            .navigationDestination(for: AppNavigation.self) { destination in
+                switch destination {
+                case .recipeDetail(let recipe):
+                    RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe))
+                    
+                case .recipeCreate:
+                    RecipeCreateView(viewModel: RecipeCreateViewModel())
+                    
+                case .recipeEdit(let recipe):
+                    Text("Tarif Düzenleme Ekranı: \(recipe.name)")
+                    
+                case .profile:
+                    ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))
+                }
             }
         }
     }
@@ -69,8 +74,10 @@ struct TabContent: View {
             HomeView(viewModel: HomeViewModel(), navigationPath: $navigationPath)
         case .recipe:
             RecipesView(viewModel: RecipesViewModel(), navigationPath: $navigationPath)
+        case .shoppingList:
+            ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: $navigationPath)
         case .settings:
-            SettingsView()
+            SettingsView(viewModel: SettingsViewModel(coordinator: coordinator), navigationPath: $navigationPath)
         }
     }
 }

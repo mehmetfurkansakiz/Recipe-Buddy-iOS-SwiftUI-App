@@ -1,37 +1,22 @@
 import SwiftUI
+import NukeUI
 
 struct RecipeCardView: View {
     let recipe: Recipe
     let width: CGFloat
-    private var imageURL: URL? {
-        let baseSupabaseURL = Secrets.supabaseURL.deletingLastPathComponent().absoluteString.replacingOccurrences(of: "/rest/v1", with: "")
-
-        let urlString = "\(baseSupabaseURL)/storage/v1/object/public/recipe-images/\(recipe.imageName)"
-        return URL(string: urlString)
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AsyncImage(url: imageURL) { phase in
-                switch phase {
-                case .success(let image):
+            LazyImage(url: recipe.imagePublicURL()) { state in
+                if let image = state.image {
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                case .failure:
-                    ZStack {
-                        Color.gray.opacity(0.2)
-                        Image(systemName: "photo.fill")
-                            .font(.largeTitle)
-                            .foregroundColor(.gray)
-                    }
-                case .empty:
+                } else {
                     ZStack {
                         Color.gray.opacity(0.1)
                         ProgressView()
                     }
-                @unknown default:
-                    EmptyView()
                 }
             }
             .frame(width: width - 16, height: width * 1)

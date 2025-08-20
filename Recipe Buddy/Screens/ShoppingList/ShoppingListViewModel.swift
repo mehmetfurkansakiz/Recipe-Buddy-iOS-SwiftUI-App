@@ -1,99 +1,345 @@
 import Foundation
+import Supabase
 import Combine
 
+@MainActor
 class ShoppingListViewModel: ObservableObject {
-    @Published var shoppingItems: [ShoppingItem] = []
-    @Published var showingShareSheet: Bool = false
-    @Published var showingClearAlert: Bool = false
+    @Published var shoppingLists: [ShoppingList] = []
+    @Published var itemsByListID: [UUID: [ShoppingListItem]] = [:]
+    @Published var isLoading = false
+    @Published var expandedListID: UUID?
+    @Published var showingClearAlertForList: ShoppingList?
+    @Published var isShowingEditSheet = false
+    @Published var listToEdit: ShoppingList?
+    @Published var listNameForSheet = ""
+    @Published var itemsForEditingList: [EditableShoppingItem] = []
+    @Published var newItemName = ""
     
-    var hasCheckedItems: Bool {
-        shoppingItems.contains(where: { $0.isChecked })
+    /// A reference to the data service layer.
+    private let service = ShoppingListService.shared
+    
+    func hasCheckedItems(in listId: UUID) -> Bool {
+        itemsByListID[listId]?.contains { $0.isChecked } ?? false
     }
     
-    // Group items by category
-    var groupedItems: [String: [ShoppingItem]] {
-        return Dictionary(grouping: shoppingItems) { item in
-            getCategoryForItem(item)
-        }
-    }
+    // MARK: - Initialization
     
-    // Dummy function to get category for an item
-    private func getCategoryForItem(_ item: ShoppingItem) -> String {
-        let name = item.ingredient.name
-        if name.contains("et") || name.contains("tavuk") {
-            return "Et & Tavuk"
-        } else if name.contains("süt") || name.contains("peynir") {
-            return "Süt Ürünleri"
-        } else if name.contains("un") || name.contains("şeker") {
-            return "Kuru Gıda"
-        } else if name.contains("domates") || name.contains("salatalık") {
-            return "Sebze & Meyve"
-        } else {
-            return "Diğer"
-        }
-    }
+    init() {}
     
-    init() {
-        loadShoppingItems()
-    }
-    
-    func loadShoppingItems() {
-        shoppingItems = [
-            ShoppingItem(id: UUID(), ingredient: Ingredient(id: UUID(), name: "Kıyma"), amount: 500, unit: "gr", userId: nil),
-            ShoppingItem(id: UUID(), ingredient: Ingredient(id: UUID(), name: "Soğan"), amount: 2, unit: "adet", userId: nil),
-            ShoppingItem(id: UUID(), ingredient: Ingredient(id: UUID(), name: "Domates"), amount: 3, unit: "adet", userId: nil),
-            ShoppingItem(id: UUID(), ingredient: Ingredient(id: UUID(), name: "Un"), amount: 250, unit: "gr", userId: nil),
-            ShoppingItem(id: UUID(), ingredient: Ingredient(id: UUID(), name: "Süt"), amount: 1, unit: "litre", userId: nil)
-        ]
-    }
-    
-    func toggleItemCheck(_ item: ShoppingItem) {
-        if let index = shoppingItems.firstIndex(where: { $0.id == item.id }) {
-            shoppingItems[index].isChecked = !shoppingItems[index].isChecked
-            // save really checked items to UserDefaults or API
-        }
-    }
-    
-    func removeItems(at offsets: IndexSet, category: String) {
-        let itemsInCategory = groupedItems[category] ?? []
-        let itemsToRemove = offsets.map { itemsInCategory[$0] }
-        
-        for item in itemsToRemove {
-            if let index = shoppingItems.firstIndex(where: { $0.id == item.id }) {
-                shoppingItems.remove(at: index)
+    // init for preview
+    init(forPreview: Bool) {
+        if forPreview {
+            self.shoppingLists = ShoppingList.mockLists
+            for list in self.shoppingLists {
+                self.itemsByListID[list.id] = ShoppingListItem.mocks(for: list)
             }
+            self.expandedListID = self.shoppingLists.first?.id
+            self.isLoading = false
+        }
+    }
+    
+    /// Fetches all shopping lists by calling the service layer.
+    func fetchAllLists() async {
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            self.shoppingLists = try await service.fetchListsWithCounts()
+            
+            if let firstList = shoppingLists.first {
+                self.expandedListID = firstList.id
+                await fetchItems(for: firstList.id)
+            }
+        } catch {
+            print("❌ Error fetching lists: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Fetches the items for a specific list by calling the service.
+    private func fetchItems(for listId: UUID) async {
+        // This guard prevents re-fetching if data is already loaded.
+        guard itemsByListID[listId] == nil else { return }
+        
+        do {
+            let items = try await service.fetchItems(for: listId)
+            itemsByListID[listId] = items
+        } catch {
+            print("❌ Error fetching items for list \(listId): \(error.localizedDescription)")
+            // On failure, set an empty array to prevent repeated failed attempts.
+            itemsByListID[listId] = []
+        }
+    }
+    
+    // MARK: - List & Item Management
+    
+    /// get items to show or hide the list
+    func toggleListExpansion(listId: UUID) async {
+        let newExpandedID = (expandedListID == listId) ? nil : listId
+
+        self.expandedListID = newExpandedID
+        
+        if let idToFetch = newExpandedID {
+            await fetchItems(for: idToFetch)
+        }
+    }
+    
+    /// Toggles the 'checked' state of an item and calls the service to persist the change.
+    func toggleItemCheck(_ item: ShoppingListItem) async {
+        guard let listId = findListID(for: item) else { return }
+        
+        // 1. Optimistically update the UI
+        guard let itemIndex = itemsByListID[listId]?.firstIndex(where: { $0.id == item.id }) else { return }
+        itemsByListID[listId]?[itemIndex].isChecked.toggle()
+        
+        // 2. Get the new state to send to the service
+        let newCheckedState = itemsByListID[listId]?[itemIndex].isChecked ?? false
+        
+        // 3. Call the service to update the database
+        do {
+            try await service.updateItemCheck(id: item.id, isChecked: newCheckedState)
+        } catch {
+            print("❌ Error toggling item: \(error.localizedDescription)")
+            // On failure, revert the UI change
+            itemsByListID[listId]?[itemIndex].isChecked.toggle()
+        }
+    }
+    
+    /// Toggles the checked state of all items in a list.
+    /// If some are unchecked, it checks all. If all are checked, it unchecks all.
+    func toggleCheckAllItems(in list: ShoppingList) async {
+        if itemsByListID[list.id] == nil {
+                await fetchItems(for: list.id)
+            }
+            
+            let areAllChecked = itemsByListID[list.id]?.allSatisfy { $0.isChecked } ?? false
+            let newCheckedState = !areAllChecked
+            
+            do {
+                try await service.updateCheckStatusForAllItems(listId: list.id, isChecked: newCheckedState)
+                
+                if itemsByListID[list.id] != nil {
+                    for i in itemsByListID[list.id]!.indices {
+                        itemsByListID[list.id]?[i].isChecked = newCheckedState
+                    }
+                }
+                
+                if let index = shoppingLists.firstIndex(where: { $0.id == list.id }) {
+                    let newCheckedCount = newCheckedState ? shoppingLists[index].itemCount : 0
+                    
+                    let updatedList = ShoppingList(
+                        id: shoppingLists[index].id,
+                        name: shoppingLists[index].name,
+                        userId: shoppingLists[index].userId,
+                        itemCount: shoppingLists[index].itemCount,
+                        checkedItemCount: newCheckedCount
+                    )
+                    
+                    shoppingLists[index] = updatedList
+                }
+                
+            } catch {
+                print("❌ Error toggling all items: \(error.localizedDescription)")
+                // On error, a full refresh is a good idea to re-sync with the database.
+                await fetchAllLists()
+            }
+    }
+    
+    func areAllItemsChecked(for list: ShoppingList) -> Bool {
+        if let items = itemsByListID[list.id] {
+            guard !items.isEmpty else { return false }
+            return items.allSatisfy { $0.isChecked }
         }
         
-        // save deleted items
+        guard list.itemCount > 0 else { return false }
+        return list.itemCount == list.checkedItemCount
     }
     
-    func clearCheckedItems() {
-        shoppingItems.removeAll(where: { $0.isChecked })
-        // save really checked items to UserDefaults or API
-    }
-    
-    func clearAllItems() {
-        showingClearAlert = true
-    }
-    
-    func confirmClearAllItems() {
-        shoppingItems.removeAll()
-        // save cleared items to UserDefaults or API
-    }
-    
-    func sortItems() {
-        shoppingItems.sort { $0.ingredient.name < $1.ingredient.name }
-    }
-    
-    func generateShoppingListText() -> String {
-        var text = "Recipe Buddy - Alışveriş Listesi\n\n"
-        for (category, items) in groupedItems {
-            text += "--- \(category) ---\n"
-            for item in items {
-                text += "• \(item.ingredient.name): \(String(format: "%.1f", item.amount)) \(item.unit)\n"
+    /// delete checked items from the database
+    func clearCheckedItems(in list: ShoppingList) async {
+        let checkedItemIds = (itemsByListID[list.id] ?? []).filter { $0.isChecked }.map { $0.id }
+        guard !checkedItemIds.isEmpty else { return }
+        
+        do {
+            try await service.clearCheckedItems(in: list, itemIds: checkedItemIds)
+            
+            itemsByListID[list.id]?.removeAll { $0.isChecked }
+            
+            if itemsByListID[list.id]?.isEmpty ?? false {
+                await deleteList(list)
             }
-            text += "\n"
+        } catch {
+            print("❌ Error clearing checked items: \(error)")
         }
-        return text
+    }
+    
+    /// delete all list items from the database
+    func clearAllItems(in list: ShoppingList) {
+        showingClearAlertForList = list
+    }
+    
+    /// confirm clearing all items in the list
+    func confirmClearAllItems() async {
+        guard let listToClear = showingClearAlertForList else { return }
+        defer { showingClearAlertForList = nil }
+        
+        await deleteList(listToClear)
+    }
+    
+    /// Deletes a shopping list by calling the service layer.
+    func deleteList(_ list: ShoppingList) async {
+        isLoading = true
+        do {
+            try await service.deleteList(list)
+            // Optimistically update the UI by removing the list locally.
+            shoppingLists.removeAll { $0.id == list.id }
+        } catch {
+            print("❌ Error deleting list: \(error.localizedDescription)")
+            // If the deletion fails, refetch from the server to ensure UI is in sync.
+            await fetchAllLists()
+        }
+        isLoading = false
+    }
+    
+    // MARK: - Sheet Presentation
+    
+    func presentListEditSheetForCreate() {
+        listToEdit = nil
+        listNameForSheet = ""
+        itemsForEditingList = []
+        isShowingEditSheet = true
+    }
+    
+    // This function needs to be updated
+    func presentListEditSheetForUpdate(_ list: ShoppingList) async {
+        listToEdit = list
+        listNameForSheet = list.name
+        
+        if itemsByListID[list.id] == nil {
+            await fetchItems(for: list.id)
+        }
+        
+        // Convert the fetched items into our new editable format
+        let editableItems = itemsByListID[list.id]?.map {
+            EditableShoppingItem(
+                id: $0.id, // Use the real item ID for tracking
+                name: $0.name,
+                amount: $0.formattedAmount,
+                unit: $0.unit,
+                originalIngredientId: $0.ingredientId
+            )
+        } ?? []
+        
+        self.itemsForEditingList = editableItems
+        self.newItemName = ""
+        self.isShowingEditSheet = true
+    }
+    
+    func addItemToEditor() {
+        let trimmedName = newItemName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else { return }
+        
+        // Add as a custom item with no originalIngredientId
+        let newItem = EditableShoppingItem(
+            id: UUID(), // A temporary ID for the UI
+            name: trimmedName,
+            amount: "1",
+            unit: "adet",
+            originalIngredientId: nil
+        )
+        
+        itemsForEditingList.append(newItem)
+        newItemName = ""
+    }
+    
+    func removeItemFromEditor(at offsets: IndexSet) {
+        itemsForEditingList.remove(atOffsets: offsets)
+    }
+    
+    // MARK: - Create / Update Logic
+    
+    /// Saves changes by calling the appropriate service method.
+    func saveList() async {
+        let name = listNameForSheet.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        
+        isShowingEditSheet = false
+        isLoading = true
+        
+        do {
+            if let listToEdit {
+                // --- EDIT MODE ---
+                if listToEdit.name != name {
+                    try await service.updateList(listToEdit, newName: name)
+                }
+                
+                // Convert UI state to database insert model
+                let newItemsToInsert = itemsForEditingList.map {
+                    ShoppingListItemInsert(
+                        listId: listToEdit.id,
+                        name: $0.name,
+                        amount: Double($0.amount) ?? 1.0,
+                        unit: $0.unit,
+                        ingredientId: $0.originalIngredientId  // Keep the original link, or nil if it's a custom item
+                    )
+                }
+
+                try await service.replaceItems(for: listToEdit.id, with: newItemsToInsert)
+                itemsByListID.removeValue(forKey: listToEdit.id)
+                
+            } else {
+                // --- CREATE MODE ---
+                let newListId = try await service.createList(withName: name)
+                
+                let newItemsToInsert = itemsForEditingList.map {
+                    ShoppingListItemInsert (
+                        listId: newListId,
+                        name: $0.name,
+                        amount: Double($0.amount.replacingOccurrences(of: ",", with: ".")) ?? 1.0,
+                        unit: $0.unit,
+                        ingredientId: $0.originalIngredientId
+                    )
+                }
+
+                if !newItemsToInsert.isEmpty {
+                    try await service.replaceItems(for: newListId, with: newItemsToInsert)
+                }
+            }
+        } catch {
+            print("❌ Error saving list with items: \(error.localizedDescription)")
+        }
+        
+        // Refresh everything
+        await fetchAllLists()
+    }
+
+    // MARK: - Helpers
+    
+    /// Finds which list an item belongs to locally.
+    private func findListID(for item: ShoppingListItem) -> UUID? {
+        return itemsByListID.first(where: { $0.value.contains(where: { $0.id == item.id }) })?.key
+    }
+}
+
+// MARK: - Mock Data for Previews
+extension ShoppingListViewModel {
+    
+    /// An example of a filled, dummy ViewModel used for previews.
+    static var mock: ShoppingListViewModel {
+        let vm = ShoppingListViewModel()
+        
+        let mockLists = ShoppingList.mockLists
+        vm.shoppingLists = mockLists
+        
+        for list in mockLists {
+            vm.itemsByListID[list.id] = ShoppingListItem.mocks(for: list)
+        }
+        
+        if let firstList = mockLists.first {
+            vm.expandedListID = firstList.id
+        }
+        
+        vm.isLoading = false
+        
+        return vm
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import NukeUI
 
 struct RecipeDetailView: View {
     @StateObject var viewModel: RecipeDetailViewModel
@@ -10,42 +11,52 @@ struct RecipeDetailView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    recipeImageHeader
-                    
-                    VStack(alignment: .leading, spacing: 16) {
-                        recipeInfoSection
-                        Divider()
-                        ingredientsSection
-                        Divider()
-                        preparationSection
-                        Divider()
-                        addToShoppingListButton
-                        Spacer(minLength: 64)
+            
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        recipeImageHeader
+                        
+                        VStack(alignment: .leading, spacing: 16) {
+                            recipeInfoSection
+                            Divider()
+                            ingredientsSection
+                            Divider()
+                            preparationSection
+                            Divider()
+                            addToShoppingListButton
+                            Spacer(minLength: 64)
+                        }
+                        .padding()
                     }
-                    .padding()
                 }
             }
-            .navigationBarBackButtonHidden()
-            .ignoresSafeArea(edges: .top)
         }
+        .navigationBarBackButtonHidden()
+        .ignoresSafeArea(edges: .top)
+        .animation(.default, value: viewModel.isLoading)
     }
     
     // MARK: - View Components
     private var recipeImageHeader: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                AsyncImage(url: viewModel.recipe.imagePublicURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    ZStack {
-                        Color.gray.opacity(0.1)
-                        ProgressView()
+                LazyImage(url: viewModel.recipe.imagePublicURL()) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        ZStack {
+                            Rectangle().fill(.gray.opacity(0.1))
+                            ProgressView()
+                        }
                     }
                 }
+                .transition(.opacity.animation(.default))
                 .frame(width: geo.size.width, height: max(geo.size.height, geo.frame(in: .global).minY > 0 ? geo.size.height + geo.frame(in: .global).minY : geo.size.height))
                 .clipped()
                 .offset(y: geo.frame(in: .global).minY > 0 ? -geo.frame(in: .global).minY : 0)
@@ -88,7 +99,7 @@ struct RecipeDetailView: View {
                     }) {
                         Image("pencil.icon")
                             .resizable()
-                            .foregroundStyle(Color("A3A3A3"))
+                            .foregroundStyle(Color.A_3_A_3_A_3)
                             .frame(width: 24, height: 24)
                     }
                 } else if viewModel.isAuthenticated {
@@ -97,7 +108,7 @@ struct RecipeDetailView: View {
                     }) {
                         Image(viewModel.userCurrentRating != nil ? "star.fill.icon" : "star.icon")
                             .resizable()
-                            .foregroundStyle(Color("A3A3A3"))
+                            .foregroundStyle(viewModel.userCurrentRating != nil ? Color.FFCB_1_F : Color.A_3_A_3_A_3)
                             .frame(width: 24, height: 24)
                     }
                 }
@@ -130,12 +141,18 @@ struct RecipeDetailView: View {
             }
             
             HStack {
-                RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color("181818"))
-                RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings)", color: Color("181818"))
-                if let rating = viewModel.recipe.rating {
-                    RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating), color: Color("FFCB1F"))
+                RecipeInfoBadge(icon: "alarm.icon", text: "\(viewModel.recipe.cookingTime) dk", color: Color._181818)
+                RecipeInfoBadge(icon: "people.icon", text: "\(viewModel.recipe.servings) porsiyon", color: Color._181818)
+                RecipeInfoBadge(
+                    icon: "heart.fill.icon",
+                    text: "\(viewModel.recipe.favoritedCount)",
+                    color: Color.FF_2_A_1_F
+                )
+                if let rating = viewModel.recipe.rating, let ratingCount = viewModel.recipe.ratingCount {
+                    RecipeInfoBadge(icon: "star.fill.icon", text: String(format: "%.1f", rating) + " (\(ratingCount))", color: Color.FFCB_1_F)
                 } else {
-                    RecipeInfoBadge(icon: "star.icon", text: "0(0)", color: Color("C2C2C2"))
+                    let ratingCount = viewModel.recipe.ratingCount ?? 0
+                    RecipeInfoBadge(icon: "star.icon", text: "0 (\(ratingCount))", color: Color.C_2_C_2_C_2)
                 }
             }
             
@@ -169,18 +186,20 @@ struct RecipeDetailView: View {
                         .foregroundStyle(Color("EBA72B"))
                         .frame(width: 12, height: 12)
                     
-                    Text("\(recipeIngredient.formattedAmount) \(recipeIngredient.unit) \(recipeIngredient.ingredient.name)")
+                    Text("\(recipeIngredient.formattedAmount) \(recipeIngredient.unit) \(recipeIngredient.name)")
                                 .foregroundStyle(Color("303030"))
                     
                     Spacer()
                     
-                    Button(action: {
-                        viewModel.toggleIngredientSelection(recipeIngredient)
-                    }) {
-                        Image(viewModel.isIngredientSelected(recipeIngredient.ingredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
-                            .resizable()
-                            .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient.ingredient) ? Color("33C759") : Color("A3A3A3"))
-                            .frame(width: 18, height: 18)
+                    if recipeIngredient.ingredientId != nil {
+                        Button(action: {
+                            viewModel.toggleIngredientSelection(recipeIngredient)
+                        }) {
+                            Image(viewModel.isIngredientSelected(recipeIngredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
+                                .resizable()
+                                .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient) ? Color("33C759") : Color("A3A3A3"))
+                                .frame(width: 18, height: 18)
+                        }
                     }
                 }
                 .padding(.vertical, 4)
@@ -245,13 +264,40 @@ struct RecipeDetailView: View {
         }
         .disabled(viewModel.selectedIngredients.isEmpty)
         .opacity(viewModel.selectedIngredients.isEmpty ? 0.6 : 1)
-        .alert(isPresented: $viewModel.showingShoppingListAlert) {
-            Alert(
-                title: Text("Başarılı"),
-                message: Text("Seçili malzemeler alışveriş listenize eklendi."),
-                dismissButton: .default(Text("Tamam"))
+        .sheet(isPresented: $viewModel.showListSelector) {
+            let selectedIngredients = viewModel.recipe.ingredients.filter { recipeIngredient in
+                guard let id = recipeIngredient.ingredientId else { return false }
+                return viewModel.selectedIngredients.contains(id)
+            }
+            
+            ListSelectorView(
+                onListSelected: { selectedList in
+                    await viewModel.add(ingredients: selectedIngredients, to: selectedList)
+                    viewModel.showListSelector = false
+                }, onCancel: {
+                    viewModel.showListSelector = false
+                }
             )
+            .presentationDetents([.medium])
         }
+        .overlay(alignment: .bottom) {
+            if let message = viewModel.statusMessage {
+                Text(message)
+                    .padding()
+                    .background(.black.opacity(0.8))
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                viewModel.statusMessage = nil
+                            }
+                        }
+                    }
+            }
+        }
+        .animation(.spring(), value: viewModel.statusMessage)
         .sheet(isPresented: $viewModel.showRatingSheet) {
             RatingView(
                 currentRating: $viewModel.userCurrentRating,

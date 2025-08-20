@@ -14,6 +14,8 @@ class RecipesViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var isLoading = true
     
+    private let recipeService = RecipeService.shared
+    
     var searchResults: [Recipe] {
         if searchText.isEmpty {
             return []
@@ -28,17 +30,14 @@ class RecipesViewModel: ObservableObject {
  
     func fetchAllMyData() async {
         isLoading = true
-        
-        async let owned = fetchOwnedRecipes()
-        async let favorites = fetchFavoriteRecipes()
-        
         do {
+            async let owned = recipeService.fetchOwnedRecipes()
+            async let favorites = recipeService.fetchFavoriteRecipes()
             self.ownedRecipes = try await owned
             self.favoritedRecipes = try await favorites
         } catch {
             print("❌ Error fetching my data: \(error)")
         }
-        
         isLoading = false
     }
     

@@ -2,7 +2,7 @@ import Foundation
 
 struct RecipeIngredientInput: Identifiable, Hashable {
     var id: UUID { ingredient.id }
-    let ingredient: Ingredient
+    var ingredient: Ingredient
     var amount: String = ""
     var unit: String = ""
 
@@ -37,12 +37,13 @@ struct NewRecipe: Encodable {
 
 struct NewRecipeIngredient: Encodable {
     let recipeId: UUID
-    let ingredientId: UUID
+    let name: String
+    let ingredientId: UUID?
     let amount: Double
     let unit: String
     
     enum CodingKeys: String, CodingKey {
-        case amount, unit
+        case name, amount, unit
         case recipeId = "recipe_id"
         case ingredientId = "ingredient_id"
     }
@@ -56,4 +57,9 @@ struct NewRecipeCategory: Encodable {
         case recipeId = "recipe_id"
         case categoryId = "category_id"
     }
+}
+
+struct RecipeStep: Identifiable, Hashable {
+    let id = UUID()
+    var text: String
 }

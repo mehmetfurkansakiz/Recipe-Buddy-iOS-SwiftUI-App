@@ -1,4 +1,5 @@
 import SwiftUI
+import NukeUI
 
 struct ExploreRecipeCard: View {
     let recipe: Recipe
@@ -10,13 +11,17 @@ struct ExploreRecipeCard: View {
             // main container
             ZStack(alignment: .bottom) {
                 
-                // image
-                AsyncImage(url: recipe.imagePublicURL) { image in
-                    image.resizable().aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    ZStack {
-                        Color("F2F2F7")
-                        ProgressView()
+                // Image
+                LazyImage(url: recipe.imagePublicURL()) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        ZStack {
+                            Color("F2F2F7")
+                            ProgressView()
+                        }
                     }
                 }
                 .frame(width: cardWidth, height: cardWidth)

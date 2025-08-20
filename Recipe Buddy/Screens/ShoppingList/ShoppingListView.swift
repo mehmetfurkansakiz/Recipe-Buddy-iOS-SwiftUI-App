@@ -1,126 +1,191 @@
 import SwiftUI
 
 struct ShoppingListView: View {
-    @ObservedObject var viewModel: ShoppingListViewModel
-    @Environment(\.dismiss) var dismiss: DismissAction
+    @StateObject var viewModel: ShoppingListViewModel
+    @Binding var navigationPath: NavigationPath
     
     var body: some View {
-            VStack {
-                if viewModel.shoppingItems.isEmpty {
-                    EmptyShoppingListView()
-                } else {
-                    List {
-                        ForEach(viewModel.groupedItems.keys.sorted(), id: \.self) { category in
-                            Section(header: Text(category)) {
-                                ForEach(viewModel.groupedItems[category] ?? []) { item in
-                                    ShoppingItemRow(
-                                        item: item,
-                                        onToggle: {
-                                            viewModel.toggleItemCheck(item)
-                                        }
-                                    )
-                                }
-                                .onDelete { indexSet in
-                                    viewModel.removeItems(at: indexSet, category: category)
-                                }
-                            }
+        ZStack {
+            Color("FBFBFB").ignoresSafeArea()
+            
+            if viewModel.isLoading {
+                ProgressView()
+            } else if viewModel.shoppingLists.isEmpty {
+                EmptyShoppingListView()
+            } else {
+                listContent
+            }
+        }
+        .toolbarBackground(.thinMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Text("Alışveriş Listelerim")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.EBA_72_B)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    Text("Liste Oluştur")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.EBA_72_B)
+                    Image("plus.icon")
+                        .resizable()
+                        .frame(width: 24, height: 24)
+                        .foregroundStyle(.EBA_72_B)
+                }
+                .onTapGesture(perform: {
+                    viewModel.presentListEditSheetForCreate()
+                })
+            }
+        }
+        .task {
+            await viewModel.fetchAllLists()
+        }
+        .sheet(isPresented: $viewModel.isShowingEditSheet) {
+            ListEditView(
+                viewModel: viewModel,
+                onSave: {
+                    Task { await viewModel.saveList() }
+                },
+                onCancel: { viewModel.isShowingEditSheet = false }
+            )
+        }
+    }
+    
+    private var listContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 0, pinnedViews: []) {
+                ForEach(viewModel.shoppingLists) { list in
+                    ShoppingListSectionView(
+                        list: list,
+                        items: viewModel.itemsByListID[list.id] ?? [],
+                        isExpanded: viewModel.expandedListID == list.id,
+                        areAllItemsChecked: viewModel.areAllItemsChecked(for: list),
+                        onHeaderTap: {
+                            Task { await viewModel.toggleListExpansion(listId: list.id) }
+                        },
+                        onItemToggle: { item in
+                            Task { await viewModel.toggleItemCheck(item) }
+                        },
+                        onListDelete: {
+                            Task { await viewModel.deleteList(list) }
+                        },
+                        onListEdit: {
+                            Task { await viewModel.presentListEditSheetForUpdate(list) }
+                        },
+                        onToggleCheckAll: {
+                            Task { await viewModel.toggleCheckAllItems(in: list) }
+                        },
+                        onClearChecked: {
+                            Task { await viewModel.clearCheckedItems(in: list) }
                         }
-                    }
-                    
-                    VStack(spacing: 8) {
-                        Button(action: {
-                            viewModel.clearCheckedItems()
-                        }) {
-                            HStack {
-                                Image("trash.icon")
-                                    .resizable()
-                                    .frame(width: 24, height: 24)
-                                Text("Seçili Öğeleri Temizle")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color("FF2A1F").opacity(0.8))
-                            .foregroundStyle(Color("FFFFFF"))
-                            .cornerRadius(8)
-                        }
-                        .disabled(!viewModel.hasCheckedItems)
-                        .opacity(viewModel.hasCheckedItems ? 1.0 : 0.6)
-                        
-                        ShareLink(item: viewModel.generateShoppingListText(),
-                                  subject: Text("Alışveriş Listesi"),
-                                  message: Text(viewModel.generateShoppingListText())) {
-                            HStack {
-                                Image("share.icon")
-                                    .resizable()
-                                    .frame(width: 24, height: 24)
-                                Text("Listeyi Paylaş")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color("33C759"))
-                            .foregroundStyle(Color("FFFFFF"))
-                            .cornerRadius(8)
-                        }
-                    }
-                    .padding()
+                    )
                 }
             }
-            .navigationTitle("Alışveriş Listesi")
-            .navigationBarBackButtonHidden()
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("Kapat")
-                            .foregroundStyle(Color("EBA72B"))
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button(action: {
-                            viewModel.clearAllItems()
-                        }) {
-                            HStack {
-                                Text("Tüm Listeyi Temizle")
-                                Image("trash.icon")
-                                    .resizable()
-                                    .frame(width: 18, height: 18)
-                            }
-                        }
-                        
-                        Button(action: {
-                            viewModel.sortItems()
-                        }) {
-                            HStack {
-                                Text("Alfabetik Sırala")
-                                Image("arrow.up.down.icon")
-                                    .resizable()
-                                    .frame(width: 24, height: 24)
-                            }
-                        }
-                    } label: {
-                        Image("more.horizontal.icon")
-                            .resizable()
-                            .frame(width: 24, height: 24)
-                            .foregroundStyle(Color("EBA72B"))
-                    }
-                }
-            }
-            .alert(isPresented: $viewModel.showingClearAlert) {
-                Alert(
-                    title: Text("Listeyi Temizle"),
-                    message: Text("Tüm alışveriş listesi temizlenecek. Emin misiniz?"),
-                    primaryButton: .destructive(Text("Temizle")) {
-                        viewModel.confirmClearAllItems()
-                    },
-                    secondaryButton: .cancel()
-                )
-            }
+            .padding(.top)
+        }
     }
 }
 
-#Preview {
-    let viewModel = ShoppingListViewModel()
-    return ShoppingListView(viewModel: viewModel)
+
+// MARK: - Helper Views
+
+/// show a list of shopping lists
+struct ShoppingListSectionView: View {
+    // Properties passed from the parent view
+    let list: ShoppingList
+    let items: [ShoppingListItem]
+    let isExpanded: Bool
+    let areAllItemsChecked: Bool
+    
+    // Closures for actions
+    let onHeaderTap: () -> Void
+    let onItemToggle: (ShoppingListItem) -> Void
+    let onListDelete: () -> Void
+    let onListEdit: () -> Void
+    let onToggleCheckAll: () -> Void
+    let onClearChecked: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            
+            if isExpanded {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    ShoppingItemRowView(item: item, index: index) {
+                        onItemToggle(item)
+                    }
+                    // TODO: itemlar için de basılı tutma ve düzenleme gibi özellikler
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+            }
+        }
+
+        .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color("A3A3A3").opacity(0.5), lineWidth: 1))
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+    }
+    
+    private var header: some View {
+        HStack {
+            Text(list.name)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundStyle(areAllItemsChecked ? .secondary : .primary)
+                .strikethrough(areAllItemsChecked, color: .secondary)
+            
+            Circle()
+                .frame(width: 4, height: 4)
+                .foregroundStyle(.secondary)
+                .opacity(0.5)
+            
+            Text("\(list.itemCount) adet")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+        }
+        .padding()
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onHeaderTap)
+        .contextMenu {
+            Button(action: onListEdit) {
+                Label("Listeyi Düzenle", systemImage: "pencil")
+            }
+            
+            Button(action: onClearChecked) {
+                Label("İşaretlileri Temizle", systemImage: "eraser")
+            }
+            
+            Button(action: onToggleCheckAll) {
+                Label("Tümünü İşaretle/Kaldır", systemImage: "checklist")
+            }
+            
+            Divider()
+            
+            Button(role: .destructive, action: onListDelete) {
+                Label("Listeyi Sil", systemImage: "trash")
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
+    }
+}
+
+// MARK: - Preview
+
+#Preview() {
+    NavigationStack {
+        ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: .constant(NavigationPath()))
+    }
 }

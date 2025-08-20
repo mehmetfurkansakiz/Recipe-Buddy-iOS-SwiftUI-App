@@ -19,7 +19,7 @@ struct CustomTabBar: View {
                             Image(tabs[index].icon)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .foregroundColor(selectedTab == index ? Color("EBA72B") : Color("A3A3A3"))
+                                .foregroundColor(selectedTab == index ? Color("EBA72B") : Color("666666"))
                                 .frame(width: 24, height: 24)
                         }
                         .frame(width: (screenWidth * 0.9) / CGFloat(tabs.count))
@@ -28,9 +28,12 @@ struct CustomTabBar: View {
                 }
             }
             .frame(width: screenWidth)
-            .background(Color("FBFBFB"))
-            .cornerRadius(8)
-            .shadow(radius: 3)
+            .background(.regularMaterial)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+            )
             .frame(width: screenWidth, alignment: .center)
         }
     }

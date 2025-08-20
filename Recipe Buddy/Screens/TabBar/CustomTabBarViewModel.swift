@@ -8,5 +8,6 @@ struct TabItem {
 enum ContentTab: Int, CaseIterable {
     case home = 0
     case recipe = 1
-    case settings = 2
+    case shoppingList = 2
+    case settings = 3
 }

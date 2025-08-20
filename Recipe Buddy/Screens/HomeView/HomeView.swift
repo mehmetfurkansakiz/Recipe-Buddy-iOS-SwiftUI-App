@@ -1,4 +1,5 @@
 import SwiftUI
+import NukeUI
 
 struct HomeView: View {
     @StateObject var viewModel: HomeViewModel
@@ -99,7 +100,7 @@ struct SearchResultsView: View {
     var body: some View {
         VStack {
             ForEach(recipes) { recipe in
-                Button(action: { navigationPath.append(recipe) }) {
+                Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                     SearchResultRow(recipe: recipe)
                 }
                 .padding(.horizontal)
@@ -128,7 +129,7 @@ struct CategoryResultsView: View {
                     spacing: 16
                 ) {
                     ForEach(recipes) { recipe in
-                        Button(action: { navigationPath.append(recipe) }) {
+                        Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                             // for use small
                             let cardWidth = (UIScreen.main.bounds.width / 2) - 24
                             ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
@@ -146,11 +147,13 @@ struct SearchResultRow: View {
     
     var body: some View {
         HStack {
-            AsyncImage(url: recipe.imagePublicURL, transaction: .init(animation: .easeIn)) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
+            LazyImage(url: recipe.imagePublicURL()) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
                 } else {
-                    Color("F2F2F7")
+                    Color.F_2_F_2_F_7
                 }
             }
             .frame(width: 60, height: 60)
@@ -191,7 +194,7 @@ struct RecipeCarouselSection: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
                     ForEach(recipes) { recipe in
-                        Button(action: { navigationPath.append(recipe) }) {
+                        Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                             ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
                         }
                     }
