@@ -1,16 +1,27 @@
 import PhotosUI
 
 extension UIImage {
-    func jpegData(maxWidth: CGFloat, compressionQuality: CGFloat) -> Data? {
-        let newSize = self.size.width > maxWidth ?
-            CGSize(width: maxWidth, height: self.size.height * (maxWidth / self.size.width)) : self.size
+    /// Resizes and compresses an image to be below a certain file size in megabytes.
+    func compressedData(maxSizeInMB: Double) -> Data? {
+        let maxSizeBytes = Int(maxSizeInMB * 1024 * 1024)
+        var compressionQuality: CGFloat = 1.0
+        
+        let renderer = UIGraphicsImageRenderer(size: self.size)
+        
+        var imageData = renderer.jpegData(withCompressionQuality: compressionQuality, actions: { _ in
+            self.draw(in: CGRect(origin: .zero, size: self.size))
+        })
+
+        // This loop continues as long as the data is too large AND we haven't hit the quality limit.
+        while imageData.count > maxSizeBytes && compressionQuality > 0.1 {
+            // Reduce the quality by 10%
+            compressionQuality -= 0.1
             
-        let renderer = UIGraphicsImageRenderer(size: newSize)
-        
-        let data = renderer.jpegData(withCompressionQuality: compressionQuality) { _ in
-            self.draw(in: CGRect(origin: .zero, size: newSize))
+            // Re-render the image with the new, lower quality.
+            imageData = renderer.jpegData(withCompressionQuality: compressionQuality, actions: { _ in
+                self.draw(in: CGRect(origin: .zero, size: self.size))
+            })
         }
-        
-        return data
+        return imageData
     }
 }

@@ -93,19 +93,7 @@ class RecipeCreateViewModel: ObservableObject {
     func loadImage(from item: PhotosPickerItem?) async {
         guard let item = item else { return }
         do {
-            // 1. Load the full image data
-            if let fullData = try await item.loadTransferable(type: Data.self),
-               let image = UIImage(data: fullData) {
-                
-                // 2. Resize and compress the image
-                let resizedData = image.jpegData(
-                    maxWidth: 1024,
-                    compressionQuality: 0.7
-                )
-                
-                // 3. Use the optimized data
-                self.selectedImageData = resizedData
-            }
+            self.selectedImageData = try await item.loadTransferable(type: Data.self)
         } catch {
             errorMessage = "Resim yüklenemedi: \(error.localizedDescription)"
         }

@@ -147,7 +147,7 @@ struct SearchResultRow: View {
     
     var body: some View {
         HStack {
-            LazyImage(url: recipe.imagePublicURL) { state in
+            LazyImage(url: recipe.imagePublicURL()) { state in
                 if let image = state.image {
                     image
                         .resizable()

@@ -7,7 +7,7 @@ struct RecipeCardView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            LazyImage(url: recipe.imagePublicURL) { state in
+            LazyImage(url: recipe.imagePublicURL()) { state in
                 if let image = state.image {
                     image
                         .resizable()

@@ -44,7 +44,7 @@ struct RecipeDetailView: View {
     private var recipeImageHeader: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                LazyImage(url: viewModel.recipe.imagePublicURL) { state in
+                LazyImage(url: viewModel.recipe.imagePublicURL()) { state in
                     if let image = state.image {
                         image
                             .resizable()
