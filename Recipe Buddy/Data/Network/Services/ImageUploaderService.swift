@@ -66,7 +66,7 @@ class ImageUploaderService {
         let height = image.size.height
         
         let scale = (width > height) ? maxLength / width : maxLength / height
-        if scale >= 1 { return image } // zaten küçükse bırak
+        if scale >= 1 { return image } // no scaling needed
         
         let newSize = CGSize(width: width * scale, height: height * scale)
         let renderer = UIGraphicsImageRenderer(size: newSize)
