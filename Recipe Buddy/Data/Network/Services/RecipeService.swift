@@ -119,7 +119,7 @@ class RecipeService {
     }
     
     
-    // MARK: - Recipe Creation
+    // MARK: - Recipe Creation & Update & Deletion
         
         /// Saves a new recipe with all its components.
         func createRecipe(viewModel: RecipeCreateViewModel) async throws {
@@ -164,6 +164,76 @@ class RecipeService {
                 try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
             }
         }
+    
+    func updateRecipe(_ recipeId: UUID, viewModel: RecipeCreateViewModel) async throws {
+        guard let userId = try? await supabase.auth.session.user.id else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        
+        // update image if changed
+        var imagePath = viewModel.recipeToEdit?.imageName ?? ""
+        if let newImageData = viewModel.selectedImageData,
+           let originalImageData = try? await URLSession.shared.data(from: viewModel.recipeToEdit!.imagePublicURL()!).0,
+           newImageData != originalImageData {
+            
+            // delete old image from s3 storage
+            if !imagePath.isEmpty {
+                try await ImageUploaderService.shared.deleteImage(for: imagePath)
+            }
+            // upload new image
+            imagePath = try await ImageUploaderService.shared.uploadImage(imageData: newImageData)
+        }
+        
+        // update other recipe details
+        let stepTexts = viewModel.steps.map { $0.text }
+        let recipeUpdate = NewRecipe(
+            name: viewModel.name, description: viewModel.description,
+            cookingTime: viewModel.cookingTime, servings: viewModel.servings,
+            steps: stepTexts, imageName: imagePath, userId: userId, isPublic: viewModel.isPublic
+        )
+        
+        try await supabase.from("recipes")
+            .update(recipeUpdate)
+            .eq("id", value: recipeId)
+            .execute()
+        
+        // update ingredients but first delete all
+        try await supabase.from("recipe_ingredients")
+            .delete()
+            .eq("recipe_id", value: recipeId)
+            .execute()
+            
+        // add new ingredients
+        let ingredientLinks = viewModel.recipeIngredients.map { ingInput in
+            NewRecipeIngredient(
+                recipeId: recipeId,
+                name: ingInput.ingredient.name,
+                ingredientId: viewModel.allAvailableIngredients.contains(where: { $0.id == ingInput.ingredient.id }) ? ingInput.ingredient.id : nil,
+                amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0,
+                unit: ingInput.unit
+            )
+        }
+        if !ingredientLinks.isEmpty {
+            try await supabase.from("recipe_ingredients").insert(ingredientLinks).execute()
+        }
+
+        // update categories but first delete all
+        try await supabase.from("recipe_categories")
+            .delete()
+            .eq("recipe_id", value: recipeId)
+            .execute()
+        
+        // add new categories
+        let recipeCategoryLinks = viewModel.selectedCategories.map {
+            NewRecipeCategory(recipeId: recipeId, categoryId: $0.id)
+        }
+        
+        if !recipeCategoryLinks.isEmpty {
+            try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
+        }
+        
+        print("✅ Recipe updated successfully \(recipeId)")
+    }
         
         // MARK: - Helper for Sections
         private func fetchSection(title: String, ordering: String, style: SectionStyle) async throws -> RecipeSection {

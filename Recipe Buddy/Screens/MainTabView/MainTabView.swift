@@ -47,13 +47,13 @@ struct MainTabView: View {
             .navigationDestination(for: AppNavigation.self) { destination in
                 switch destination {
                 case .recipeDetail(let recipe):
-                    RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe))
+                    RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe), navigationPath: $navigationPath)
                     
                 case .recipeCreate:
                     RecipeCreateView(viewModel: RecipeCreateViewModel())
                     
                 case .recipeEdit(let recipe):
-                    Text("Tarif Düzenleme Ekranı: \(recipe.name)")
+                    RecipeCreateView(viewModel: RecipeCreateViewModel(recipeToEdit: recipe))
                     
                 case .profile:
                     ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))

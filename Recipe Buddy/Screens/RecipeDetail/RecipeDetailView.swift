@@ -4,9 +4,11 @@ import NukeUI
 struct RecipeDetailView: View {
     @StateObject var viewModel: RecipeDetailViewModel
     @Environment(\.dismiss) private var dismiss: DismissAction
+    @Binding var navigationPath: NavigationPath
     
-    init(viewModel: RecipeDetailViewModel) {
+    init(viewModel: RecipeDetailViewModel, navigationPath: Binding<NavigationPath>) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _navigationPath = navigationPath
     }
     
     var body: some View {
@@ -94,8 +96,7 @@ struct RecipeDetailView: View {
                 
                 if viewModel.isOwnedByCurrentUser {
                     Button(action: {
-                        // TODO: added navigation to edit recipe view
-                        print("Düzenle butonuna basıldı!")
+                        navigationPath.append(AppNavigation.recipeEdit(viewModel.recipe))
                     }) {
                         Image("pencil.icon")
                             .resizable()
@@ -319,6 +320,6 @@ struct RecipeDetailView: View {
             isOwnedForPreview: true
         )
         
-        RecipeDetailView(viewModel: viewModel)
+        RecipeDetailView(viewModel: viewModel, navigationPath: .constant(NavigationPath()))
     }
 }

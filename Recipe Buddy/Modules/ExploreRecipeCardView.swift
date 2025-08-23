@@ -85,7 +85,7 @@ struct ExploreRecipeCard: View {
                             Image("star.icon")
                                 .resizable()
                                 .frame(width: iconSize, height: iconSize)
-                            Text("0.0 (\(recipe.ratingCount ?? 0))")
+                            Text("0.0")
                         }
                         .font(fontSize)
                         .lineLimit(1)
