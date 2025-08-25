@@ -37,6 +37,7 @@ class HomeViewModel: ObservableObject {
     init() {
         setupSearchDebounce()
         setupCategoryFiltering()
+        addObservers()
     }
     
     private func setupSearchDebounce() {
@@ -70,6 +71,29 @@ class HomeViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    private func addObservers() {
+        NotificationCenter.default.addObserver(self, selector: #selector(handleRecipeDeleted), name: .recipeDeleted, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleRecipeUpdated), name: .recipeUpdated, object: nil)
+    }
+    
+    @objc private func handleRecipeDeleted(notification: Notification) {
+        guard let userInfo = notification.userInfo, let deletedRecipeID = userInfo["recipeID"] as? UUID else { return }
+        
+        for i in 0..<sections.count {
+            sections[i].recipes.removeAll { $0.id == deletedRecipeID }
+        }
+    }
+
+    @objc private func handleRecipeUpdated(notification: Notification) {
+        guard let userInfo = notification.userInfo, let updatedRecipe = userInfo["updatedRecipe"] as? Recipe else { return }
+        
+        for i in 0..<sections.count {
+            if let index = sections[i].recipes.firstIndex(where: { $0.id == updatedRecipe.id }) {
+                sections[i].recipes[index] = updatedRecipe
+            }
+        }
     }
 
     func fetchHomePageData() async {

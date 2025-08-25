@@ -40,6 +40,14 @@ struct RecipeDetailView: View {
         .navigationBarBackButtonHidden()
         .ignoresSafeArea(edges: .top)
         .animation(.default, value: viewModel.isLoading)
+        .task {
+            await viewModel.loadData()
+        }
+        .onChange(of: viewModel.shouldDismiss) {
+            if viewModel.shouldDismiss {
+                dismiss()
+            }
+        }
     }
     
     // MARK: - View Components
@@ -317,7 +325,6 @@ struct RecipeDetailView: View {
     NavigationStack {
         let viewModel = RecipeDetailViewModel(
             recipe: Recipe.allMocks.first!,
-            isOwnedForPreview: true
         )
         
         RecipeDetailView(viewModel: viewModel, navigationPath: .constant(NavigationPath()))

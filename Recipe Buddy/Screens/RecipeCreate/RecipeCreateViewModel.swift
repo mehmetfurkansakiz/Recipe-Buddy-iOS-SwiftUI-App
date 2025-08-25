@@ -32,6 +32,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var selection: Int = 0
     @Published var showingCategorySelector = false
     @Published var showingIngredientSelector = false
+    @Published var showDeleteConfirmAlert = false
     @Published var ingredientAlertMessage: String?
     
     // Service 
@@ -142,7 +143,8 @@ class RecipeCreateViewModel: ObservableObject {
         
         do {
             if let recipeToEdit = recipeToEdit {
-                try await recipeService.updateRecipe(recipeToEdit.id, viewModel: self)
+                let updatedRecipe = try await recipeService.updateRecipe(recipeToEdit.id, viewModel: self)
+                NotificationCenter.default.post(name: .recipeUpdated, object: nil, userInfo: ["updatedRecipe": updatedRecipe])
             } else {
                 try await recipeService.createRecipe(viewModel: self)
             }
@@ -150,6 +152,23 @@ class RecipeCreateViewModel: ObservableObject {
         } catch {
             errorMessage = "Tarif kaydedilemedi: \(error.localizedDescription)"
             print("❌ Save Error: \(error)")
+        }
+    }
+    
+    func deleteRecipe() async {
+        guard let recipeToDelete = recipeToEdit else { return }
+        
+        isSaving = true
+        defer { isSaving = false }
+        
+        do {
+            try await recipeService.deleteRecipe(recipeId: recipeToDelete.id, imageName: recipeToDelete.imageName)
+            
+            NotificationCenter.default.post(name: .recipeDeleted, object: nil, userInfo: ["recipeID": recipeToDelete.id])
+            showSuccess = true
+        } catch {
+            errorMessage = "Tarif silinemedi: \(error.localizedDescription)"
+            print("❌ Delete Error: \(error)")
         }
     }
     

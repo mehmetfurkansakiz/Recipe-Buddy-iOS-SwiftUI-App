@@ -165,7 +165,7 @@ class RecipeService {
             }
         }
     
-    func updateRecipe(_ recipeId: UUID, viewModel: RecipeCreateViewModel) async throws {
+    func updateRecipe(_ recipeId: UUID, viewModel: RecipeCreateViewModel) async throws -> Recipe {
         guard let userId = try? await supabase.auth.session.user.id else {
             throw URLError(.userAuthenticationRequired)
         }
@@ -232,19 +232,40 @@ class RecipeService {
             try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
         }
         
+        let updatedRecipe: Recipe = try await supabase.from("recipes")
+            .select(Recipe.selectQuery)
+            .eq("id", value: recipeId)
+            .single()
+            .execute()
+            .value
+        
         print("✅ Recipe updated successfully \(recipeId)")
+        return updatedRecipe
+    }
+    
+    func deleteRecipe(recipeId: UUID, imageName: String) async throws {
+        if !imageName.isEmpty {
+            try await ImageUploaderService.shared.deleteImage(for: imageName)
+        }
+        
+        try await supabase.from("recipes")
+            .delete()
+            .eq("id", value: recipeId)
+            .execute()
+        
+        print("✅ Recipe deleted successfully \(recipeId)")
     }
         
-        // MARK: - Helper for Sections
-        private func fetchSection(title: String, ordering: String, style: SectionStyle) async throws -> RecipeSection {
-            let recipes: [Recipe] = try await supabase.from("recipes")
-                .select(Recipe.selectQuery)
-                .eq("is_public", value: true)
-                .order(ordering, ascending: false, nullsFirst: false)
-                .limit(10)
-                .execute()
-                .value
-            
-            return RecipeSection(title: title, recipes: recipes, style: style)
-        }
+    // MARK: - Helper for Sections
+    private func fetchSection(title: String, ordering: String, style: SectionStyle) async throws -> RecipeSection {
+        let recipes: [Recipe] = try await supabase.from("recipes")
+            .select(Recipe.selectQuery)
+            .eq("is_public", value: true)
+            .order(ordering, ascending: false, nullsFirst: false)
+            .limit(10)
+            .execute()
+            .value
+        
+        return RecipeSection(title: title, recipes: recipes, style: style)
+    }
 }
