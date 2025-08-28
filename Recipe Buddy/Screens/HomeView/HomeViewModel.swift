@@ -150,18 +150,16 @@ class HomeViewModel: ObservableObject {
         defer { isFetchingCategoryRecipes = false }
         
         do {
-            // 1. Veriyi önce yardımcı struct dizisine decode et
-            let response: [FilteredRecipeResult] = try await supabase
-                .from("recipe_categories")
-                .select("recipe:recipes(\(Recipe.selectQuery))")
-                .eq("category_id", value: category.id)
+            let recipes: [Recipe] = try await supabase
+                .rpc("get_recipes_by_category", params: ["cat_id": category.id])
+                .select(Recipe.selectQuery)
                 .execute()
                 .value
             
-            self.categoryFilteredRecipes = response.map { $0.recipe }
+            self.categoryFilteredRecipes = recipes
             
         } catch {
-            print("❌ Error fetching recipes for category \(category.name): \(error)")
+            print("❌ Kategoriye göre tarif çekilirken hata oluştu: \(category.name), Hata: \(error)")
             self.categoryFilteredRecipes = []
         }
     }

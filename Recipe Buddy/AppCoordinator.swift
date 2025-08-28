@@ -3,13 +3,16 @@ import SwiftUI
 @MainActor
 class AppCoordinator: ObservableObject {
     @Published var rootView: AnyView
+    let dataManager: DataManager
     
     init() {
+        let dm = DataManager()
+        self.dataManager = dm
+        
         self.rootView = AnyView(EmptyView())
         configureNavigationBarAppearance()
         
         self.rootView = AnyView(SplashView(coordinator: self))
-        checkAuthenticationStatus()
     }
     
     private func configureNavigationBarAppearance() {
@@ -31,14 +34,16 @@ class AppCoordinator: ObservableObject {
         UINavigationBar.appearance().compactAppearance = appearance
     }
     
-    func checkAuthenticationStatus() {
+    func checkAuthenticationStatus() async {
         Task {
             if let session = try? await supabase.auth.session, !session.isExpired {
                 // User is authenticated, show main tab view
                 print("✅ Kullanıcı giriş yapmış, ana ekrana yönlendiriliyor.")
+                await dataManager.loadInitialUserData()
                 showMainTabView()
             } else {
                 print("❌ Kullanıcı giriş yapmamış, kimlik doğrulama ekranına yönlendiriliyor.")
+                dataManager.clearUserData()
                 showAuthenticationView()
             }
         }
@@ -54,7 +59,11 @@ class AppCoordinator: ObservableObject {
         self.rootView = AnyView(
             AuthenticationView(onAuthSuccess: {
                 print("✅ Kimlik doğrulama başarılı, ana ekrana geçiliyor.")
-                self.showMainTabView()
+                // Giriş yapıldıktan sonra veriyi yükleyip ana ekrana geçiyoruz.
+                Task {
+                    await self.dataManager.loadInitialUserData()
+                    self.showMainTabView()
+                }
             })
         )
     }

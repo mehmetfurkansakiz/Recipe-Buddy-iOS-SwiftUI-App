@@ -8,37 +8,18 @@ fileprivate struct FavoritedRecipeResult: Decodable, Hashable {
 
 @MainActor
 class RecipesViewModel: ObservableObject {
-    @Published var ownedRecipes: [Recipe] = []
-    @Published var favoritedRecipes: [Recipe] = []
-    
     @Published var searchText = ""
-    @Published var isLoading = true
     
-    private let recipeService = RecipeService.shared
-    
-    var searchResults: [Recipe] {
+    func searchResults(from dataManager: DataManager) -> [Recipe] {
         if searchText.isEmpty {
             return []
         }
-        let allRecipes = ownedRecipes + favoritedRecipes
+        let allRecipes = dataManager.ownedRecipes + dataManager.favoritedRecipes
         let uniqueRecipes = allRecipes.removingDuplicates()
         
         return uniqueRecipes.filter {
             $0.name.lowercased().contains(searchText.lowercased())
         }
-    }
- 
-    func fetchAllMyData() async {
-        isLoading = true
-        do {
-            async let owned = recipeService.fetchOwnedRecipes()
-            async let favorites = recipeService.fetchFavoriteRecipes()
-            self.ownedRecipes = try await owned
-            self.favoritedRecipes = try await favorites
-        } catch {
-            print("❌ Error fetching my data: \(error)")
-        }
-        isLoading = false
     }
     
     private func fetchOwnedRecipes() async throws -> [Recipe] {

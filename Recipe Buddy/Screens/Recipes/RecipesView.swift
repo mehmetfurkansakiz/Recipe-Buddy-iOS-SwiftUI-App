@@ -3,6 +3,7 @@ import SwiftUI
 struct RecipesView: View {
     @StateObject var viewModel: RecipesViewModel
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
         ZStack {
@@ -13,13 +14,14 @@ struct RecipesView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                         
-                        if viewModel.isLoading {
+                        if dataManager.isLoading {
                             Spacer()
                             ProgressView()
                             Spacer()
                         } else {
+                            let searchResults = viewModel.searchResults(from: dataManager)
                             if !viewModel.searchText.isEmpty {
-                                List(viewModel.searchResults) { recipe in
+                                List(searchResults) { recipe in
                                     Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
                                         SearchResultRow(recipe: recipe)
                                     }
@@ -31,23 +33,23 @@ struct RecipesView: View {
                                 ScrollView {
                                     VStack(alignment: .leading, spacing: 30) {
                                         // empty state view
-                                        if viewModel.favoritedRecipes.isEmpty && viewModel.ownedRecipes.isEmpty {
+                                        if dataManager.favoritedRecipes.isEmpty && dataManager.ownedRecipes.isEmpty {
                                             emptyStateView
                                         } else {
                                             // Favorites
-                                            if !viewModel.favoritedRecipes.isEmpty {
+                                            if !dataManager.favoritedRecipes.isEmpty {
                                                 RecipeCarouselSection(
                                                     title: "Favori Tariflerim",
-                                                    recipes: viewModel.favoritedRecipes,
+                                                    recipes: dataManager.favoritedRecipes,
                                                     style: .standard,
                                                     navigationPath: $navigationPath
                                                 )
                                             }
                                             // MyRecipes
-                                            if !viewModel.ownedRecipes.isEmpty {
+                                            if !dataManager.ownedRecipes.isEmpty {
                                                 RecipeCarouselSection(
                                                     title: "Oluşturduğum Tarifler",
-                                                    recipes: viewModel.ownedRecipes,
+                                                    recipes: dataManager.ownedRecipes,
                                                     style: .standard,
                                                     navigationPath: $navigationPath
                                                 )
@@ -86,10 +88,6 @@ struct RecipesView: View {
                     navigationPath.append(AppNavigation.recipeCreate)
                 })
             }
-        }
-        .task {
-            await viewModel.fetchAllMyData()
-            
         }
     }
     

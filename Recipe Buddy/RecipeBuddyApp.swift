@@ -8,6 +8,7 @@ struct RecipeBuddyApp: App {
         WindowGroup {
             coordinator.rootView
                 .preferredColorScheme(.light)
+                .environmentObject(coordinator.dataManager)
         }
     }
 }
