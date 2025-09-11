@@ -4,54 +4,39 @@ import NukeUI
 struct SettingsView: View {
     @StateObject var viewModel: SettingsViewModel
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
-        ZStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 32) {
-                    if viewModel.isLoading {
-                        ProgressView()
-                    } else if let user = viewModel.currentUser {
-                        profileHeader(user: user)
-                    }
-                    
-                    accountSection
-                    aboutSection
-                    
-                    Spacer()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 32) {
+                if let user = dataManager.currentUser {
+                    profileHeader(user: user)
+                } else {
+                    ProgressView()
                 }
-                .padding()
+                accountSection
+                aboutSection
+                
+                Spacer()
             }
-            .background(Color("FBFBFB"))
-            .toolbarBackground(.thinMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Text("Ayarlar")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.EBA_72_B)
-                }
-            }
-            .task {
-                await viewModel.fetchCurrentUser()
-            }
-            .alert("Yakında", isPresented: $viewModel.showPremiumAlert) {
-                Button("Tamam", role: .cancel) { }
-            } message: {
-                Text("Bu özellik yakında sizlerle olacak!")
-            }
-            
-            if viewModel.isSigningOut {
-                Color.black.opacity(0.4).ignoresSafeArea()
-                ProgressView("Çıkış yapılıyor...")
-                    .padding(20)
-                    .background(.thinMaterial)
-                    .cornerRadius(12)
-                    .transition(.opacity)
+            .padding()
+        }
+        .background(Color("FBFBFB"))
+        .toolbarBackground(.thinMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Text("Ayarlar")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.EBA_72_B)
             }
         }
-        .animation(.default, value: viewModel.isSigningOut)
+        .alert("Yakında", isPresented: $viewModel.showPremiumAlert) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text("Bu özellik yakında sizlerle olacak!")
+        }
     }
     
     /// A header view that displays the user's profile information.
@@ -96,15 +81,6 @@ struct SettingsView: View {
                 Button(action: { viewModel.showPremiumAlert = true }) {
                     SettingsRowView(title: "Üyeliği Yönet", icon: "crown.fill", iconColor: .EBA_72_B)
                 }
-                
-                Divider().padding(.leading)
-                
-                Button(action: {
-                    Task { await viewModel.signOut() }
-                }) {
-                    SettingsRowView(title: "Çıkış Yap", icon: "arrow.left.square.fill", iconColor: .red)
-                }
-                .disabled(viewModel.isSigningOut)
             }
             .background(.thinMaterial.opacity(0.3))
             .clipShape(RoundedRectangle(cornerRadius: 12))

@@ -3,27 +3,40 @@ import NukeUI
 
 struct ProfileView: View {
     @StateObject var viewModel: ProfileViewModel
+    @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if let user = viewModel.currentUser {
-                    profileHeader(user: user)
-                    statsSection
-                    actionsSection
-                } else {
-                    Text("Kullanıcı bilgileri yüklenemedi.")
+        ZStack {
+            ScrollView {
+                VStack(spacing: 32) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                    } else if let user = dataManager.currentUser {
+                        profileHeader(user: user)
+                        statsSection
+                        actionsSection
+                    } else {
+                        Text("Kullanıcı bilgileri yüklenemedi.")
+                    }
                 }
+                .padding()
             }
-            .padding()
+            .background(Color.FBFBFB)
+            .navigationTitle("Profilim")
+            .task {
+                await viewModel.fetchAllProfileData(dataManager: dataManager)
+            }
+            // SignOut Progress Overlay
+            if viewModel.isSigningOut {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                ProgressView("Çıkış Yapılıyor...")
+                    .padding(20)
+                    .background(.thinMaterial)
+                    .cornerRadius(12)
+                    .transition(.opacity)
+            }
         }
-        .background(Color.FBFBFB)
-        .navigationTitle("Profilim")
-        .task {
-            await viewModel.fetchAllProfileData()
-        }
+        .animation(.default, value: viewModel.isSigningOut)
     }
     
     /// The main header with avatar, name, and username.
@@ -71,7 +84,7 @@ struct ProfileView: View {
                 .font(.caption).foregroundStyle(.secondary).padding(.leading, 4)
             
             HStack(spacing: 12) {
-                ProfileStatView(count: viewModel.ownedRecipeCount, title: "Tariflerim")
+                ProfileStatView(count: dataManager.ownedRecipes.count, title: "Tariflerim")
                 ProfileStatView(count: viewModel.totalFavoritesReceived, title: "Alınan Favori")
                 ProfileStatView(value: String(format: "%.1f", viewModel.averageRating), title: "Ort. Puan"
                 )
@@ -87,10 +100,11 @@ struct ProfileView: View {
             
             VStack(spacing: 0) {
                 Button(role: .destructive, action: {
-                    Task { await viewModel.signOut() }
+                    Task { await viewModel.signOut(dataManager: dataManager) }
                 }) {
                     SettingsRowView(title: "Çıkış Yap", icon: "arrow.left.square.fill", iconColor: .red)
                 }
+                .disabled(viewModel.isSigningOut)
                 
                 Divider().padding(.leading)
                 
