@@ -141,8 +141,14 @@ class RecipeDetailViewModel: ObservableObject {
             if newStatus {
                 recipe.favoritedCount += 1
             } else {
-                recipe.favoritedCount -= 1
+                recipe.favoritedCount = max(0, recipe.favoritedCount - 1)
             }
+            
+            NotificationCenter.default.post(
+                name: .favoriteStatusChanged,
+                object: nil,
+                userInfo: ["recipe": self.recipe, "isFavorite": newStatus]
+            )
             
         } catch {
             print("❌ Error toggling favorite: \(error)")

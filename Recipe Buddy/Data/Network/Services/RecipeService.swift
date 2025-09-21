@@ -17,22 +17,45 @@ class RecipeService {
         return try await supabase.from("ingredients").select().order("name").execute().value
     }
     
+    /// fetches newest public recipes with pagination
+    func fetchNewestRecipes(page: Int, limit: Int) async throws -> [Recipe] {
+        let from = page * limit
+        let to = from + limit - 1
+        
+        let recipes: [Recipe] = try await supabase.from("recipes")
+            .select(Recipe.selectQuery)
+            .eq("is_public", value: true)
+            .order("created_at", ascending: false, nullsFirst: false)
+            .range(from: from, to: to)
+            .execute()
+            .value
+        
+        return recipes
+    }
+    
     /// Fetches all sections for the home page (featured, newest, etc.).
     func fetchHomeSections() async throws -> [RecipeSection] {
         async let topRated = fetchSection(title: "Öne Çıkanlar", ordering: "rating", style: .featured)
-        async let newest = fetchSection(title: "En Yeniler", ordering: "created_at", style: .standard)
+        async let discover = fetchNewestRecipes(page: 0, limit: 10)
         
-        let fetchedSections = try await [topRated, newest]
-        return fetchedSections.filter { !$0.recipes.isEmpty }
+        let discoverSection = RecipeSection(title: "Keşfet", recipes: try await discover, style: .standard)
+            
+        let fetchedSections = try await [topRated]
+        return (fetchedSections + [discoverSection]).filter { !$0.recipes.isEmpty }
     }
     
     /// Fetches recipes created by the current user.
-    func fetchOwnedRecipes() async throws -> [Recipe] {
+    func fetchOwnedRecipes(page: Int, limit: Int) async throws -> [Recipe] {
         guard let userId = try? await supabase.auth.session.user.id else { return [] }
+        
+        let from = page * limit
+        let to = from + limit - 1
+        
         return try await supabase.from("recipes")
             .select(Recipe.selectQuery)
             .eq("user_id", value: userId)
             .order("created_at", ascending: false)
+            .range(from: from, to: to)
             .execute()
             .value
     }

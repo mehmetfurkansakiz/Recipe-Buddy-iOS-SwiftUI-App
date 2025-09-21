@@ -34,14 +34,14 @@ class ImageUploaderService {
     
     // MARK: - Upload
     /// Uploads image data to the S3 bucket and returns the unique key (path).
-    func uploadImage(imageData: Data, maxLength: CGFloat = 1920) async throws -> String {
+    func uploadImage(imageData: Data, maxLength: CGFloat = 720) async throws -> String {
         guard let image = UIImage(data: imageData) else {
             throw NSError(domain: "ImageUploader", code: -1, userInfo: [NSLocalizedDescriptionKey: "Image decoding failed"])
         }
         
         let resized = resizeImageMaintainingAspect(image: image, maxLength: maxLength)
                 
-        guard let finalData = resized.compressedData(maxSizeInMB: 0.5) else {
+        guard let finalData = resized.compressedData(maxSizeInMB: 0.1) else {
             throw NSError(domain: "ImageUploader", code: -2, userInfo: [NSLocalizedDescriptionKey: "JPEG compression failed"])
         }
         

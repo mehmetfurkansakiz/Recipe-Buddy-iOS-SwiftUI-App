@@ -9,6 +9,11 @@ class DataManager: ObservableObject {
     @Published var favoritedRecipes: [Recipe] = []
     @Published var isLoading: Bool = false
     
+    // properties for pagination owned recipes
+    private var ownedRecipesPage = 0
+    private var canLoadMoreOwnedRecipes = false
+    private var isFetchingMoreOwnedRecipes = false
+    
     // MARK: - Services
     private let userService = UserService.shared
     private let recipeService = RecipeService.shared
@@ -30,16 +35,39 @@ class DataManager: ObservableObject {
         
         do {
             async let userTask = userService.fetchCurrentUser()
-            async let ownedTask = recipeService.fetchOwnedRecipes()
+            async let ownedTask = recipeService.fetchOwnedRecipes(page: 0, limit: 10)
             async let favoritesTask = recipeService.fetchFavoriteRecipes()
             
             self.currentUser = try await userTask
             self.ownedRecipes = try await ownedTask
             self.favoritedRecipes = try await favoritesTask
+            
+            self.ownedRecipesPage = 1
             print("✅ DataManager: Tüm kullanıcı verileri başarıyla yüklendi.")
         } catch {
             print("❌ DataManager: Başlangıç verileri çekilirken hata oluştu: \(error)")
         }
+    }
+    
+    func fetchMoreOwnedRecipes() async {
+        guard !isFetchingMoreOwnedRecipes, canLoadMoreOwnedRecipes else { return }
+        
+        isFetchingMoreOwnedRecipes = true
+        
+        do {
+            let newRecipes = try await recipeService.fetchOwnedRecipes(page: ownedRecipesPage, limit: 10)
+            
+            if newRecipes.isEmpty {
+                canLoadMoreOwnedRecipes = false
+            } else {
+                self.ownedRecipes.append(contentsOf: newRecipes)
+                self.ownedRecipesPage += 1
+            }
+        } catch {
+            print("❌ Daha fazla 'owned recipe' çekilirken hata: \(error)")
+        }
+        
+        isFetchingMoreOwnedRecipes = false
     }
     
     /// when user logs out, clear all user-specific data
@@ -56,6 +84,7 @@ class DataManager: ObservableObject {
         NotificationCenter.default.addObserver(self, selector: #selector(handleRecipeDeleted), name: .recipeDeleted, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleRecipeUpdated), name: .recipeUpdated, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleRecipeCreated), name: .recipeCreated, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleFavoriteStatusChanged), name: .favoriteStatusChanged, object: nil)
     }
     
     @objc private func handleRecipeDeleted(notification: Notification) {
@@ -79,5 +108,23 @@ class DataManager: ObservableObject {
         guard let userInfo = notification.userInfo, let newRecipe = userInfo["newRecipe"] as? Recipe else { return }
         // Yeni tarifi listenin başına ekle
         ownedRecipes.insert(newRecipe, at: 0)
+    }
+    
+    @objc private func handleFavoriteStatusChanged(notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let recipe = userInfo["recipe"] as? Recipe,
+              let isFavorite = userInfo["isFavorite"] as? Bool else { return }
+              
+        if let index = ownedRecipes.firstIndex(where: { $0.id == recipe.id }) {
+            ownedRecipes[index].favoritedCount = recipe.favoritedCount
+        }
+        
+        if isFavorite {
+            if !favoritedRecipes.contains(where: { $0.id == recipe.id }) {
+                favoritedRecipes.append(recipe)
+            }
+        } else {
+            favoritedRecipes.removeAll { $0.id == recipe.id }
+        }
     }
 }

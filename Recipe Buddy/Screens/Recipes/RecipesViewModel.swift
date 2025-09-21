@@ -22,6 +22,10 @@ class RecipesViewModel: ObservableObject {
         }
     }
     
+    func fetchMoreOwnedRecipes() async {
+        
+    }
+    
     private func fetchOwnedRecipes() async throws -> [Recipe] {
         guard let userId = try? await supabase.auth.session.user.id else { return [] }
         
