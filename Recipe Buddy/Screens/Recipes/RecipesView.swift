@@ -7,32 +7,34 @@ struct RecipesView: View {
     
     var body: some View {
         ZStack {
+            Color("FBFBFB").ignoresSafeArea()
+            
             VStack(spacing: 0) {
-                SearchBarView(searchText: $viewModel.searchText)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                
-                if dataManager.isLoading && dataManager.ownedRecipes.isEmpty {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                } else {
-                    let searchResults = viewModel.searchResults(from: dataManager)
-                    if !viewModel.searchText.isEmpty {
-                        List(searchResults) { recipe in
-                            Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
-                                SearchResultRow(recipe: recipe)
-                            }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                        }
-                        .listStyle(.plain)
+                ScrollView {
+                    SearchBarView(searchText: $viewModel.searchText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                    
+                    // Content Area (loading, search results, or main content)
+                    if dataManager.isLoading && dataManager.ownedRecipes.isEmpty {
+                        ProgressView().padding(.top, 50)
                     } else {
-                        mainContent
+                        let searchResults = viewModel.searchResults(from: dataManager)
+                        if !viewModel.searchText.isEmpty {
+                            searchResultsContent(for: searchResults)
+                        } else {
+                            mainContent
+                        }
                     }
                 }
             }
-            .background(Color.FBFBFB)
+        }
+        .onAppear {
+            Task {
+                if dataManager.ownedRecipes.isEmpty && dataManager.favoritedRecipes.isEmpty {
+                    await dataManager.loadInitialUserData()
+                }
+            }
         }
         .toolbarBackground(.thinMaterial, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
@@ -64,28 +66,40 @@ struct RecipesView: View {
     // MARK: - Supporting Views
     
     private var mainContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 30) {
-                if dataManager.favoritedRecipes.isEmpty && dataManager.ownedRecipes.isEmpty {
-                    emptyStateView
-                } else {
-                    // Favorite Recipes Carousel
-                    if !dataManager.favoritedRecipes.isEmpty {
-                        RecipeCarouselSection(
-                            title: "Favori Tariflerim",
-                            recipes: dataManager.favoritedRecipes,
-                            style: .standard,
-                            navigationPath: $navigationPath
-                        )
-                    }
-                    
-                    // My Recipes Grid
-                    if !dataManager.ownedRecipes.isEmpty {
-                        myRecipesGrid
-                    }
+        VStack(alignment: .leading, spacing: 30) {
+            if dataManager.favoritedRecipes.isEmpty && dataManager.ownedRecipes.isEmpty {
+                emptyStateView
+            } else {
+                if !dataManager.favoritedRecipes.isEmpty {
+                    favoritesSectionLink
+                }
+                if !dataManager.ownedRecipes.isEmpty {
+                    myRecipesGrid
                 }
             }
             Spacer(minLength: 128)
+        }
+    }
+    
+    /// Search results content
+    private func searchResultsContent(for results: [Recipe]) -> some View {
+        LazyVStack {
+            if results.isEmpty {
+                Text("Arama sonucu bulunamadı.")
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 50)
+            } else {
+                ForEach(results) { recipe in
+                    Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
+                        VStack(spacing: 0) {
+                            SearchResultRow(recipe: recipe)
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
+                            Divider().padding(.leading)
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -118,15 +132,44 @@ struct RecipesView: View {
         }
     }
     
+    private var favoritesSectionLink: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Favori Tariflerim")
+                .font(.title2).bold()
+                .padding(.horizontal)
+                .foregroundStyle(.EBA_72_B)
+            
+            Button(action: {
+                navigationPath.append(AppNavigation.favoriteRecipes)
+            }) {
+                HStack {
+                    Text("Tümünü Gör")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(._303030)
+                    Spacer()
+                    Text("\(dataManager.favoritedRecipes.count) tarif")
+                        .foregroundStyle(.A_3_A_3_A_3)
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.A_3_A_3_A_3)
+                }
+                .padding()
+                .background(.thinMaterial.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
+                .padding(.horizontal)
+            }
+        }
+    }
+    
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "bookmark.slash")
                 .font(.system(size: 50))
-                .foregroundColor(Color("A3A3A3"))
+                .foregroundColor(.A_3_A_3_A_3)
             
             Text("Henüz Tarifiniz Yok")
                 .font(.headline)
-                .foregroundColor(Color("181818"))
+                .foregroundColor(._181818)
             
             Text("Yeni bir tarif oluşturun veya Ana sayfadan beğendiklerinizi favorilerinize ekleyin.")
                 .font(.subheadline)
@@ -140,7 +183,19 @@ struct RecipesView: View {
     }
 }
 
+//#Preview {
+//    RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))
+//        .environmentObject(DataManager())
+//}
+
 #Preview {
-    RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))
-        .environmentObject(DataManager())
+    // with mock data
+    let dataManager = DataManager()
+    dataManager.ownedRecipes = Recipe.allMocks.shuffled()
+    dataManager.favoritedRecipes = Recipe.allMocks.shuffled()
+    
+    return NavigationStack {
+        RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))
+            .environmentObject(dataManager)
+    }
 }

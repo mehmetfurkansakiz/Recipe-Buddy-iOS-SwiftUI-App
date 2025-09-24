@@ -125,9 +125,8 @@ struct ShoppingListSectionView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
             }
         }
-
         .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color("A3A3A3").opacity(0.5), lineWidth: 1))
+            .stroke(.A_3_A_3_A_3.opacity(0.5), lineWidth: 1))
         .padding(.horizontal)
         .padding(.vertical, 6)
     }
@@ -137,17 +136,17 @@ struct ShoppingListSectionView: View {
             Text(list.name)
                 .font(.title3)
                 .fontWeight(.bold)
-                .foregroundStyle(areAllItemsChecked ? .secondary : .primary)
-                .strikethrough(areAllItemsChecked, color: .secondary)
+                .foregroundStyle(areAllItemsChecked ? .A_3_A_3_A_3 : ._303030)
+                .strikethrough(areAllItemsChecked, color: .A_3_A_3_A_3)
             
             Circle()
                 .frame(width: 4, height: 4)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.A_3_A_3_A_3)
                 .opacity(0.5)
             
             Text("\(list.itemCount) adet")
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.A_3_A_3_A_3)
             
             Spacer()
             

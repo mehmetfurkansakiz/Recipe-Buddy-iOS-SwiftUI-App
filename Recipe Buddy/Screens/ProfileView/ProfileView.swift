@@ -154,4 +154,5 @@ struct ProfileStatView: View {
 
 #Preview {
     ProfileView(viewModel: ProfileViewModel(coordinator: AppCoordinator()))
+        .environmentObject(DataManager())
 }

@@ -5,37 +5,33 @@ struct CustomTabBar: View {
     let tabs: [TabItem]
     
     var body: some View {
-        GeometryReader { geo in
-            let screenWidth = geo.size.width
-            
-            HStack(spacing: 8) {
-                ForEach(0..<tabs.count, id: \.self) { index in
-                    Button(action: {
-                        withAnimation {
-                            selectedTab = index
-                        }
-                    }) {
-                        VStack(spacing: 4) {
-                            Image(tabs[index].icon)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .foregroundColor(selectedTab == index ? Color("EBA72B") : Color("666666"))
-                                .frame(width: 24, height: 24)
-                        }
-                        .frame(width: (screenWidth * 0.9) / CGFloat(tabs.count))
-                        .padding(.vertical, 16)
+        HStack(spacing: 8) {
+            ForEach(0..<tabs.count, id: \.self) { index in
+                Button(action: {
+                    withAnimation {
+                        selectedTab = index
                     }
+                }) {
+                    VStack(spacing: 4) {
+                        Image(tabs[index].icon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .foregroundColor(selectedTab == index ? Color("EBA72B") : Color("666666"))
+                            .frame(width: 24, height: 24)
+                    }
+                    // Her bir butona eşit alan vererek yayılmalarını sağla
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
                 }
             }
-            .frame(width: screenWidth)
-            .background(.regularMaterial)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-            )
-            .frame(width: screenWidth, alignment: .center)
         }
+        // Arka plan ve köşe yuvarlatma işlemleri burada kalmalı
+        .background(.regularMaterial)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 

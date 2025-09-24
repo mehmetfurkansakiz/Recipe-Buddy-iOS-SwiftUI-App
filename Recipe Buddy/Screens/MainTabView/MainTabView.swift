@@ -4,7 +4,6 @@ struct MainTabView: View {
     @StateObject var coordinator: AppCoordinator
     @State private var selectedTab: ContentTab = .home
     @State private var navigationPath = NavigationPath()
-    @State private var tabBarHeight: CGFloat = 0
     
     private let tabs = [
         TabItem(icon: "home.icon"),
@@ -15,48 +14,35 @@ struct MainTabView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            ZStack(alignment: .bottom) {
-                // Main content
-                TabContent(
-                    selectedTab: selectedTab,
-                    navigationPath: $navigationPath,
-                    coordinator: coordinator
+            TabContent(
+                selectedTab: selectedTab,
+                navigationPath: $navigationPath,
+                coordinator: coordinator
+            )
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                CustomTabBar(
+                    selectedTab: Binding(
+                        get: { selectedTab.rawValue },
+                        set: { selectedTab = ContentTab(rawValue: $0)! }
+                    ),
+                    tabs: tabs
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.bottom, tabBarHeight)
-                
-                // TabBar with GeometryReader
-                VStack(spacing: 0) {
-                    GeometryReader { geo in
-                        CustomTabBar(
-                            selectedTab: Binding(
-                                get: { selectedTab.rawValue },
-                                set: { selectedTab = ContentTab(rawValue: $0)! }
-                            ),
-                            tabs: tabs
-                        )
-                        .onAppear {
-                            tabBarHeight -= geo.size.height
-                        }
-                    }
-                    .frame(height: 40)
-                }
                 .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
-            .ignoresSafeArea(.keyboard)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationDestination(for: AppNavigation.self) { destination in
                 switch destination {
                 case .recipeDetail(let recipe):
                     RecipeDetailView(viewModel: RecipeDetailViewModel(recipe: recipe), navigationPath: $navigationPath)
-                    
                 case .recipeCreate:
                     RecipeCreateView(viewModel: RecipeCreateViewModel())
-                    
                 case .recipeEdit(let recipe):
                     RecipeCreateView(viewModel: RecipeCreateViewModel(recipeToEdit: recipe))
-                    
                 case .profile:
                     ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))
+                case .favoriteRecipes:
+                    FavoriteRecipesView(navigationPath: $navigationPath)
                 }
             }
         }
@@ -84,4 +70,5 @@ struct TabContent: View {
 
 #Preview {
     MainTabView(coordinator: AppCoordinator())
+        .environmentObject(DataManager())
 }
