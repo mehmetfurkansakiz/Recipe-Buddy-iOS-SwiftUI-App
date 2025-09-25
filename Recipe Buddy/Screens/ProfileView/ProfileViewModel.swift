@@ -19,7 +19,6 @@ class ProfileViewModel: ObservableObject {
         isLoading = true
         
         do {
-            async let ownedCountTask = recipeService.fetchOwnedRecipeCount()
             async let favoriteCountTask = recipeService.fetchTotalFavoritesReceivedCount()
             
             self.totalFavoritesReceived = try await favoriteCountTask

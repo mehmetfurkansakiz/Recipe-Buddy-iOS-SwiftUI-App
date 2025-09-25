@@ -146,7 +146,8 @@ class RecipeCreateViewModel: ObservableObject {
                 let updatedRecipe = try await recipeService.updateRecipe(recipeToEdit.id, viewModel: self)
                 NotificationCenter.default.post(name: .recipeUpdated, object: nil, userInfo: ["updatedRecipe": updatedRecipe])
             } else {
-                try await recipeService.createRecipe(viewModel: self)
+                let newRecipe = try await recipeService.createRecipe(viewModel: self)
+                NotificationCenter.default.post(name: .recipeCreated, object: nil, userInfo: ["newRecipe": newRecipe])
             }
             showSuccess = true
         } catch {

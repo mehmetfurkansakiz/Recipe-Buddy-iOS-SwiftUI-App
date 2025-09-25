@@ -11,7 +11,7 @@ class DataManager: ObservableObject {
     
     // properties for pagination owned recipes
     private var ownedRecipesPage = 0
-    private var canLoadMoreOwnedRecipes = false
+    private var canLoadMoreOwnedRecipes = true
     private var isFetchingMoreOwnedRecipes = false
     
     // MARK: - Services
@@ -106,7 +106,7 @@ class DataManager: ObservableObject {
     
     @objc private func handleRecipeCreated(notification: Notification) {
         guard let userInfo = notification.userInfo, let newRecipe = userInfo["newRecipe"] as? Recipe else { return }
-        // Yeni tarifi listenin başına ekle
+        // add new recipe to the top of the owned recipes list
         ownedRecipes.insert(newRecipe, at: 0)
     }
     
@@ -117,6 +117,10 @@ class DataManager: ObservableObject {
               
         if let index = ownedRecipes.firstIndex(where: { $0.id == recipe.id }) {
             ownedRecipes[index].favoritedCount = recipe.favoritedCount
+        }
+        
+        if let index = favoritedRecipes.firstIndex(where: { $0.id == recipe.id }) {
+            favoritedRecipes[index].favoritedCount = recipe.favoritedCount
         }
         
         if isFavorite {

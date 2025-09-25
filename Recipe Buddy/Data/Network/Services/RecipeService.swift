@@ -73,19 +73,6 @@ class RecipeService {
         return response.map { $0.recipe }
     }
     
-    func fetchOwnedRecipeCount() async throws -> Int {
-        guard let userId = try? await supabase.auth.session.user.id else { return 0 }
-        
-        // The standard response object contains the count when requested.
-        let response = try await supabase.from("recipes")
-            .select(count: .exact) // Ask for the count
-            .eq("user_id", value: userId)
-            .execute() // This returns a PostgrestResponse
-        
-        // The count is an optional Int on the response object.
-        return response.count ?? 0
-    }
-    
     func fetchTotalFavoritesReceivedCount() async throws -> Int {
         let count: Int = try await supabase
             .rpc("get_total_favorites_for_owned_recipes")
@@ -145,7 +132,7 @@ class RecipeService {
     // MARK: - Recipe Creation & Update & Deletion
         
         /// Saves a new recipe with all its components.
-        func createRecipe(viewModel: RecipeCreateViewModel) async throws {
+        func createRecipe(viewModel: RecipeCreateViewModel) async throws -> Recipe {
             guard let userId = try? await supabase.auth.session.user.id,
                   let imageData = viewModel.selectedImageData else {
                 throw URLError(.userAuthenticationRequired)
@@ -186,6 +173,16 @@ class RecipeService {
             if !recipeCategoryLinks.isEmpty {
                 try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
             }
+            
+            let newRecipe: Recipe = try await supabase.from("recipes")
+                .select(Recipe.selectQuery)
+                .eq("id", value: newRecipeId)
+                .single()
+                .execute()
+                .value
+            
+            print("✅ Recipe created successfully \(newRecipeId)")
+            return newRecipe
         }
     
     func updateRecipe(_ recipeId: UUID, viewModel: RecipeCreateViewModel) async throws -> Recipe {
