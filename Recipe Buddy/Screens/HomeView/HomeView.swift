@@ -4,6 +4,7 @@ import NukeUI
 struct HomeView: View {
     @StateObject var viewModel: HomeViewModel
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
         ZStack {
@@ -14,7 +15,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     
                     // head and searchbar
-                    let usernameToShow = viewModel.currentUser?.fullName ?? viewModel.currentUser?.username ?? ""
+                    let usernameToShow = dataManager.currentUser?.fullName ?? dataManager.currentUser?.username ?? ""
                     HeaderView(searchText: $viewModel.searchText, username: usernameToShow)
                         .padding(.horizontal)
                     
@@ -46,17 +47,7 @@ struct HomeView: View {
                             )
                         } else {
                             // main
-                            ForEach(viewModel.sections) { section in
-                                RecipeCarouselSection(
-                                    title: section.title,
-                                    recipes: section.recipes,
-                                    style: section.style,
-                                    navigationPath: $navigationPath
-                                )
-                            }
-                            .padding(.top)
-                            
-                            Spacer(minLength: 64)
+                            mainContent
                         }
                     }
                 }
@@ -64,6 +55,50 @@ struct HomeView: View {
         }
         .task {
             await viewModel.fetchHomePageData()
+        }
+    }
+    
+    private var mainContent: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            if let featuredSection = viewModel.sections.first(where: { $0.style == .featured }) {
+                RecipeCarouselSection(
+                    title: featuredSection.title,
+                    recipes: featuredSection.recipes,
+                    style: featuredSection.style,
+                    navigationPath: $navigationPath
+                )
+            }
+            
+            if let discoverSection = viewModel.sections.first(where: { $0.style == .standard }) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(discoverSection.title)
+                        .font(.title2).bold()
+                        .padding(.horizontal)
+                        .foregroundStyle(Color("EBA72B"))
+                        .shadow(color: Color("000000").opacity(0.1), radius: 8, y: 4)
+                    
+                    LazyVGrid(
+                        columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],spacing: 16)
+                    {
+                        ForEach(discoverSection.recipes) { recipe in
+                            Button(action: {
+                                navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
+                                    let cardWidth = (UIScreen.main.bounds.width / 2) - 24
+                                    ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
+                                }
+                                .onAppear {
+                                    if recipe.id == discoverSection.recipes.last?.id {
+                                        Task {
+                                            await viewModel.fetchMoreNewestRecipes()
+                                        }
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+            Spacer(minLength: 128)
         }
     }
 }
@@ -173,7 +208,6 @@ struct SearchResultRow: View {
     }
 }
 
-
 struct RecipeCarouselSection: View {
     let title: String
     let recipes: [Recipe]
@@ -207,5 +241,5 @@ struct RecipeCarouselSection: View {
 
 #Preview {
     HomeView(viewModel: HomeViewModel(), navigationPath: .constant(NavigationPath()))
-        .environmentObject(HomeViewModel())
+        .environmentObject(DataManager())
 }

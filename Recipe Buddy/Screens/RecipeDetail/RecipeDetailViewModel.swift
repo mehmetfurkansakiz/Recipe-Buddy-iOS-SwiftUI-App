@@ -3,50 +3,75 @@ import Supabase
 
 @MainActor
 class RecipeDetailViewModel: ObservableObject {
+    // Main data
     @Published var recipe: Recipe
+    
+    // UI State
     @Published var selectedIngredients: Set<UUID> = []
     @Published var isFavorite: Bool = false
-    @Published var showingShoppingListAlert: Bool = false
+    @Published var userCurrentRating: Int?
+    
+    // Auth & Ownership
     @Published var isOwnedByCurrentUser = false
     @Published var isAuthenticated = false
-    @Published var isSaving: Bool = false
+    
+    // UI Control State
     @Published var isLoading = true
+    @Published var isSaving: Bool = false
     @Published var showRatingSheet = false
-    @Published var userCurrentRating: Int?
     @Published var showListSelector = false
     @Published var statusMessage: String?
+    @Published var shouldDismiss = false
+    @Published var showingShoppingListAlert: Bool = false
     
+    // Private Properties
+    private let recipeId: UUID
     private let recipeService = RecipeService.shared
     
+    // Computed Properties
     var areAllIngredientsSelected: Bool {
         selectedIngredients.count == recipe.ingredients.count
     }
     
     init(recipe: Recipe) {
         self.recipe = recipe
+        self.recipeId = recipe.id
         
-        Task {
-            await fetchInitialData()
-        }
+        setupObservers()
     }
     
-    // For preview purposes
-    init(recipe: Recipe, isOwnedForPreview: Bool) {
-        self.recipe = recipe
-        self.isOwnedByCurrentUser = isOwnedForPreview
+    private func setupObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleRecipeDeleted),
+            name: .recipeDeleted,
+            object: nil
+        )
     }
     
-    private func fetchInitialData() async {
+    func loadData() async {
         self.isLoading = true
         
-        async let authStatusTask: () = checkAuthAndOwnershipStatus()
-        async let favoriteStatusTask: () = checkIfFavorite()
-        async let userRatingTask: () = fetchUserRating()
-        
-        // Wait for all checks
-        await authStatusTask
-        await favoriteStatusTask
-        await userRatingTask
+        do {
+            let freshRecipe: Recipe = try await supabase.from("recipes")
+                .select(Recipe.selectQuery)
+                .eq("id", value: self.recipeId)
+                .single().execute().value
+            
+            self.recipe = freshRecipe
+            
+            async let authStatusTask: () = checkAuthAndOwnershipStatus()
+            async let favoriteStatusTask: () = checkIfFavorite()
+            async let userRatingTask: () = fetchUserRating()
+            
+            await authStatusTask
+            await favoriteStatusTask
+            await userRatingTask
+            
+        } catch {
+            print("❌ Detay verisi çekilirken hata oluştu: \(error)")
+            self.shouldDismiss = true
+        }
         
         self.isLoading = false
     }
@@ -116,8 +141,14 @@ class RecipeDetailViewModel: ObservableObject {
             if newStatus {
                 recipe.favoritedCount += 1
             } else {
-                recipe.favoritedCount -= 1
+                recipe.favoritedCount = max(0, recipe.favoritedCount - 1)
             }
+            
+            NotificationCenter.default.post(
+                name: .favoriteStatusChanged,
+                object: nil,
+                userInfo: ["recipe": self.recipe, "isFavorite": newStatus]
+            )
             
         } catch {
             print("❌ Error toggling favorite: \(error)")
@@ -168,6 +199,18 @@ class RecipeDetailViewModel: ObservableObject {
             statusMessage = "Hata: Malzemeler eklenemedi."
             print("❌ Error adding ingredients: \(error)")
         }
+    }
+    
+    // Listen for recipe deletion notifications
+    @objc private func handleRecipeDeleted(notification: Notification) {
+        if let userInfo = notification.userInfo, let deletedRecipeID = userInfo["recipeID"] as? UUID {
+            print("Recipe with ID \(deletedRecipeID) was deleted.")
+            self.shouldDismiss = true
+        }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
 }

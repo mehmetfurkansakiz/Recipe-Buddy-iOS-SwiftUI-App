@@ -3,63 +3,37 @@ import SwiftUI
 struct RecipesView: View {
     @StateObject var viewModel: RecipesViewModel
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
         ZStack {
+            Color("FBFBFB").ignoresSafeArea()
+            
             VStack(spacing: 0) {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        SearchBarView(searchText: $viewModel.searchText)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                        
-                        if viewModel.isLoading {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
+                ScrollView {
+                    SearchBarView(searchText: $viewModel.searchText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                    
+                    // Content Area (loading, search results, or main content)
+                    if dataManager.isLoading && dataManager.ownedRecipes.isEmpty {
+                        ProgressView().padding(.top, 50)
+                    } else {
+                        let searchResults = viewModel.searchResults(from: dataManager)
+                        if !viewModel.searchText.isEmpty {
+                            searchResultsContent(for: searchResults)
                         } else {
-                            if !viewModel.searchText.isEmpty {
-                                List(viewModel.searchResults) { recipe in
-                                    Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
-                                        SearchResultRow(recipe: recipe)
-                                    }
-                                    .listRowBackground(Color.clear)
-                                    .listRowSeparator(.hidden)
-                                }
-                                .listStyle(.plain)
-                            } else {
-                                ScrollView {
-                                    VStack(alignment: .leading, spacing: 30) {
-                                        // empty state view
-                                        if viewModel.favoritedRecipes.isEmpty && viewModel.ownedRecipes.isEmpty {
-                                            emptyStateView
-                                        } else {
-                                            // Favorites
-                                            if !viewModel.favoritedRecipes.isEmpty {
-                                                RecipeCarouselSection(
-                                                    title: "Favori Tariflerim",
-                                                    recipes: viewModel.favoritedRecipes,
-                                                    style: .standard,
-                                                    navigationPath: $navigationPath
-                                                )
-                                            }
-                                            // MyRecipes
-                                            if !viewModel.ownedRecipes.isEmpty {
-                                                RecipeCarouselSection(
-                                                    title: "Oluşturduğum Tarifler",
-                                                    recipes: viewModel.ownedRecipes,
-                                                    style: .standard,
-                                                    navigationPath: $navigationPath
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            mainContent
                         }
                     }
                 }
-                .background(Color("FBFBFB"))
+            }
+        }
+        .onAppear {
+            Task {
+                if dataManager.ownedRecipes.isEmpty && dataManager.favoritedRecipes.isEmpty {
+                    await dataManager.loadInitialUserData()
+                }
             }
         }
         .toolbarBackground(.thinMaterial, for: .navigationBar)
@@ -87,22 +61,115 @@ struct RecipesView: View {
                 })
             }
         }
-        .task {
-            await viewModel.fetchAllMyData()
-            
-        }
     }
     
     // MARK: - Supporting Views
+    
+    private var mainContent: some View {
+        VStack(alignment: .leading, spacing: 30) {
+            if dataManager.favoritedRecipes.isEmpty && dataManager.ownedRecipes.isEmpty {
+                emptyStateView
+            } else {
+                if !dataManager.favoritedRecipes.isEmpty {
+                    favoritesSectionLink
+                }
+                if !dataManager.ownedRecipes.isEmpty {
+                    myRecipesGrid
+                }
+            }
+            Spacer(minLength: 128)
+        }
+    }
+    
+    /// Search results content
+    private func searchResultsContent(for results: [Recipe]) -> some View {
+        LazyVStack {
+            if results.isEmpty {
+                Text("Arama sonucu bulunamadı.")
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 50)
+            } else {
+                ForEach(results) { recipe in
+                    Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe)) }) {
+                        VStack(spacing: 0) {
+                            SearchResultRow(recipe: recipe)
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
+                            Divider().padding(.leading)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private var myRecipesGrid: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Oluşturduğum Tarifler")
+                .font(.title2).bold()
+                .padding(.horizontal)
+                .foregroundStyle(Color.EBA_72_B)
+            
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+            ) {
+                ForEach(dataManager.ownedRecipes) { recipe in
+                    Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe))}) {
+                        let cardWidth = (UIScreen.main.bounds.width / 2) - 24
+                        ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
+                    }
+                    .onAppear {
+                        // Infinite scroll: Load more when reaching the end
+                        if recipe.id == dataManager.ownedRecipes.last?.id {
+                            Task {
+                                await dataManager.fetchMoreOwnedRecipes()
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    private var favoritesSectionLink: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Favori Tariflerim")
+                .font(.title2).bold()
+                .padding(.horizontal)
+                .foregroundStyle(.EBA_72_B)
+            
+            Button(action: {
+                navigationPath.append(AppNavigation.favoriteRecipes)
+            }) {
+                HStack {
+                    Text("Tümünü Gör")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(._303030)
+                    Spacer()
+                    Text("\(dataManager.favoritedRecipes.count) tarif")
+                        .foregroundStyle(.A_3_A_3_A_3)
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.A_3_A_3_A_3)
+                }
+                .padding()
+                .background(.thinMaterial.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
+                .padding(.horizontal)
+            }
+        }
+    }
+    
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "bookmark.slash")
                 .font(.system(size: 50))
-                .foregroundColor(Color("A3A3A3"))
+                .foregroundColor(.A_3_A_3_A_3)
             
             Text("Henüz Tarifiniz Yok")
                 .font(.headline)
-                .foregroundColor(Color("181818"))
+                .foregroundColor(._181818)
             
             Text("Yeni bir tarif oluşturun veya Ana sayfadan beğendiklerinizi favorilerinize ekleyin.")
                 .font(.subheadline)
@@ -116,7 +183,19 @@ struct RecipesView: View {
     }
 }
 
+//#Preview {
+//    RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))
+//        .environmentObject(DataManager())
+//}
+
 #Preview {
-    RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))
-        .environmentObject(RecipesViewModel())
+    // with mock data
+    let dataManager = DataManager()
+    dataManager.ownedRecipes = Recipe.allMocks.shuffled()
+    dataManager.favoritedRecipes = Recipe.allMocks.shuffled()
+    
+    return NavigationStack {
+        RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))
+            .environmentObject(dataManager)
+    }
 }

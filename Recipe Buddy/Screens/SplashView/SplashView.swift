@@ -5,13 +5,22 @@ struct SplashView: View {
     
     var body: some View {
         VStack {
+            Image("cupcake.icon")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 120, height: 120)
+                .padding()
+            
             Text("Recipe Buddy")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            
-            Image(systemName: "fork.knife")
-                .font(.system(size: 80))
-                .padding()
+        }
+        .task {
+            await coordinator.checkAuthenticationStatus()
         }
     }
+}
+
+#Preview {
+    SplashView(coordinator: AppCoordinator())
 }

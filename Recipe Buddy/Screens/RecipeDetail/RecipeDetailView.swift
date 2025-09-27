@@ -4,9 +4,11 @@ import NukeUI
 struct RecipeDetailView: View {
     @StateObject var viewModel: RecipeDetailViewModel
     @Environment(\.dismiss) private var dismiss: DismissAction
+    @Binding var navigationPath: NavigationPath
     
-    init(viewModel: RecipeDetailViewModel) {
+    init(viewModel: RecipeDetailViewModel, navigationPath: Binding<NavigationPath>) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _navigationPath = navigationPath
     }
     
     var body: some View {
@@ -38,6 +40,14 @@ struct RecipeDetailView: View {
         .navigationBarBackButtonHidden()
         .ignoresSafeArea(edges: .top)
         .animation(.default, value: viewModel.isLoading)
+        .task {
+            await viewModel.loadData()
+        }
+        .onChange(of: viewModel.shouldDismiss) {
+            if viewModel.shouldDismiss {
+                dismiss()
+            }
+        }
     }
     
     // MARK: - View Components
@@ -94,8 +104,7 @@ struct RecipeDetailView: View {
                 
                 if viewModel.isOwnedByCurrentUser {
                     Button(action: {
-                        // TODO: added navigation to edit recipe view
-                        print("Düzenle butonuna basıldı!")
+                        navigationPath.append(AppNavigation.recipeEdit(viewModel.recipe))
                     }) {
                         Image("pencil.icon")
                             .resizable()
@@ -316,9 +325,8 @@ struct RecipeDetailView: View {
     NavigationStack {
         let viewModel = RecipeDetailViewModel(
             recipe: Recipe.allMocks.first!,
-            isOwnedForPreview: true
         )
         
-        RecipeDetailView(viewModel: viewModel)
+        RecipeDetailView(viewModel: viewModel, navigationPath: .constant(NavigationPath()))
     }
 }

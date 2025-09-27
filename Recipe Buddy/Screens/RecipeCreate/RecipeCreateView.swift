@@ -5,56 +5,68 @@ struct RecipeCreateView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom progress indicator for steps
-            ProgressHeader(selection: viewModel.selection)
-            
-            // Page view for each step
-            TabView(selection: $viewModel.selection) {
-                Step1_BasicInfo(viewModel: viewModel).tag(0)
-                Step2_Ingredients(viewModel: viewModel).tag(1)
-                Step3_Preparation(viewModel: viewModel).tag(2)
+        ZStack {
+            VStack(spacing: 0) {
+                // Custom progress indicator for steps
+                ProgressHeader(selection: viewModel.selection)
+                
+                // Page view for each step
+                TabView(selection: $viewModel.selection) {
+                    Step1_BasicInfo(viewModel: viewModel).tag(0)
+                    Step2_Ingredients(viewModel: viewModel).tag(1)
+                    Step3_Preparation(viewModel: viewModel).tag(2)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never)) // Hides the default dots
+                
+                // Navigation buttons
+                StepNavigation(viewModel: viewModel)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never)) // Hides the default dots
-            
-            // Navigation buttons
-            StepNavigation(viewModel: viewModel)
-        }
-        .animation(.default, value: viewModel.selection) // Animate page transitions
-        .navigationTitle(viewModel.navigationTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("İptal")
-                        .foregroundStyle(Color("EBA72B"))
+            .navigationTitle(viewModel.navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("İptal")
+                            .foregroundStyle(Color("EBA72B"))
+                            .disabled(viewModel.isSaving)
+                            .opacity(viewModel.isSaving ? 0.4 : 1.0)
+                    }
+                }
+                if viewModel.recipeToEdit != nil {
+                    ToolbarItem(placement: .destructiveAction) {
+                        Button(role: .destructive) {
+                            viewModel.showDeleteConfirmAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(Color.red)
+                                .opacity(viewModel.isSaving ? 0.4 : 1.0)
+                                .disabled(viewModel.isSaving)
+                                .font(.callout)
+                            
+                        }
+                    }
                 }
             }
-            ToolbarItem(placement: .confirmationAction) {
-                Button(action: {
-                    Task { await viewModel.saveRecipe() }
-                }) {
-                    Text("Kaydet")
-                        .foregroundStyle(Color("EBA72B"))
-                        .opacity((!viewModel.isValid || viewModel.isSaving) ? 0.4 : 1.0)
-                }
-                .disabled(!viewModel.isValid || viewModel.isSaving)
-            }
-        }
-        .overlay {
+            .toolbarBackground(viewModel.isSaving ? .hidden : .visible, for: .navigationBar)
+            
             if viewModel.isSaving {
-                ZStack {
-                    Color.black.opacity(0.4).ignoresSafeArea()
-                    ProgressView("Kaydediliyor...")
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(10)
-                }
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+
+                // ProgressView
+                ProgressView(viewModel.recipeToEdit != nil ? "Güncelleniyor..." : "Kaydediliyor...")
+                    .padding()
+                    .background(.thinMaterial)
+                    .colorScheme(.dark)
+                    .cornerRadius(10)
+                    .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.isSaving)
+        .animation(.default, value: viewModel.selection)
         // Sheets
         .sheet(isPresented: $viewModel.showingCategorySelector) {
             CategorySelectorView(availableCategories: viewModel.availableCategories, selectedCategories: $viewModel.selectedCategories)
@@ -62,6 +74,14 @@ struct RecipeCreateView: View {
         .alert("Hata", isPresented: .constant(viewModel.errorMessage != nil), actions: {
             Button("Tamam") { viewModel.errorMessage = nil }
         }, message: { Text(viewModel.errorMessage ?? "") })
+        .alert("Tarifi Sil", isPresented: $viewModel.showDeleteConfirmAlert) {
+            Button("Sil", role: .destructive) {
+                Task { await viewModel.deleteRecipe() }
+            }
+            Button("İptal", role: .cancel) { }
+        } message: {
+            Text("Bu tarif kalıcı olarak silinecektir. Emin misiniz?")
+        }
         .onChange(of: viewModel.showSuccess) {
             if viewModel.showSuccess { dismiss() }
         }
@@ -87,7 +107,6 @@ struct ProgressHeader: View {
             }
         }
         .padding()
-        .background(.thinMaterial)
     }
 }
 
@@ -118,6 +137,21 @@ struct StepNavigation: View {
                 .foregroundStyle(.white)
                 .clipShape(Capsule())
                 .contentShape(Rectangle())
+            }
+            
+            if viewModel.selection == 2 {
+                Button {
+                    Task { await viewModel.saveRecipe() }
+                } label: {
+                    Text(viewModel.recipeToEdit != nil ? "Güncelle" : "Kaydet")
+                        .padding().frame(maxWidth: .infinity)
+                }
+                .background(Color("EBA72B"))
+                .foregroundStyle(.white)
+                .clipShape(Capsule())
+                .contentShape(Rectangle())
+                .opacity((!viewModel.isValid || viewModel.isSaving) ? 0.4 : 1.0)
+                .disabled(!viewModel.isValid || viewModel.isSaving)
             }
         }
         .padding([.horizontal, .bottom])

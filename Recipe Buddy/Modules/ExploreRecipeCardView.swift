@@ -4,6 +4,20 @@ import NukeUI
 struct ExploreRecipeCard: View {
     let recipe: Recipe
     let cardWidth: CGFloat
+    
+    private var badgeWidth: CGFloat  {
+        let threshold: CGFloat = 150
+        if cardWidth < threshold {
+            return cardWidth * 0.4
+        } else {
+            return (threshold * 0.40) + (cardWidth - threshold) * 0.10
+        }
+    }
+    
+    private var iconSize: CGFloat { max(12, cardWidth / 16) } // minimum 12
+    private var fontSize: Font { .system(size: max(12, cardWidth / 18), weight: .regular) } // minimum 12
+    private var verticalPadding: CGFloat { max(4, cardWidth / 35) } // minimum 4
+    private var cornerRadius: CGFloat { max(8, cardWidth / 12) } // minimum 8
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -20,28 +34,33 @@ struct ExploreRecipeCard: View {
                     } else {
                         ZStack {
                             Color("F2F2F7")
-                            ProgressView()
+                                .overlay {
+                                    Image(systemName: "photo")
+                                        .foregroundStyle(Color.C_2_C_2_C_2)
+                                        .font(.largeTitle)
+                                }
                         }
                     }
                 }
                 .frame(width: cardWidth, height: cardWidth)
                 
                 // Badges
-                HStack {
+                HStack(spacing: 0) {
                     // left badge for time
                     HStack(spacing: 4) {
                         Image("alarm.icon")
                             .resizable()
-                            .frame(width: 16, height: 16)
+                            .frame(width: iconSize, height: iconSize)
                         Text("\(recipe.cookingTime) dk")
                     }
-                    .font(.caption)
-                    .padding(.horizontal, 8)
+                    .font(fontSize)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, verticalPadding)
+                    .frame(width: badgeWidth)
+                    .padding(.horizontal, 8)
                     .background(.black.opacity(0.5))
-                    .clipShape(CornerBadgeShape(corners: [.topRight, .bottomRight]))
+                    .clipShape(CornerBadgeShape(radius: cardWidth / 12, corners: [.topRight, .bottomRight]))
                     
                     Spacer()
                     
@@ -50,16 +69,32 @@ struct ExploreRecipeCard: View {
                         HStack(spacing: 4) {
                             Image("star.fill.icon")
                                 .resizable()
-                                .frame(width: 16, height: 16)
+                                .frame(width: iconSize, height: iconSize)
                             Text(String(format: "%.1f", rating))
                         }
-                        .font(.caption)
+                        .font(fontSize)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
+                        .padding(.vertical, verticalPadding)
+                        .frame(width: badgeWidth)
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
                         .background(.black.opacity(0.5))
-                        .clipShape(CornerBadgeShape(corners: [.topLeft, .bottomLeft]))
+                        .clipShape(CornerBadgeShape(radius: cornerRadius, corners: [.topLeft, .bottomLeft]))
+                    } else {
+                        HStack(spacing: 4) {
+                            Image("star.icon")
+                                .resizable()
+                                .frame(width: iconSize, height: iconSize)
+                            Text("0.0")
+                        }
+                        .font(fontSize)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .padding(.vertical, verticalPadding)
+                        .frame(width: badgeWidth)
+                        .padding(.horizontal, 8)
+                        .background(.black.opacity(0.5))
+                        .clipShape(CornerBadgeShape(radius: cornerRadius, corners: [.topLeft, .bottomLeft]))
                     }
                 }
                 .foregroundColor(Color("FFFFFF"))
@@ -86,13 +121,14 @@ struct ExploreRecipeCard: View {
 }
 
 struct CornerBadgeShape: Shape {
+    var radius: CGFloat = 12
     var corners: UIRectCorner
 
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(
             roundedRect: rect,
             byRoundingCorners: corners,
-            cornerRadii: CGSize(width: 12, height: 12)
+            cornerRadii: CGSize(width: radius, height: radius)
         )
         return Path(path.cgPath)
     }

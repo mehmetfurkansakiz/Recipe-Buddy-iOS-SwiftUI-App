@@ -17,22 +17,45 @@ class RecipeService {
         return try await supabase.from("ingredients").select().order("name").execute().value
     }
     
+    /// fetches newest public recipes with pagination
+    func fetchNewestRecipes(page: Int, limit: Int) async throws -> [Recipe] {
+        let from = page * limit
+        let to = from + limit - 1
+        
+        let recipes: [Recipe] = try await supabase.from("recipes")
+            .select(Recipe.selectQuery)
+            .eq("is_public", value: true)
+            .order("created_at", ascending: false, nullsFirst: false)
+            .range(from: from, to: to)
+            .execute()
+            .value
+        
+        return recipes
+    }
+    
     /// Fetches all sections for the home page (featured, newest, etc.).
     func fetchHomeSections() async throws -> [RecipeSection] {
         async let topRated = fetchSection(title: "Öne Çıkanlar", ordering: "rating", style: .featured)
-        async let newest = fetchSection(title: "En Yeniler", ordering: "created_at", style: .standard)
+        async let discover = fetchNewestRecipes(page: 0, limit: 10)
         
-        let fetchedSections = try await [topRated, newest]
-        return fetchedSections.filter { !$0.recipes.isEmpty }
+        let discoverSection = RecipeSection(title: "Keşfet", recipes: try await discover, style: .standard)
+            
+        let fetchedSections = try await [topRated]
+        return (fetchedSections + [discoverSection]).filter { !$0.recipes.isEmpty }
     }
     
     /// Fetches recipes created by the current user.
-    func fetchOwnedRecipes() async throws -> [Recipe] {
+    func fetchOwnedRecipes(page: Int, limit: Int) async throws -> [Recipe] {
         guard let userId = try? await supabase.auth.session.user.id else { return [] }
+        
+        let from = page * limit
+        let to = from + limit - 1
+        
         return try await supabase.from("recipes")
             .select(Recipe.selectQuery)
             .eq("user_id", value: userId)
             .order("created_at", ascending: false)
+            .range(from: from, to: to)
             .execute()
             .value
     }
@@ -48,19 +71,6 @@ class RecipeService {
             .execute()
             .value
         return response.map { $0.recipe }
-    }
-    
-    func fetchOwnedRecipeCount() async throws -> Int {
-        guard let userId = try? await supabase.auth.session.user.id else { return 0 }
-        
-        // The standard response object contains the count when requested.
-        let response = try await supabase.from("recipes")
-            .select(count: .exact) // Ask for the count
-            .eq("user_id", value: userId)
-            .execute() // This returns a PostgrestResponse
-        
-        // The count is an optional Int on the response object.
-        return response.count ?? 0
     }
     
     func fetchTotalFavoritesReceivedCount() async throws -> Int {
@@ -119,10 +129,10 @@ class RecipeService {
     }
     
     
-    // MARK: - Recipe Creation
+    // MARK: - Recipe Creation & Update & Deletion
         
         /// Saves a new recipe with all its components.
-        func createRecipe(viewModel: RecipeCreateViewModel) async throws {
+        func createRecipe(viewModel: RecipeCreateViewModel) async throws -> Recipe {
             guard let userId = try? await supabase.auth.session.user.id,
                   let imageData = viewModel.selectedImageData else {
                 throw URLError(.userAuthenticationRequired)
@@ -163,18 +173,119 @@ class RecipeService {
             if !recipeCategoryLinks.isEmpty {
                 try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
             }
-        }
-        
-        // MARK: - Helper for Sections
-        private func fetchSection(title: String, ordering: String, style: SectionStyle) async throws -> RecipeSection {
-            let recipes: [Recipe] = try await supabase.from("recipes")
+            
+            let newRecipe: Recipe = try await supabase.from("recipes")
                 .select(Recipe.selectQuery)
-                .eq("is_public", value: true)
-                .order(ordering, ascending: false, nullsFirst: false)
-                .limit(10)
+                .eq("id", value: newRecipeId)
+                .single()
                 .execute()
                 .value
             
-            return RecipeSection(title: title, recipes: recipes, style: style)
+            print("✅ Recipe created successfully \(newRecipeId)")
+            return newRecipe
         }
+    
+    func updateRecipe(_ recipeId: UUID, viewModel: RecipeCreateViewModel) async throws -> Recipe {
+        guard let userId = try? await supabase.auth.session.user.id else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        
+        // update image if changed
+        var imagePath = viewModel.recipeToEdit?.imageName ?? ""
+        if let newImageData = viewModel.selectedImageData,
+           let originalImageData = try? await URLSession.shared.data(from: viewModel.recipeToEdit!.imagePublicURL()!).0,
+           newImageData != originalImageData {
+            
+            // delete old image from s3 storage
+            if !imagePath.isEmpty {
+                try await ImageUploaderService.shared.deleteImage(for: imagePath)
+            }
+            // upload new image
+            imagePath = try await ImageUploaderService.shared.uploadImage(imageData: newImageData)
+        }
+        
+        // update other recipe details
+        let stepTexts = viewModel.steps.map { $0.text }
+        let recipeUpdate = NewRecipe(
+            name: viewModel.name, description: viewModel.description,
+            cookingTime: viewModel.cookingTime, servings: viewModel.servings,
+            steps: stepTexts, imageName: imagePath, userId: userId, isPublic: viewModel.isPublic
+        )
+        
+        try await supabase.from("recipes")
+            .update(recipeUpdate)
+            .eq("id", value: recipeId)
+            .execute()
+        
+        // update ingredients but first delete all
+        try await supabase.from("recipe_ingredients")
+            .delete()
+            .eq("recipe_id", value: recipeId)
+            .execute()
+            
+        // add new ingredients
+        let ingredientLinks = viewModel.recipeIngredients.map { ingInput in
+            NewRecipeIngredient(
+                recipeId: recipeId,
+                name: ingInput.ingredient.name,
+                ingredientId: viewModel.allAvailableIngredients.contains(where: { $0.id == ingInput.ingredient.id }) ? ingInput.ingredient.id : nil,
+                amount: Double(ingInput.amount.replacingOccurrences(of: ",", with: ".")) ?? 0.0,
+                unit: ingInput.unit
+            )
+        }
+        if !ingredientLinks.isEmpty {
+            try await supabase.from("recipe_ingredients").insert(ingredientLinks).execute()
+        }
+
+        // update categories but first delete all
+        try await supabase.from("recipe_categories")
+            .delete()
+            .eq("recipe_id", value: recipeId)
+            .execute()
+        
+        // add new categories
+        let recipeCategoryLinks = viewModel.selectedCategories.map {
+            NewRecipeCategory(recipeId: recipeId, categoryId: $0.id)
+        }
+        
+        if !recipeCategoryLinks.isEmpty {
+            try await supabase.from("recipe_categories").insert(recipeCategoryLinks).execute()
+        }
+        
+        let updatedRecipe: Recipe = try await supabase.from("recipes")
+            .select(Recipe.selectQuery)
+            .eq("id", value: recipeId)
+            .single()
+            .execute()
+            .value
+        
+        print("✅ Recipe updated successfully \(recipeId)")
+        return updatedRecipe
+    }
+    
+    func deleteRecipe(recipeId: UUID, imageName: String) async throws {
+        if !imageName.isEmpty {
+            try await ImageUploaderService.shared.deleteImage(for: imageName)
+        }
+        
+        try await supabase.from("recipes")
+            .delete()
+            .eq("id", value: recipeId)
+            .execute()
+        
+        print("✅ Recipe deleted successfully \(recipeId)")
+    }
+        
+    // MARK: - Helper for Sections
+    private func fetchSection(title: String, ordering: String, style: SectionStyle) async throws -> RecipeSection {
+        let recipes: [Recipe] = try await supabase.from("recipes")
+            .select(Recipe.selectQuery)
+            .eq("is_public", value: true)
+            .order(ordering, ascending: false, nullsFirst: false)
+            .limit(10)
+            .execute()
+            .value
+        
+        return RecipeSection(title: title, recipes: recipes, style: style)
+    }
 }

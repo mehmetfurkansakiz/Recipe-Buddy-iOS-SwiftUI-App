@@ -17,7 +17,6 @@ struct RecipeSection: Identifiable {
 @MainActor
 class HomeViewModel: ObservableObject {
     // Main data
-    @Published var currentUser: User?
     @Published var sections: [RecipeSection] = []
     @Published var isLoading = true
     
@@ -31,12 +30,18 @@ class HomeViewModel: ObservableObject {
     @Published var categoryFilteredRecipes: [Recipe] = []
     @Published var isFetchingCategoryRecipes = false
     
+    // Pagination for discover recipes
+    private var discoverRecipesPage = 1
+    private var canLoadMoreRecipes = true
+    private var isFetchingMoreRecipes = false
+    
     private var cancellables = Set<AnyCancellable>()
     private let recipeService = RecipeService.shared
     
     init() {
         setupSearchDebounce()
         setupCategoryFiltering()
+        addObservers()
     }
     
     private func setupSearchDebounce() {
@@ -71,37 +76,44 @@ class HomeViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
+    
+    private func addObservers() {
+        NotificationCenter.default.addObserver(self, selector: #selector(handleRecipeDeleted), name: .recipeDeleted, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleRecipeUpdated), name: .recipeUpdated, object: nil)
+    }
+    
+    @objc private func handleRecipeDeleted(notification: Notification) {
+        guard let userInfo = notification.userInfo, let deletedRecipeID = userInfo["recipeID"] as? UUID else { return }
+        
+        for i in 0..<sections.count {
+            sections[i].recipes.removeAll { $0.id == deletedRecipeID }
+        }
+    }
+
+    @objc private func handleRecipeUpdated(notification: Notification) {
+        guard let userInfo = notification.userInfo, let updatedRecipe = userInfo["updatedRecipe"] as? Recipe else { return }
+        
+        for i in 0..<sections.count {
+            if let index = sections[i].recipes.firstIndex(where: { $0.id == updatedRecipe.id }) {
+                sections[i].recipes[index] = updatedRecipe
+            }
+        }
+    }
 
     func fetchHomePageData() async {
         guard sections.isEmpty else { return }
+        
         isLoading = true
+        defer { isLoading = false }
+        
         do {
-            async let userProfileFetch: () = fetchCurrentUser()
-            async let categoriesFetch: () = fetchCategories()
-            self.sections = try await recipeService.fetchHomeSections()
-            await userProfileFetch
-            await categoriesFetch
+            async let categoriesTask: () = fetchCategories()
+            async let sectionsTask = recipeService.fetchHomeSections()
+            
+            self.sections = try await sectionsTask
+            await categoriesTask
         } catch {
-            print("❌ Error fetching home page data: \(error)")
-        }
-        isLoading = false
-    }
-    
-    func fetchCurrentUser() async {
-        do {
-            guard let userId = try? await supabase.auth.session.user.id else { return }
-            
-            let user: User = try await supabase.from("users")
-                .select()
-                .eq("id", value: userId)
-                .single()
-                .execute()
-                .value
-            
-            self.currentUser = user
-            
-        } catch {
-            print("❌ Error fetching current user: \(error)")
+            print("❌ Ana sayfa verileri çekilirken hata: \(error)")
         }
     }
     
@@ -126,20 +138,41 @@ class HomeViewModel: ObservableObject {
         defer { isFetchingCategoryRecipes = false }
         
         do {
-            // 1. Veriyi önce yardımcı struct dizisine decode et
-            let response: [FilteredRecipeResult] = try await supabase
-                .from("recipe_categories")
-                .select("recipe:recipes(\(Recipe.selectQuery))")
-                .eq("category_id", value: category.id)
+            let recipes: [Recipe] = try await supabase
+                .rpc("get_recipes_by_category", params: ["cat_id": category.id])
+                .select(Recipe.selectQuery)
                 .execute()
                 .value
             
-            self.categoryFilteredRecipes = response.map { $0.recipe }
+            self.categoryFilteredRecipes = recipes
             
         } catch {
-            print("❌ Error fetching recipes for category \(category.name): \(error)")
+            print("❌ Kategoriye göre tarif çekilirken hata oluştu: \(category.name), Hata: \(error)")
             self.categoryFilteredRecipes = []
         }
+    }
+    
+    func fetchMoreNewestRecipes() async {
+        guard !isFetchingMoreRecipes, canLoadMoreRecipes else { return }
+        
+        isFetchingMoreRecipes = true
+        
+        do {
+            let newRecipes = try await recipeService.fetchNewestRecipes(page: discoverRecipesPage, limit: 10)
+            
+            if newRecipes.isEmpty {
+                canLoadMoreRecipes = false
+            } else {
+                if let discoverSectionIndex = sections.firstIndex(where: { $0.style == .standard }) {
+                    sections[discoverSectionIndex].recipes.append(contentsOf: newRecipes)
+                    discoverRecipesPage += 1
+                }
+            }
+        } catch {
+            print("❌ Daha fazla tarif çekilirken hata: \(error)")
+        }
+        
+        isFetchingMoreRecipes = false
     }
     
     func fetchCategories() async {

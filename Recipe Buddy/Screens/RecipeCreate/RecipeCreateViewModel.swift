@@ -9,6 +9,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var cookingTime: Int = 30 // default start
     @Published var steps: [RecipeStep] = [RecipeStep(text: "")]
     @Published var isPublic: Bool = false // default start
+    @Published var recipeToEdit: Recipe?
     
     // Photo management
     @Published var selectedPhotoItem: PhotosPickerItem?
@@ -31,6 +32,7 @@ class RecipeCreateViewModel: ObservableObject {
     @Published var selection: Int = 0
     @Published var showingCategorySelector = false
     @Published var showingIngredientSelector = false
+    @Published var showDeleteConfirmAlert = false
     @Published var ingredientAlertMessage: String?
     
     // Service 
@@ -78,6 +80,38 @@ class RecipeCreateViewModel: ObservableObject {
         }
     }
     
+    init(recipeToEdit: Recipe) {
+        self.recipeToEdit = recipeToEdit
+        Task {
+            await fetchInitialData()
+            await prepareFieldsForEdit(with: recipeToEdit)
+        }
+    }
+    
+    func prepareFieldsForEdit(with recipe: Recipe) async {
+        self.name = recipe.name
+        self.description = recipe.description
+        self.servings = recipe.servings
+        self.cookingTime = recipe.cookingTime
+        self.isPublic = recipe.isPublic
+        self.steps = recipe.steps.map { RecipeStep(text: $0) }
+        self.selectedCategories = Set(recipe.categories.map { $0.category })
+        
+        self.recipeIngredients = recipe.ingredients.map { ingredientJoin in
+            let ingredient = Ingredient(id: ingredientJoin.ingredientId ?? UUID(), name: ingredientJoin.name)
+            return RecipeIngredientInput(ingredient: ingredient, amount: ingredientJoin.formattedAmount, unit: ingredientJoin.unit)
+        }
+        
+        if let url = recipe.imagePublicURL() {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                self.selectedImageData = data
+            } catch {
+                print("❌ Image Load Error: \(error)")
+            }
+        }
+    }
+    
     func fetchInitialData() async {
         do {
             async let categoriesTask = recipeService.fetchAllCategories()
@@ -108,11 +142,34 @@ class RecipeCreateViewModel: ObservableObject {
         defer { isSaving = false }
         
         do {
-            try await recipeService.createRecipe(viewModel: self)
+            if let recipeToEdit = recipeToEdit {
+                let updatedRecipe = try await recipeService.updateRecipe(recipeToEdit.id, viewModel: self)
+                NotificationCenter.default.post(name: .recipeUpdated, object: nil, userInfo: ["updatedRecipe": updatedRecipe])
+            } else {
+                let newRecipe = try await recipeService.createRecipe(viewModel: self)
+                NotificationCenter.default.post(name: .recipeCreated, object: nil, userInfo: ["newRecipe": newRecipe])
+            }
             showSuccess = true
         } catch {
             errorMessage = "Tarif kaydedilemedi: \(error.localizedDescription)"
             print("❌ Save Error: \(error)")
+        }
+    }
+    
+    func deleteRecipe() async {
+        guard let recipeToDelete = recipeToEdit else { return }
+        
+        isSaving = true
+        defer { isSaving = false }
+        
+        do {
+            try await recipeService.deleteRecipe(recipeId: recipeToDelete.id, imageName: recipeToDelete.imageName)
+            
+            NotificationCenter.default.post(name: .recipeDeleted, object: nil, userInfo: ["recipeID": recipeToDelete.id])
+            showSuccess = true
+        } catch {
+            errorMessage = "Tarif silinemedi: \(error.localizedDescription)"
+            print("❌ Delete Error: \(error)")
         }
     }
     
