@@ -7,12 +7,22 @@ class DataManager: ObservableObject {
     @Published var currentUser: User?
     @Published var ownedRecipes: [Recipe] = []
     @Published var favoritedRecipes: [Recipe] = []
+    
+    /// properties for home page sections and categories
+    @Published var homeSections: [RecipeSection] = []
+    @Published var availableCategories: [Category] = []
+    
     @Published var isLoading: Bool = false
     
     // properties for pagination owned recipes
     private var ownedRecipesPage = 0
     private var canLoadMoreOwnedRecipes = true
     private var isFetchingMoreOwnedRecipes = false
+    
+    // Pagination for home page
+    private var discoverRecipesPage = 1
+    private var canLoadMoreRecipes = true
+    private var isFetchingMoreRecipes = false
     
     // MARK: - Services
     private let userService = UserService.shared
@@ -46,6 +56,70 @@ class DataManager: ObservableObject {
             print("✅ DataManager: Tüm kullanıcı verileri başarıyla yüklendi.")
         } catch {
             print("❌ DataManager: Başlangıç verileri çekilirken hata oluştu: \(error)")
+        }
+    }
+    
+    /// fetches categories and home sections for the home page
+    func loadHomePageData(isRefresh: Bool = false) async {
+        if !isRefresh {
+            isLoading = true
+            defer { isLoading = false }
+        }
+        
+        do {
+            var fetchedCategories: [Category] = []
+            var fetchedSections: [RecipeSection] = []
+            
+            // Use a TaskGroup to safely manage concurrent data fetches
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    fetchedCategories = try await self.recipeService.fetchAllCategories()
+                }
+                group.addTask {
+                    fetchedSections = try await self.recipeService.fetchHomeSections()
+                }
+                
+                try await group.waitForAll()
+            }
+            
+            // Reset pagination state after successful loading
+            self.availableCategories = fetchedCategories
+            self.homeSections = fetchedSections
+                    
+            self.discoverRecipesPage = 1
+            self.canLoadMoreRecipes = true
+            
+            print("✅ DataManager: Ana sayfa verileri başarıyla yüklendi.")
+        } catch {
+            // Let the system report the actual error, including cancellation if it happens.
+            print("❌ DataManager: Ana sayfa verileri çekilirken hata: \(error)")
+        }
+    }
+    
+    /// Refreshes all data including user-specific and home page data
+    func refreshAllData() async {
+        await loadHomePageData(isRefresh: true)
+    }
+    
+    func fetchMoreNewestRecipes() async {
+        guard !isFetchingMoreRecipes, canLoadMoreRecipes else { return }
+        
+        isFetchingMoreRecipes = true
+        defer { isFetchingMoreRecipes = false }
+        
+        do {
+            let newRecipes = try await recipeService.fetchNewestRecipes(page: discoverRecipesPage, limit: 10)
+            
+            if newRecipes.isEmpty {
+                canLoadMoreRecipes = false
+            } else {
+                if let discoverSectionIndex = homeSections.firstIndex(where: { $0.style == .standard }) {
+                    homeSections[discoverSectionIndex].recipes.append(contentsOf: newRecipes)
+                    discoverRecipesPage += 1
+                }
+            }
+        } catch {
+            print("❌ DataManager: Daha fazla 'Keşfet' tarifi çekilirken hata: \(error)")
         }
     }
     
@@ -89,8 +163,13 @@ class DataManager: ObservableObject {
     
     @objc private func handleRecipeDeleted(notification: Notification) {
         guard let userInfo = notification.userInfo, let deletedRecipeID = userInfo["recipeID"] as? UUID else { return }
+        
         ownedRecipes.removeAll { $0.id == deletedRecipeID }
         favoritedRecipes.removeAll { $0.id == deletedRecipeID }
+
+        for i in 0..<homeSections.count {
+            homeSections[i].recipes.removeAll { $0.id == deletedRecipeID }
+        }
     }
 
     @objc private func handleRecipeUpdated(notification: Notification) {
@@ -101,6 +180,12 @@ class DataManager: ObservableObject {
         }
         if let index = favoritedRecipes.firstIndex(where: { $0.id == updatedRecipe.id }) {
             favoritedRecipes[index] = updatedRecipe
+        }
+        
+        for i in 0..<homeSections.count {
+            if let index = homeSections[i].recipes.firstIndex(where: { $0.id == updatedRecipe.id }) {
+                homeSections[i].recipes[index] = updatedRecipe
+            }
         }
     }
     

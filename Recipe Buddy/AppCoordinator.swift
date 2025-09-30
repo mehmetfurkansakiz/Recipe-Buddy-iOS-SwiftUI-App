@@ -12,7 +12,10 @@ class AppCoordinator: ObservableObject {
         self.rootView = AnyView(EmptyView())
         configureNavigationBarAppearance()
         
-        self.rootView = AnyView(SplashView(coordinator: self))
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            await checkAuthenticationStatus()
+        }
     }
     
     private func configureNavigationBarAppearance() {
@@ -35,17 +38,21 @@ class AppCoordinator: ObservableObject {
     }
     
     func checkAuthenticationStatus() async {
-        Task {
-            if let session = try? await supabase.auth.session, !session.isExpired {
+        do {
+            let session = try await supabase.auth.session
+            if !session.isExpired {
                 // User is authenticated, show main tab view
-                print("✅ Kullanıcı giriş yapmış, ana ekrana yönlendiriliyor.")
+                print("✅ Kullanıcı giriş yapmış, veriler yükleniyor...")
                 await dataManager.loadInitialUserData()
+                await dataManager.loadHomePageData()
+                print("✅ Veriler yüklendi, ana ekrana yönlendiriliyor.")
                 showMainTabView()
-            } else {
-                print("❌ Kullanıcı giriş yapmamış, kimlik doğrulama ekranına yönlendiriliyor.")
-                dataManager.clearUserData()
-                showAuthenticationView()
             }
+        } catch {
+            // User is not authenticated, show authentication view
+            print("❌ Kullanıcı giriş yapmamış, kimlik doğrulama ekranına yönlendiriliyor.")
+            dataManager.clearUserData()
+            showAuthenticationView()
         }
     }
     
@@ -58,10 +65,9 @@ class AppCoordinator: ObservableObject {
     func showAuthenticationView() {
         self.rootView = AnyView(
             AuthenticationView(onAuthSuccess: {
-                print("✅ Kimlik doğrulama başarılı, ana ekrana geçiliyor.")
-                // Giriş yapıldıktan sonra veriyi yükleyip ana ekrana geçiyoruz.
                 Task {
                     await self.dataManager.loadInitialUserData()
+                    await self.dataManager.loadHomePageData()
                     self.showMainTabView()
                 }
             })

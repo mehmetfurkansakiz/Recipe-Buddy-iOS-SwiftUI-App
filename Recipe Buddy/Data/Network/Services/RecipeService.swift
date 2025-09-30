@@ -35,13 +35,50 @@ class RecipeService {
     
     /// Fetches all sections for the home page (featured, newest, etc.).
     func fetchHomeSections() async throws -> [RecipeSection] {
-        async let topRated = fetchSection(title: "Öne Çıkanlar", ordering: "rating", style: .featured)
-        async let discover = fetchNewestRecipes(page: 0, limit: 10)
+        enum SectionResult {
+            case featured(RecipeSection)
+            case standard(RecipeSection)
+        }
         
-        let discoverSection = RecipeSection(title: "Keşfet", recipes: try await discover, style: .standard)
+        // Use a TaskGroup for robust concurrent fetching
+        return try await withThrowingTaskGroup(of: SectionResult.self) { group -> [RecipeSection] in
+            // Task for "Featured"
+            group.addTask {
+                let section = try await self.fetchSection(title: "Öne Çıkanlar", ordering: "rating", style: .featured)
+                return .featured(section)
+            }
             
-        let fetchedSections = try await [topRated]
-        return (fetchedSections + [discoverSection]).filter { !$0.recipes.isEmpty }
+            // Task for "Discover"
+            group.addTask {
+                let recipes = try await self.fetchNewestRecipes(page: 0, limit: 10)
+                let section = RecipeSection(title: "Keşfet", recipes: recipes, style: .standard)
+                return .standard(section)
+            }
+
+            var featuredSection: RecipeSection?
+            var standardSection: RecipeSection?
+
+            // Collect results as they complete
+            for try await result in group {
+                switch result {
+                case .featured(let section):
+                    if !section.recipes.isEmpty { featuredSection = section }
+                case .standard(let section):
+                    if !section.recipes.isEmpty { standardSection = section }
+                }
+            }
+
+            // Build the final array in the correct order
+            var finalSections: [RecipeSection] = []
+            if let featured = featuredSection {
+                finalSections.append(featured)
+            }
+            if let standard = standardSection {
+                finalSections.append(standard)
+            }
+            
+            return finalSections
+        }
     }
     
     /// Fetches recipes created by the current user.
