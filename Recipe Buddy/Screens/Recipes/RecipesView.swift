@@ -70,9 +70,8 @@ struct RecipesView: View {
             if dataManager.favoritedRecipes.isEmpty && dataManager.ownedRecipes.isEmpty {
                 emptyStateView
             } else {
-                if !dataManager.favoritedRecipes.isEmpty {
-                    favoritesSectionLink
-                }
+                favoritesSectionLink
+                
                 if !dataManager.ownedRecipes.isEmpty {
                     myRecipesGrid
                 }
@@ -139,25 +138,46 @@ struct RecipesView: View {
                 .padding(.horizontal)
                 .foregroundStyle(.EBA_72_B)
             
-            Button(action: {
-                navigationPath.append(AppNavigation.favoriteRecipes)
-            }) {
-                HStack {
-                    Text("Tümünü Gör")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(._303030)
-                    Spacer()
-                    Text("\(dataManager.favoritedRecipes.count) tarif")
-                        .foregroundStyle(.A_3_A_3_A_3)
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.A_3_A_3_A_3)
-                }
-                .padding()
-                .background(.thinMaterial.opacity(0.3))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
-                .padding(.horizontal)
-            }
+            if dataManager.favoritedRecipes.isEmpty {
+                       // if list is empty, show the empty state message
+                       VStack(alignment: .leading, spacing: 4) {
+                           Text("Henüz favori tarifiniz yok.")
+                               .font(.subheadline)
+                               .fontWeight(.semibold)
+                               .foregroundStyle(._303030)
+                           Text("Tariflerin yanındaki ❤️ simgesine tıklayarak favorilerinizi burada görebilirsiniz.")
+                               .font(.caption)
+                               .foregroundStyle(.A_3_A_3_A_3)
+                       }
+                       .padding()
+                       .frame(maxWidth: .infinity, alignment: .leading)
+                       .background(.thinMaterial.opacity(0.3))
+                       .clipShape(RoundedRectangle(cornerRadius: 12))
+                       .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
+                       .padding(.horizontal)
+                       
+                   } else {
+                       // if list is not empty, show the button to navigate
+                       Button(action: {
+                           navigationPath.append(AppNavigation.favoriteRecipes)
+                       }) {
+                           HStack {
+                               Text("Tümünü Gör")
+                                   .fontWeight(.semibold)
+                                   .foregroundStyle(._303030)
+                               Spacer()
+                               Text("\(dataManager.favoritedRecipes.count) tarif")
+                                   .foregroundStyle(.A_3_A_3_A_3)
+                               Image(systemName: "chevron.right")
+                                   .foregroundStyle(.A_3_A_3_A_3)
+                           }
+                           .padding()
+                           .background(.thinMaterial.opacity(0.3))
+                           .clipShape(RoundedRectangle(cornerRadius: 12))
+                           .overlay(RoundedRectangle(cornerRadius: 12).stroke(.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
+                           .padding(.horizontal)
+                       }
+                   }
         }
     }
     
@@ -192,7 +212,6 @@ struct RecipesView: View {
     // with mock data
     let dataManager = DataManager()
     dataManager.ownedRecipes = Recipe.allMocks.shuffled()
-    dataManager.favoritedRecipes = Recipe.allMocks.shuffled()
     
     return NavigationStack {
         RecipesView(viewModel: RecipesViewModel(), navigationPath: .constant(NavigationPath()))

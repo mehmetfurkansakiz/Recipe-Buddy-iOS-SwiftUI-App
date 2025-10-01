@@ -8,7 +8,7 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
-            Color("FBFBFB").ignoresSafeArea()
+            Color.FBFBFB.ignoresSafeArea()
             // main scrollview
             ScrollView(.vertical, showsIndicators: false) {
                 // main vstack
@@ -22,13 +22,13 @@ struct HomeView: View {
                     // category filter buttons
                     if viewModel.searchText.isEmpty {
                         CategoryScrollView(
-                            categories: viewModel.availableCategories,
+                            categories: dataManager.availableCategories,
                             selectedCategory: $viewModel.selectedCategory
                         )
                     }
 
                     // content area
-                    if viewModel.isLoading {
+                    if dataManager.isLoading && dataManager.homeSections.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 50)
@@ -52,15 +52,15 @@ struct HomeView: View {
                     }
                 }
             }
-        }
-        .task {
-            await viewModel.fetchHomePageData()
+            .refreshable {
+                await dataManager.refreshAllData()
+            }
         }
     }
     
     private var mainContent: some View {
         VStack(alignment: .leading, spacing: 24) {
-            if let featuredSection = viewModel.sections.first(where: { $0.style == .featured }) {
+            if let featuredSection = dataManager.homeSections.first(where: { $0.style == .featured }) {
                 RecipeCarouselSection(
                     title: featuredSection.title,
                     recipes: featuredSection.recipes,
@@ -69,7 +69,7 @@ struct HomeView: View {
                 )
             }
             
-            if let discoverSection = viewModel.sections.first(where: { $0.style == .standard }) {
+            if let discoverSection = dataManager.homeSections.first(where: { $0.style == .standard }) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(discoverSection.title)
                         .font(.title2).bold()
@@ -89,7 +89,7 @@ struct HomeView: View {
                                 .onAppear {
                                     if recipe.id == discoverSection.recipes.last?.id {
                                         Task {
-                                            await viewModel.fetchMoreNewestRecipes()
+                                            await dataManager.fetchMoreNewestRecipes()
                                         }
                                     }
                                 }

@@ -15,9 +15,6 @@ struct SplashView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
         }
-        .task {
-            await coordinator.checkAuthenticationStatus()
-        }
     }
 }
 
