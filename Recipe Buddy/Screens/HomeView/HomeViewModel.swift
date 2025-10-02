@@ -34,11 +34,9 @@ class HomeViewModel: ObservableObject {
     
     func searchRecipes(for query: String) async {
         do {
-            let fetchedRecipes: [Recipe] = try await supabase.from("recipes")
+            let fetchedRecipes: [Recipe] = try await supabase
+                .rpc("search_recipes_and_users", params: ["search_term": query])
                 .select(Recipe.selectQuery)
-                .eq("is_public", value: true)
-                .ilike("name", pattern: "%\(query)%")
-                .limit(20)
                 .execute()
                 .value
             
