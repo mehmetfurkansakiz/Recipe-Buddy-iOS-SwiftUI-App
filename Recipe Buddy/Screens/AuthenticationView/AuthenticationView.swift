@@ -8,6 +8,7 @@ struct AuthenticationView: View {
     enum AuthScreen {
         case login
         case register
+        case forgotPassword
     }
 
     var body: some View {
@@ -19,14 +20,29 @@ struct AuthenticationView: View {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .register
                         }
+                    }, onNavigateToForgotPassword: {
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .forgotPassword
+                        }
                     }
                 )
-                .transition(.move(edge: .leading))
+                .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
             }
 
             if currentAuthScreen == .register {
                 RegisterView(
                     onAuthSuccess: onAuthSuccess,
+                    onNavigateToLogin: {
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .login
+                        }
+                    }
+                )
+                .transition(.move(edge: .trailing))
+            }
+            
+            if currentAuthScreen == .forgotPassword {
+                ForgotPasswordView(
                     onNavigateToLogin: {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .login

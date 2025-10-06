@@ -51,7 +51,8 @@ class RecipeService {
             // Task for "Discover"
             group.addTask {
                 let recipes = try await self.fetchNewestRecipes(page: 0, limit: 10)
-                let section = RecipeSection(title: "Keşfet", recipes: recipes, style: .standard)
+                let shuffledRecipes = recipes.shuffled()
+                let section = RecipeSection(title: "Keşfet", recipes: shuffledRecipes, style: .standard)
                 return .standard(section)
             }
 

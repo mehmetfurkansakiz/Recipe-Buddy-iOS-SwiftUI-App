@@ -4,14 +4,11 @@ struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
     var onAuthSuccess: () -> Void
     var onNavigateToRegister: () -> Void
+    var onNavigateToForgotPassword: () -> Void
     
     var body: some View {
         ZStack {
-            Color("FBFBFB")
-                .ignoresSafeArea()
-                .onTapGesture {
-                     endEditing()
-                 }
+            Color.FBFBFB.ignoresSafeArea().onTapGesture { endEditing() }
             
             VStack(spacing: 20) {
                 
@@ -39,10 +36,10 @@ struct LoginView: View {
                 HStack {
                     Spacer()
                     Button("Şifremi Unuttum?") {
-                        // TODO: Handle forgot password action
+                        onNavigateToForgotPassword()
                     }
                     .font(.footnote)
-                    .tint(Color("EBA72B"))
+                    .tint(.EBA_72_B)
                 }
                 
                 AuthButton(
@@ -83,5 +80,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView(onAuthSuccess: {}, onNavigateToRegister: {})
+    LoginView(onAuthSuccess: {}, onNavigateToRegister: {}, onNavigateToForgotPassword: {})
 }

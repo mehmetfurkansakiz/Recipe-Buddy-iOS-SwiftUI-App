@@ -114,7 +114,8 @@ class DataManager: ObservableObject {
                 canLoadMoreRecipes = false
             } else {
                 if let discoverSectionIndex = homeSections.firstIndex(where: { $0.style == .standard }) {
-                    homeSections[discoverSectionIndex].recipes.append(contentsOf: newRecipes)
+                    let shuffledNewRecipes = newRecipes.shuffled()
+                    homeSections[discoverSectionIndex].recipes.append(contentsOf: shuffledNewRecipes)
                     discoverRecipesPage += 1
                 }
             }
