@@ -63,8 +63,9 @@ class DataManager: ObservableObject {
     func loadHomePageData(isRefresh: Bool = false) async {
         if !isRefresh {
             isLoading = true
-            defer { isLoading = false }
         }
+        
+        defer { isLoading = false }
         
         do {
             var fetchedCategories: [Category] = []

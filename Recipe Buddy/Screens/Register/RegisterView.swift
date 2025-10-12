@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RegisterView: View {
     @StateObject private var viewModel = RegisterViewModel()
-    var onAuthSuccess: () -> Void
+    var onRegisterSuccess: (String) -> Void
     var onNavigateToLogin: () -> Void
     
     var body: some View {
@@ -56,10 +56,10 @@ struct RegisterView: View {
                     }
                     .font(.footnote)
                     .padding(.bottom)
-                    .onChange(of: viewModel.didAuthenticate) {
-                        if viewModel.didAuthenticate {
+                    .onChange(of: viewModel.didRegister) {
+                        if viewModel.didRegister {
                             DispatchQueue.main.async {
-                                onAuthSuccess()
+                                onRegisterSuccess(viewModel.email)
                             }
                         }
                     }
@@ -77,5 +77,5 @@ struct RegisterView: View {
 }
 
 #Preview {
-    RegisterView(onAuthSuccess: {}, onNavigateToLogin: {})
+    RegisterView(onRegisterSuccess: {_ in }, onNavigateToLogin: {})
 }

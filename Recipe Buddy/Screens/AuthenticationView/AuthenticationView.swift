@@ -5,10 +5,11 @@ struct AuthenticationView: View {
     
     var onAuthSuccess: () -> Void
     
-    enum AuthScreen {
+    enum AuthScreen: Equatable {
         case login
         case register
         case forgotPassword
+        case emailConfirmation(String)
     }
 
     var body: some View {
@@ -31,7 +32,11 @@ struct AuthenticationView: View {
 
             if currentAuthScreen == .register {
                 RegisterView(
-                    onAuthSuccess: onAuthSuccess,
+                    onRegisterSuccess: { email in
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .emailConfirmation(email)
+                        }
+                    } ,
                     onNavigateToLogin: {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .login
@@ -46,6 +51,17 @@ struct AuthenticationView: View {
                     onNavigateToLogin: {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .login
+                        }
+                    }
+                )
+                .transition(.move(edge: .trailing))
+            }
+            
+            if case .emailConfirmation(let email) = currentAuthScreen {
+                EmailConfirmationView(
+                    email: email, onConfirmed: onAuthSuccess, onNavigateBack: {
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .register
                         }
                     }
                 )
