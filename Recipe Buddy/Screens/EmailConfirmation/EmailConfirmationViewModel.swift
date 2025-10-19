@@ -10,10 +10,10 @@ class EmailConfirmationViewModel: ObservableObject {
     @Published var didSendEmail = false
     
     // Timer properties
-    @Published var timeRemaining: Int = 6
+    @Published var timeRemaining: Int = 60
     @Published var isTimerActive = false
     private var timer: AnyCancellable?
-    let countdownDuration = 6
+    let countdownDuration = 60
     
     init(email: String) {
         self.email = email

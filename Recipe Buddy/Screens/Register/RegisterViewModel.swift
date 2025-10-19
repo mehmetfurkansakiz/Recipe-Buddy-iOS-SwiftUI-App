@@ -13,6 +13,8 @@ class RegisterViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var didRegister = false
     
+    @Published var authError: AuthError?
+    
     var isSignUpFormValid: Bool {
         !email.isEmpty && !password.isEmpty && !fullName.isEmpty && !username.isEmpty && password == confirmPassword && password.count >= 6
     }
@@ -34,7 +36,7 @@ class RegisterViewModel: ObservableObject {
             )
             self.didRegister = true
         } catch {
-            self.errorMessage = "Kayıt işlemi başarısız: \(error.localizedDescription)"
+            self.authError = AuthError.from(supabaseError: error)
             print("❌ Sign Up Error: \(error)")
         }
     }

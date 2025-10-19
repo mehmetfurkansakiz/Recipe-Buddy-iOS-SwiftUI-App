@@ -10,6 +10,8 @@ class LoginViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var didAuthenticate = false
     
+    @Published var authError: AuthError?
+    
     var isSignInFormValid: Bool {
         !email.isEmpty && !password.isEmpty
     }
@@ -25,7 +27,7 @@ class LoginViewModel: ObservableObject {
 
             self.didAuthenticate = true
         } catch {
-            self.errorMessage = error.localizedDescription
+            self.authError = AuthError.from(supabaseError: error)
             print("❌ Sign In Error: \(error)")
         }
     }
