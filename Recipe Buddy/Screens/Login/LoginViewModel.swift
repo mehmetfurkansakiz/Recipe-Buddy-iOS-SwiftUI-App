@@ -7,10 +7,10 @@ class LoginViewModel: ObservableObject {
     @Published var password = ""
     
     @Published var isLoading = false
-    @Published var errorMessage: String?
     @Published var didAuthenticate = false
-    
     @Published var authError: AuthError?
+    
+    @Published var shouldNavigateToConfirmation = false
     
     var isSignInFormValid: Bool {
         !email.isEmpty && !password.isEmpty
@@ -20,6 +20,7 @@ class LoginViewModel: ObservableObject {
         guard isSignInFormValid else { return }
         
         isLoading = true
+        shouldNavigateToConfirmation = false
         defer { isLoading = false }
         
         do {
@@ -27,7 +28,13 @@ class LoginViewModel: ObservableObject {
 
             self.didAuthenticate = true
         } catch {
-            self.authError = AuthError.from(supabaseError: error)
+            let specificError = AuthError.from(supabaseError: error)
+            
+            if specificError == .emailNotConfirmed {
+                self.shouldNavigateToConfirmation = true
+            } else {
+                self.authError = specificError
+            }
             print("❌ Sign In Error: \(error)")
         }
     }

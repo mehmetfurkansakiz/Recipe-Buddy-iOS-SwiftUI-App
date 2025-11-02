@@ -6,6 +6,7 @@ enum AuthError: LocalizedError, Identifiable {
     case invalidCredentials
     case emailAlreadyInUse
     case weakPassword
+    case emailNotConfirmed
     case networkError(Error)
     case unknown(Error)
 
@@ -17,6 +18,8 @@ enum AuthError: LocalizedError, Identifiable {
             return "Bu e-posta adresi zaten kullanılıyor. Lütfen farklı bir e-posta adresi deneyin veya şifrenizi sıfırlayın."
         case .weakPassword:
             return "Şifreniz çok zayıf. Lütfen en az 6 karakterden oluşan daha güçlü bir şifre seçin."
+        case .emailNotConfirmed:
+            return "Hesabınız henüz onaylanmamış. Lütfen e-postanıza gönderilen 6 haneli kodu girerek hesabınızı onaylayın."
         case .networkError:
             return "İnternet bağlantınızda bir sorun var gibi görünüyor. Lütfen bağlantınızı kontrol edip tekrar deneyin."
         case .unknown(let error):
@@ -30,7 +33,9 @@ enum AuthError: LocalizedError, Identifiable {
     static func from(supabaseError: Error) -> AuthError {
         let description = supabaseError.localizedDescription.lowercased()
         
-        if description.contains("invalid login credentials") {
+        if description.contains("email not confirmed") {
+            return .emailNotConfirmed
+        } else if description.contains("invalid login credentials") {
             return .invalidCredentials
         } else if description.contains("email address already in use") {
             return .emailAlreadyInUse
@@ -40,6 +45,18 @@ enum AuthError: LocalizedError, Identifiable {
             return .networkError(supabaseError)
         } else {
             return .unknown(supabaseError)
+        }
+    }
+    
+    static func == (lhs: AuthError, rhs: AuthError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidCredentials, .invalidCredentials): return true
+        case (.emailAlreadyInUse, .emailAlreadyInUse): return true
+        case (.weakPassword, .weakPassword): return true
+        case (.emailNotConfirmed, .emailNotConfirmed): return true
+        case (.networkError, .networkError): return true
+        case (.unknown, .unknown): return true
+        default: return false
         }
     }
 }

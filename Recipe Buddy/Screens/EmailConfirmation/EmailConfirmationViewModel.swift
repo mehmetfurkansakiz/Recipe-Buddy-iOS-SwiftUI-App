@@ -9,18 +9,43 @@ class EmailConfirmationViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var didSendEmail = false
     
+    @Published var otpCode: [String]
+    let codeLength = 6
+    
     // Timer properties
     @Published var timeRemaining: Int = 60
     @Published var isTimerActive = false
     private var timer: AnyCancellable?
     let countdownDuration = 60
     
-    init(email: String) {
-        self.email = email
+    private var lastOTPSentKey: String { "lastOTPSentTimestamp_\(email)" }
+    
+    var isVerifyButtonDisabled: Bool {
+        otpCode.joined().count != codeLength || isLoading
     }
     
-    /// Send confirmation email to the user
-    func resendConfirmationEmail() async {
+    init(email: String) {
+        self.email = email
+        self.otpCode = Array(repeating: "", count: codeLength)
+    }
+    
+    func onAppear(isNewUser: Bool) {
+        if isNewUser {
+            Task { await sendOTP(isResend: false) }
+        } else {
+            let lastSent = UserDefaults.standard.object(forKey: lastOTPSentKey) as? Date ?? .distantPast
+            let timeElapsed = Date().timeIntervalSince(lastSent)
+            
+            if timeElapsed >= Double(countdownDuration) {
+                Task { await sendOTP(isResend: false) }
+            } else {
+                let remainingTime = countdownDuration - Int(timeElapsed)
+                startTimer(from: remainingTime)
+            }
+        }
+    }
+    
+    func sendOTP(isResend: Bool = true) async {
         guard !isTimerActive else { return }
         
         isLoading = true
@@ -29,32 +54,39 @@ class EmailConfirmationViewModel: ObservableObject {
         defer { isLoading = false }
         
         do {
-            // Supabase send resend confirmation email func
-            try await supabase.auth.resend(email: email, type: .signup)
+            try await supabase.auth.signInWithOTP(email: email)
+            
             self.didSendEmail = true
-            startTimer()
+            startTimer(from: countdownDuration)
         } catch {
-            self.errorMessage = "Onay e-postası gönderilemedi: \(error.localizedDescription)"
-            print("❌ Resend Email Error: \(error)")
+            self.errorMessage = "Onay kodu gönderilemedi: \(error.localizedDescription)"
+            print("❌ Send OTP Error: \(error)")
         }
     }
     
-    /// Listen for auth state changes to detect email confirmation
-    func startAuthStateListener(onConfirmed: @escaping () -> Void) {
-        Task {
-            for await state in supabase.auth.authStateChanges {
-                if state.event == .signedIn, state.session != nil {
-                    print("✅ Email confirmed and user signed in.")
-                    onConfirmed()
-                    break
-                }
-            }
+    func verifyOTP() async {
+        guard !isVerifyButtonDisabled else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        let token = otpCode.joined()
+        defer { isLoading = false }
+        
+        do {
+            try await supabase.auth.verifyOTP(email: email, token: token, type: .signup)
+            
+            print("✅ OTP Başarıyla Doğrulandı.")
+            stopTimer()
+        } catch {
+            print("❌ OTP Doğrulama Hatası: \(error)")
+            self.errorMessage = "Girdiğiniz kod hatalı veya süresi dolmuş."
         }
     }
     
-    func startTimer() {
+    func startTimer(from startTime: Int) {
+        stopTimer()
         isTimerActive = true
-        timeRemaining = countdownDuration
+        timeRemaining = startTime
         
         timer = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()

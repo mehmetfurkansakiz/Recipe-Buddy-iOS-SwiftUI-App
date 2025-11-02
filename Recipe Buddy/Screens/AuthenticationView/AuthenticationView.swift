@@ -9,7 +9,7 @@ struct AuthenticationView: View {
         case login
         case register
         case forgotPassword
-        case emailConfirmation(String)
+        case emailConfirmation(email: String, isNewUser: Bool)
     }
 
     var body: some View {
@@ -21,9 +21,15 @@ struct AuthenticationView: View {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .register
                         }
-                    }, onNavigateToForgotPassword: {
+                    },
+                    onNavigateToForgotPassword: {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .forgotPassword
+                        }
+                    },
+                    onNavigateToConfirmation: { email in
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .emailConfirmation(email: email, isNewUser: false)
                         }
                     }
                 )
@@ -34,7 +40,7 @@ struct AuthenticationView: View {
                 RegisterView(
                     onRegisterSuccess: { email in
                         withAnimation(.easeInOut) {
-                            currentAuthScreen = .emailConfirmation(email)
+                            currentAuthScreen = .emailConfirmation(email: email, isNewUser: true)
                         }
                     } ,
                     onNavigateToLogin: {
@@ -57,11 +63,11 @@ struct AuthenticationView: View {
                 .transition(.move(edge: .trailing))
             }
             
-            if case .emailConfirmation(let email) = currentAuthScreen {
+            if case .emailConfirmation(let email, let isNewUser) = currentAuthScreen {
                 EmailConfirmationView(
-                    email: email, onConfirmed: onAuthSuccess, onNavigateBack: {
+                    email: email, isNewUser: isNewUser, onConfirmed: onAuthSuccess, onNavigateBack: {
                         withAnimation(.easeInOut) {
-                            currentAuthScreen = .register
+                            currentAuthScreen = .login
                         }
                     }
                 )

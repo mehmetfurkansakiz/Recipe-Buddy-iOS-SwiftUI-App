@@ -5,6 +5,7 @@ struct LoginView: View {
     var onAuthSuccess: () -> Void
     var onNavigateToRegister: () -> Void
     var onNavigateToForgotPassword: () -> Void
+    var onNavigateToConfirmation: (String) -> Void
     
     var body: some View {
         ZStack {
@@ -70,6 +71,12 @@ struct LoginView: View {
                         }   
                     }
                 }
+                .onChange(of: viewModel.shouldNavigateToConfirmation) {
+                    if viewModel.shouldNavigateToConfirmation {
+                        onNavigateToConfirmation(viewModel.email)
+                        viewModel.shouldNavigateToConfirmation = false
+                    }
+                }
             }
             .padding(.horizontal, 24)
             .alert(item: $viewModel.authError) { error in
@@ -84,5 +91,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView(onAuthSuccess: {}, onNavigateToRegister: {}, onNavigateToForgotPassword: {})
+    LoginView(onAuthSuccess: {}, onNavigateToRegister: {}, onNavigateToForgotPassword: {}, onNavigateToConfirmation: {_ in })
 }
