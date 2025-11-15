@@ -7,7 +7,7 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var recipe: Recipe
     
     // UI State
-    @Published var selectedIngredients: Set<UUID> = []
+    @Published var selectedIngredients: Set<Int> = []
     @Published var isFavorite: Bool = false
     @Published var userCurrentRating: Int?
     
@@ -22,7 +22,10 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var showListSelector = false
     @Published var statusMessage: String?
     @Published var shouldDismiss = false
-    @Published var showingShoppingListAlert: Bool = false
+    @Published var showListCreator = false
+    
+    // Shopping List ViewModel
+    @Published var shoppingListViewModel = ShoppingListViewModel()
     
     // Private Properties
     private let recipeId: UUID
@@ -104,17 +107,16 @@ class RecipeDetailViewModel: ObservableObject {
     }
     
     func isIngredientSelected(_ recipeIngredient: RecipeIngredientJoin) -> Bool {
-        guard let id = recipeIngredient.ingredientId else { return false }
-        return selectedIngredients.contains(id)
+        return selectedIngredients.contains(recipeIngredient.id)
     }
     
     func toggleIngredientSelection(_ recipeIngredient: RecipeIngredientJoin) {
-        guard let ingredientId = recipeIngredient.ingredientId else { return }
+        let joinId = recipeIngredient.id
         
-        if selectedIngredients.contains(ingredientId) {
-            selectedIngredients.remove(ingredientId)
+        if selectedIngredients.contains(joinId) {
+            selectedIngredients.remove(joinId)
         } else {
-            selectedIngredients.insert(ingredientId)
+            selectedIngredients.insert(joinId)
         }
     }
     
@@ -123,9 +125,7 @@ class RecipeDetailViewModel: ObservableObject {
             selectedIngredients.removeAll()
         } else {
             recipe.ingredients.forEach { recipeIngredient in
-                if let ingredientId = recipeIngredient.ingredientId {
-                    selectedIngredients.insert(ingredientId)
-                }
+                selectedIngredients.insert(recipeIngredient.id)
             }
         }
     }
@@ -178,8 +178,7 @@ class RecipeDetailViewModel: ObservableObject {
     /// start adding ingredients to shopping list
     func addSelectedIngredientsToShoppingList() {
         let selected = recipe.ingredients.filter {
-            guard let id = $0.ingredientId else { return false }
-            return selectedIngredients.contains(id)
+            return selectedIngredients.contains($0.id)
         }
         
         guard !selected.isEmpty else {
@@ -188,6 +187,26 @@ class RecipeDetailViewModel: ObservableObject {
         }
         
         showListSelector = true
+    }
+    
+    func prepareAndShowListCreator() {
+        let selected = recipe.ingredients.filter {
+            return selectedIngredients.contains($0.id)
+        }
+        
+        let editableItems = selected.map {
+            EditableShoppingItem(
+                id: UUID(), // temporary ID for editing UI
+                name: $0.name,
+                amount: $0.formattedAmount,
+                unit: $0.unit,
+                originalIngredientId: $0.ingredientId)
+        }
+        
+        shoppingListViewModel.listToEdit = nil
+        shoppingListViewModel.listNameForSheet = ""
+        shoppingListViewModel.itemsForEditingList = editableItems
+        shoppingListViewModel.isShowingEditSheet = true
     }
     
     /// selected items add to shopping list

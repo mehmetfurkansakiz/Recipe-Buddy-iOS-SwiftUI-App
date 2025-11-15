@@ -200,15 +200,13 @@ struct RecipeDetailView: View {
                     
                     Spacer()
                     
-                    if recipeIngredient.ingredientId != nil {
-                        Button(action: {
-                            viewModel.toggleIngredientSelection(recipeIngredient)
-                        }) {
-                            Image(viewModel.isIngredientSelected(recipeIngredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
-                                .resizable()
-                                .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient) ? Color("33C759") : Color("A3A3A3"))
-                                .frame(width: 18, height: 18)
-                        }
+                    Button(action: {
+                        viewModel.toggleIngredientSelection(recipeIngredient)
+                    }) {
+                        Image(viewModel.isIngredientSelected(recipeIngredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
+                            .resizable()
+                            .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient) ? Color("33C759") : Color("A3A3A3"))
+                            .frame(width: 18, height: 18)
                     }
                 }
                 .padding(.vertical, 4)
@@ -250,7 +248,6 @@ struct RecipeDetailView: View {
     private var addToShoppingListButton: some View {
         Button(action: {
             viewModel.addSelectedIngredientsToShoppingList()
-            viewModel.showingShoppingListAlert = true
         }) {
             VStack {
                 HStack(spacing: 8) {
@@ -275,19 +272,39 @@ struct RecipeDetailView: View {
         .opacity(viewModel.selectedIngredients.isEmpty ? 0.6 : 1)
         .sheet(isPresented: $viewModel.showListSelector) {
             let selectedIngredients = viewModel.recipe.ingredients.filter { recipeIngredient in
-                guard let id = recipeIngredient.ingredientId else { return false }
-                return viewModel.selectedIngredients.contains(id)
+                return viewModel.selectedIngredients.contains(recipeIngredient.id)
             }
             
             ListSelectorView(
                 onListSelected: { selectedList in
                     await viewModel.add(ingredients: selectedIngredients, to: selectedList)
                     viewModel.showListSelector = false
+                }, onCreateNewList: {
+                    viewModel.showListSelector = false
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        viewModel.prepareAndShowListCreator()
+                    }
                 }, onCancel: {
                     viewModel.showListSelector = false
                 }
             )
             .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $viewModel.shoppingListViewModel.isShowingEditSheet) {
+            ListEditView(
+                viewModel: viewModel.shoppingListViewModel,
+                onSave: {
+                    Task {
+                        await viewModel.shoppingListViewModel.saveList()
+                        
+                        viewModel.statusMessage = "Yeni liste oluşturuldu ve malzemeler eklendi!"
+                    }
+                },
+                onCancel: {
+                    viewModel.shoppingListViewModel.isShowingEditSheet = false
+                }
+            )
         }
         .overlay(alignment: .bottom) {
             if let message = viewModel.statusMessage {
