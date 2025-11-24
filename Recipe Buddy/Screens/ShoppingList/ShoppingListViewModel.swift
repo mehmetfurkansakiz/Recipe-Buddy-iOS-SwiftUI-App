@@ -131,7 +131,8 @@ class ShoppingListViewModel: ObservableObject {
                         name: shoppingLists[index].name,
                         userId: shoppingLists[index].userId,
                         itemCount: shoppingLists[index].itemCount,
-                        checkedItemCount: newCheckedCount
+                        checkedItemCount: newCheckedCount,
+                        createdAt: .now
                     )
                     
                     shoppingLists[index] = updatedList

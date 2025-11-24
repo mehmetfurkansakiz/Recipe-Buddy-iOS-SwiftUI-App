@@ -6,12 +6,23 @@ struct ShoppingList: Codable, Identifiable, Hashable {
     let userId: UUID
     let itemCount: Int
     let checkedItemCount: Int
+    let createdAt: Date?
     
     enum CodingKeys: String, CodingKey {
         case id, name
         case userId = "user_id"
         case itemCount = "item_count"
         case checkedItemCount = "checked_item_count"
+        case createdAt = "created_at"
+    }
+    
+    var formattedDate: String {
+        guard let createdAt = createdAt else { return "Unknown Date" }
+        
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        
+        return formatter.localizedString(for: createdAt, relativeTo: Date())
     }
 }
 
