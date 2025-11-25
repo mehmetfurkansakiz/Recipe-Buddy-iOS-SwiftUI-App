@@ -12,6 +12,11 @@ class DataManager: ObservableObject {
     @Published var homeSections: [RecipeSection] = []
     @Published var availableCategories: [Category] = []
     
+    /// cached shopping lists and their items
+    @Published var cachedShoppingLists: [ShoppingList] = []
+    @Published var cachedShoppingListItems: [UUID: [ShoppingListItem]] = [:]
+    var isShoppingListLoaded = false
+    
     @Published var isLoading: Bool = false
     
     // properties for pagination owned recipes
@@ -152,6 +157,11 @@ class DataManager: ObservableObject {
         self.ownedRecipes = []
         self.favoritedRecipes = []
         print("ℹ️ DataManager: Kullanıcı verileri temizlendi.")
+        
+        self.cachedShoppingLists = []
+        self.cachedShoppingListItems = [:]
+        self.isShoppingListLoaded = false
+        print("ℹ️ DataManager: Alışveriş listesi verileri temizlendi.")
     }
     
     // MARK: - Notification Handlers

@@ -3,6 +3,7 @@ import SwiftUI
 struct ShoppingListView: View {
     @StateObject var viewModel: ShoppingListViewModel
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
         ZStack {
@@ -42,13 +43,13 @@ struct ShoppingListView: View {
             }
         }
         .task {
-            await viewModel.fetchAllLists()
+            await viewModel.fetchAllLists(dataManager: dataManager)
         }
         .sheet(isPresented: $viewModel.isShowingEditSheet) {
             ListEditView(
                 viewModel: viewModel,
                 onSave: {
-                    Task { await viewModel.saveList() }
+                    Task { await viewModel.saveList(dataManager: dataManager) }
                 },
                 onCancel: { viewModel.isShowingEditSheet = false }
             )
@@ -71,16 +72,16 @@ struct ShoppingListView: View {
                             Task { await viewModel.toggleItemCheck(item) }
                         },
                         onListDelete: {
-                            Task { await viewModel.deleteList(list) }
+                            Task { await viewModel.deleteList(list, dataManager: dataManager) }
                         },
                         onListEdit: {
                             Task { await viewModel.presentListEditSheetForUpdate(list) }
                         },
                         onToggleCheckAll: {
-                            Task { await viewModel.toggleCheckAllItems(in: list) }
+                            Task { await viewModel.toggleCheckAllItems(in: list, dataManager: dataManager) }
                         },
                         onClearChecked: {
-                            Task { await viewModel.clearCheckedItems(in: list) }
+                            Task { await viewModel.clearCheckedItems(in: list, dataManager: dataManager) }
                         }
                     )
                 }
@@ -158,7 +159,6 @@ struct ShoppingListSectionView: View {
                     .fontWeight(.bold)
                     .foregroundStyle(areAllItemsChecked ? .A_3_A_3_A_3 : ._303030)
                     .strikethrough(areAllItemsChecked, color: .A_3_A_3_A_3)
-                    .frame(width: .infinity)
                     .lineLimit(1)
                 
                 Circle()

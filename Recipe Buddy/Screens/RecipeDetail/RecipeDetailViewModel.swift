@@ -16,7 +16,6 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var isAuthenticated = false
     
     // UI Control State
-    @Published var isLoading = true
     @Published var isSaving: Bool = false
     @Published var showRatingSheet = false
     @Published var showListSelector = false
@@ -53,8 +52,6 @@ class RecipeDetailViewModel: ObservableObject {
     }
     
     func loadData() async {
-        self.isLoading = true
-        
         do {
             let freshRecipe: Recipe = try await supabase.from("recipes")
                 .select(Recipe.selectQuery)
@@ -75,8 +72,6 @@ class RecipeDetailViewModel: ObservableObject {
             print("❌ Detay verisi çekilirken hata oluştu: \(error)")
             self.shouldDismiss = true
         }
-        
-        self.isLoading = false
     }
     
     private func checkAuthAndOwnershipStatus() async {

@@ -5,6 +5,7 @@ struct RecipeDetailView: View {
     @StateObject var viewModel: RecipeDetailViewModel
     @Environment(\.dismiss) private var dismiss: DismissAction
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     init(viewModel: RecipeDetailViewModel, navigationPath: Binding<NavigationPath>) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -14,32 +15,26 @@ struct RecipeDetailView: View {
     var body: some View {
         ZStack(alignment: .top) {
             
-            if viewModel.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        recipeImageHeader
-                        
-                        VStack(alignment: .leading, spacing: 16) {
-                            recipeInfoSection
-                            Divider()
-                            ingredientsSection
-                            Divider()
-                            preparationSection
-                            Divider()
-                            addToShoppingListButton
-                            Spacer(minLength: 64)
-                        }
-                        .padding()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    recipeImageHeader
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        recipeInfoSection
+                        Divider()
+                        ingredientsSection
+                        Divider()
+                        preparationSection
+                        Divider()
+                        addToShoppingListButton
+                        Spacer(minLength: 64)
                     }
+                    .padding()
                 }
             }
         }
         .navigationBarBackButtonHidden()
         .ignoresSafeArea(edges: .top)
-        .animation(.default, value: viewModel.isLoading)
         .task {
             await viewModel.loadData()
         }
@@ -296,7 +291,7 @@ struct RecipeDetailView: View {
                 viewModel: viewModel.shoppingListViewModel,
                 onSave: {
                     Task {
-                        await viewModel.shoppingListViewModel.saveList()
+                        await viewModel.shoppingListViewModel.saveList(dataManager: dataManager)
                         
                         viewModel.statusMessage = "Yeni liste oluşturuldu ve malzemeler eklendi!"
                     }

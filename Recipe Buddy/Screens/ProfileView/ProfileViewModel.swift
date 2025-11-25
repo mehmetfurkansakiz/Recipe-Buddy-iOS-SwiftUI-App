@@ -18,21 +18,29 @@ class ProfileViewModel: ObservableObject {
     func fetchAllProfileData(dataManager: DataManager) async {
         isLoading = true
         
+        defer { isLoading = false }
+        
         do {
-            async let favoriteCountTask = recipeService.fetchTotalFavoritesReceivedCount()
+            let count = try await recipeService.fetchTotalFavoritesReceivedCount()
+            self.totalFavoritesReceived = count
             
-            self.totalFavoritesReceived = try await favoriteCountTask
+            guard let user = dataManager.currentUser else {
+                self.averageRating = 0.0
+                return
+            }
             
-            if let user = dataManager.currentUser, let points = user.totalRatingPoints, let received = user.totalRatingsReceived, received > 0 {
+            let points = user.totalRatingPoints ?? 0
+            let received = user.totalRatingsReceived ?? 0
+            
+            if received > 0 {
                 self.averageRating = Double(points) / Double(received)
             } else {
                 self.averageRating = 0.0
             }
+            
         } catch {
             print("❌ Error fetching profile data: \(error.localizedDescription)")
         }
-        
-        isLoading = false
     }
     
     /// Signs the user out.
