@@ -24,9 +24,9 @@ struct RecipeDetailView: View {
                         Divider()
                         ingredientsSection
                         Divider()
-                        preparationSection
-                        Divider()
                         addToShoppingListButton
+                        Divider()
+                        preparationSection
                         Spacer(minLength: 64)
                     }
                     .padding()
