@@ -115,6 +115,15 @@ struct RecipeDetailView: View {
                             .foregroundStyle(viewModel.userCurrentRating != nil ? Color.FFCB_1_F : Color.A_3_A_3_A_3)
                             .frame(width: 24, height: 24)
                     }
+                    .contextMenu {
+                        if viewModel.userCurrentRating != nil {
+                            Button(role: .destructive) {
+                                Task { await viewModel.removeRating() }
+                            } label: {
+                                Label("Puanı Kaldır", systemImage: "trash")
+                            }
+                        }
+                    }
                 }
                 
                 if viewModel.isAuthenticated {
@@ -303,19 +312,32 @@ struct RecipeDetailView: View {
         }
         .overlay(alignment: .bottom) {
             if let message = viewModel.statusMessage {
-                Text(message)
-                    .padding()
-                    .background(.black.opacity(0.8))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                viewModel.statusMessage = nil
-                            }
+                HStack(spacing: 12) {
+                    Text(message)
+                        .foregroundColor(.white)
+                    if viewModel.canUndoRatingChange {
+                        Button("Geri Al") {
+                            Task { await viewModel.undoRatingChange() }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.1))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
+                .background(.black.opacity(0.8))
+                .cornerRadius(12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            viewModel.statusMessage = nil
+                            viewModel.canUndoRatingChange = false
                         }
                     }
+                }
             }
         }
         .animation(.spring(), value: viewModel.statusMessage)
@@ -325,6 +347,11 @@ struct RecipeDetailView: View {
                 onSave: { newRating in
                     Task {
                         await viewModel.submitRating(newRating)
+                    }
+                },
+                onClear: {
+                    Task {
+                        await viewModel.removeRating()
                     }
                 }
             )

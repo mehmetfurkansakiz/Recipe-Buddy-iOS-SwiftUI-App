@@ -3,6 +3,7 @@ import SwiftUI
 struct RatingView: View {
     @Binding var currentRating: Int?
     let onSave: (Int) -> Void
+    let onClear: (() -> Void)?
     @Environment(\.dismiss) var dismiss
     
     @State private var selectedRating: Int = 0
@@ -22,15 +23,28 @@ struct RatingView: View {
                 }
             }
             
-            Button("Puanı Kaydet") {
-                onSave(selectedRating)
-                dismiss()
+            HStack(spacing: 12) {
+                if let onClear {
+                    Button("Puanı Kaldır") {
+                        onClear()
+                        dismiss()
+                    }
+                    .padding()
+                    .background(Color.red.opacity(0.15))
+                    .foregroundColor(.red)
+                    .cornerRadius(12)
+                }
+                
+                Button("Puanı Kaydet") {
+                    onSave(selectedRating)
+                    dismiss()
+                }
+                .padding()
+                .background(Color("EBA72B"))
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .disabled(selectedRating == 0)
             }
-            .padding()
-            .background(Color("EBA72B"))
-            .foregroundColor(.white)
-            .cornerRadius(12)
-            .disabled(selectedRating == 0)
         }
         .onAppear {
             selectedRating = currentRating ?? 0

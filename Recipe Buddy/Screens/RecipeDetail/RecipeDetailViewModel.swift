@@ -22,6 +22,7 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var statusMessage: String?
     @Published var shouldDismiss = false
     @Published var showListCreator = false
+    @Published var canUndoRatingChange: Bool = false
     
     // Shopping List ViewModel
     @Published var shoppingListViewModel = ShoppingListViewModel()
@@ -29,6 +30,7 @@ class RecipeDetailViewModel: ObservableObject {
     // Private Properties
     private let recipeId: UUID
     private let recipeService = RecipeService.shared
+    private var previousUserRating: Int?
     
     // Computed Properties
     var areAllIngredientsSelected: Bool {
@@ -101,6 +103,18 @@ class RecipeDetailViewModel: ObservableObject {
         }
     }
     
+    private func refreshRecipe() async {
+        do {
+            let freshRecipe: Recipe = try await supabase.from("recipes")
+                .select(Recipe.selectQuery)
+                .eq("id", value: self.recipeId)
+                .single().execute().value
+            self.recipe = freshRecipe
+        } catch {
+            print("❌ Recipe refresh failed: \(error)")
+        }
+    }
+    
     func isIngredientSelected(_ recipeIngredient: RecipeIngredientJoin) -> Bool {
         return selectedIngredients.contains(recipeIngredient.id)
     }
@@ -153,6 +167,8 @@ class RecipeDetailViewModel: ObservableObject {
     func submitRating(_ rating: Int) async {
         guard let currentUserId = try? await supabase.auth.session.user.id else { return }
         
+        self.previousUserRating = self.userCurrentRating
+        
         let ratingData = NewRating(
             recipeId: self.recipe.id,
             userId: currentUserId,
@@ -165,8 +181,53 @@ class RecipeDetailViewModel: ObservableObject {
                 .execute()
             
             self.userCurrentRating = rating
+            self.statusMessage = "Puan kaydedildi"
+            self.canUndoRatingChange = true
+            await refreshRecipe()
         } catch {
             print("❌ Error submitting rating: \(error)")
+        }
+    }
+    
+    func removeRating() async {
+        self.previousUserRating = self.userCurrentRating
+        
+        guard previousUserRating != nil else { return }
+        do {
+            try await recipeService.deleteUserRating(for: recipe.id)
+            self.userCurrentRating = nil
+            self.statusMessage = "Puan kaldırıldı"
+            self.canUndoRatingChange = true
+            await refreshRecipe()
+        } catch {
+            self.statusMessage = "Puan kaldırılamadı"
+            print("❌ Error removing rating: \(error)")
+        }
+    }
+    
+    func undoRatingChange() async {
+        do {
+            if let previous = previousUserRating {
+                guard let currentUserId = try? await supabase.auth.session.user.id else { return }
+                let ratingData = NewRating(
+                    recipeId: self.recipe.id,
+                    userId: currentUserId,
+                    rating: previous
+                )
+                try await supabase.from("recipe_ratings")
+                    .upsert(ratingData)
+                    .execute()
+                self.userCurrentRating = previous
+            } else {
+                try await recipeService.deleteUserRating(for: recipe.id)
+                self.userCurrentRating = nil
+            }
+            self.statusMessage = "Değişiklik geri alındı"
+            self.canUndoRatingChange = false
+            await refreshRecipe()
+        } catch {
+            self.statusMessage = "Geri alma başarısız"
+            print("❌ Error undoing rating change: \(error)")
         }
     }
     
