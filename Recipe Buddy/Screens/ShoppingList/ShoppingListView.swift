@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ShoppingListView: View {
     @StateObject var viewModel: ShoppingListViewModel
@@ -21,19 +22,33 @@ struct ShoppingListView: View {
             VStack {
                 Spacer()
                 HStack {
-                    Text("Liste Oluştur")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.EBA_72_B)
-                    Image("plus.icon")
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .foregroundStyle(.EBA_72_B)
+                    Spacer()
+                    Button(action: {
+                        viewModel.presentListEditSheetForCreate()
+                    }) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.EBA_72_B)
+                                .frame(width: 56, height: 56)
+                                .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                )
+                            
+                            Image("plus.icon")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 24, height: 24)
+                                .foregroundStyle(Color.white)
+                        }
+                    }
+                    .accessibilityLabel("Liste Oluştur")
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
                 }
-                .onTapGesture(perform: {
-                    viewModel.presentListEditSheetForCreate()
-                })
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         // Navigation title and appearance with helper modifier
         .navigationTitle("Alışveriş Listelerim")
@@ -193,6 +208,10 @@ struct ShoppingListSectionView: View {
 
 #Preview() {
     NavigationStack {
-        ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: .constant(NavigationPath()))
+        ShoppingListView(
+            viewModel: ShoppingListViewModel(forPreview: true),
+            navigationPath: .constant(NavigationPath())
+        )
+        .environmentObject(DataManager())
     }
 }

@@ -4,6 +4,13 @@ import NukeUI
 struct ExploreRecipeCard: View {
     let recipe: Recipe
     let cardWidth: CGFloat
+    let showAuthor: Bool
+
+    init(recipe: Recipe, cardWidth: CGFloat, showAuthor: Bool = true) {
+        self.recipe = recipe
+        self.cardWidth = cardWidth
+        self.showAuthor = showAuthor
+    }
     
     private var badgeWidth: CGFloat  {
         let threshold: CGFloat = 150
@@ -105,15 +112,25 @@ struct ExploreRecipeCard: View {
             .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(recipe.name)
-                    .font(.headline)
-                    .foregroundStyle(Color("181818"))
-                    .lineLimit(1)
-                
-                Text(recipe.user?.fullName ?? "Anonim")
-                    .font(.caption)
-                    .foregroundStyle(Color("303030"))
-                    .lineLimit(1)
+                if showAuthor {
+                    
+                    Text(recipe.name)
+                        .font(.headline)
+                        .foregroundStyle(Color("181818"))
+                        .lineLimit(1)
+                    
+                    Text(recipe.user?.fullName ?? "Anonim")
+                        .font(.caption)
+                        .foregroundStyle(Color("303030"))
+                        .lineLimit(1)
+                } else {
+                    
+                    Text(recipe.name)
+                        .font(.caption)
+                        .foregroundStyle(Color("181818"))
+                        .lineLimit(1)
+                        .padding(.leading, 4)
+                }
             }
         }
         .frame(width: cardWidth)

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RecipesView: View {
     @StateObject var viewModel: RecipesViewModel
@@ -28,37 +29,44 @@ struct RecipesView: View {
                     }
                 }
             }
+            
+            // Floating Action Button (FAB)
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        navigationPath.append(AppNavigation.recipeCreate)
+                    }) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.EBA_72_B)
+                                .frame(width: 56, height: 56)
+                                .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                )
+                            
+                            Image("plus.icon")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 24, height: 24)
+                                .foregroundStyle(Color.white)
+                        }
+                    }
+                    .accessibilityLabel("Tarif Oluştur")
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
+                }
+            }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .onAppear {
             Task {
                 if dataManager.ownedRecipes.isEmpty && dataManager.favoritedRecipes.isEmpty {
                     await dataManager.loadInitialUserData()
                 }
-            }
-        }
-        .toolbarBackground(.thinMaterial, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Text("Tariflerim")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.EBA_72_B)
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack {
-                    Text("Tarif Oluştur")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.EBA_72_B)
-                    Image("plus.icon")
-                        .resizable()
-                        .foregroundStyle(.EBA_72_B)
-                        .frame(width: 24, height: 24)
-                }
-                .onTapGesture(perform: {
-                    navigationPath.append(AppNavigation.recipeCreate)
-                })
             }
         }
         // Navigation title and appearance with helper modifier
@@ -118,7 +126,7 @@ struct RecipesView: View {
                 ForEach(dataManager.ownedRecipes) { recipe in
                     Button(action: { navigationPath.append(AppNavigation.recipeDetail(recipe))}) {
                         let cardWidth = (UIScreen.main.bounds.width / 2) - 24
-                        ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth)
+                        ExploreRecipeCard(recipe: recipe, cardWidth: cardWidth, showAuthor: false)
                     }
                     .onAppear {
                         // Infinite scroll: Load more when reaching the end
@@ -142,45 +150,45 @@ struct RecipesView: View {
                 .foregroundStyle(.EBA_72_B)
             
             if dataManager.favoritedRecipes.isEmpty {
-                       // if list is empty, show the empty state message
-                       VStack(alignment: .leading, spacing: 4) {
-                           Text("Henüz favori tarifiniz yok.")
-                               .font(.subheadline)
-                               .fontWeight(.semibold)
-                               .foregroundStyle(._303030)
-                           Text("Tariflerin yanındaki ❤️ simgesine tıklayarak favorilerinizi burada görebilirsiniz.")
-                               .font(.caption)
-                               .foregroundStyle(.A_3_A_3_A_3)
-                       }
-                       .padding()
-                       .frame(maxWidth: .infinity, alignment: .leading)
-                       .background(.thinMaterial.opacity(0.3))
-                       .clipShape(RoundedRectangle(cornerRadius: 12))
-                       .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
-                       .padding(.horizontal)
-                       
-                   } else {
-                       // if list is not empty, show the button to navigate
-                       Button(action: {
-                           navigationPath.append(AppNavigation.favoriteRecipes)
-                       }) {
-                           HStack {
-                               Text("Tümünü Gör")
-                                   .fontWeight(.semibold)
-                                   .foregroundStyle(._303030)
-                               Spacer()
-                               Text("\(dataManager.favoritedRecipes.count) tarif")
-                                   .foregroundStyle(.A_3_A_3_A_3)
-                               Image(systemName: "chevron.right")
-                                   .foregroundStyle(.A_3_A_3_A_3)
-                           }
-                           .padding()
-                           .background(.thinMaterial.opacity(0.3))
-                           .clipShape(RoundedRectangle(cornerRadius: 12))
-                           .overlay(RoundedRectangle(cornerRadius: 12).stroke(.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
-                           .padding(.horizontal)
-                       }
-                   }
+                // if list is empty, show the empty state message
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Henüz favori tarifiniz yok.")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(._303030)
+                    Text("Tariflerin yanındaki ❤️ simgesine tıklayarak favorilerinizi burada görebilirsiniz.")
+                        .font(.caption)
+                        .foregroundStyle(.A_3_A_3_A_3)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.thinMaterial.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
+                .padding(.horizontal)
+                
+            } else {
+                // if list is not empty, show the button to navigate
+                Button(action: {
+                    navigationPath.append(AppNavigation.favoriteRecipes)
+                }) {
+                    HStack {
+                        Text("Tümünü Gör")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(._303030)
+                        Spacer()
+                        Text("\(dataManager.favoritedRecipes.count) tarif")
+                            .foregroundStyle(.A_3_A_3_A_3)
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.A_3_A_3_A_3)
+                    }
+                    .padding()
+                    .background(.thinMaterial.opacity(0.3))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.A_3_A_3_A_3.opacity(0.5) , lineWidth: 1))
+                    .padding(.horizontal)
+                }
+            }
         }
     }
     
