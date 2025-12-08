@@ -61,6 +61,9 @@ struct RecipesView: View {
                 })
             }
         }
+        // Navigation title and appearance with helper modifier
+        .navigationTitle("Tariflerim")
+        .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
     }
     
     // MARK: - Supporting Views

@@ -16,17 +16,10 @@ struct ShoppingListView: View {
             } else {
                 listContent
             }
-        }
-        .toolbarBackground(.thinMaterial, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Text("Alışveriş Listelerim")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.EBA_72_B)
-            }
-            ToolbarItem(placement: .topBarTrailing) {
+            
+            // Floating Action Button (FAB)
+            VStack {
+                Spacer()
                 HStack {
                     Text("Liste Oluştur")
                         .font(.headline)
@@ -42,6 +35,9 @@ struct ShoppingListView: View {
                 })
             }
         }
+        // Navigation title and appearance with helper modifier
+        .navigationTitle("Alışveriş Listelerim")
+        .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
         .task {
             await viewModel.fetchAllLists(dataManager: dataManager)
         }
@@ -142,7 +138,8 @@ struct ShoppingListSectionView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
-                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                .transition(.opacity
+                    .combined(with: .scale(scale: 0.95, anchor: .top)))
             }
         }
         .overlay(RoundedRectangle(cornerRadius: 12)
