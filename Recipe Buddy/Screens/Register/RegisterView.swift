@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RegisterView: View {
     @StateObject private var viewModel = RegisterViewModel()
-    var onAuthSuccess: () -> Void
+    var onRegisterSuccess: (String) -> Void
     var onNavigateToLogin: () -> Void
     
     var body: some View {
@@ -27,12 +27,12 @@ struct RegisterView: View {
                     
                     // registration form
                     VStack(spacing: 16) {
-                        AuthTextField(placeholder: "Tam Adınız", text: $viewModel.fullName)
-                        AuthTextField(placeholder: "Kullanıcı Adı", text: $viewModel.username)
-                        AuthTextField(placeholder: "E-posta Adresi", text: $viewModel.email)
+                        AuthTextField(placeholder: "Tam Adınız", text: $viewModel.fullName, contentType: .name)
+                        AuthTextField(placeholder: "Kullanıcı Adı", text: $viewModel.username, contentType: .username)
+                        AuthTextField(placeholder: "E-posta Adresi", text: $viewModel.email, contentType: .emailAddress)
                             .keyboardType(.emailAddress)
-                        AuthTextField(placeholder: "Şifre", text: $viewModel.password, isSecure: true)
-                        AuthTextField(placeholder: "Şifre (Tekrar)", text: $viewModel.confirmPassword, isSecure: true)
+                        AuthTextField(placeholder: "Şifre", text: $viewModel.password, isSecure: true, contentType: .newPassword)
+                        AuthTextField(placeholder: "Şifre (Tekrar)", text: $viewModel.confirmPassword, isSecure: true, contentType: .newPassword)
                     }
                     
                     AuthButton(
@@ -56,18 +56,22 @@ struct RegisterView: View {
                     }
                     .font(.footnote)
                     .padding(.bottom)
-                    .onChange(of: viewModel.didAuthenticate) {
-                        if viewModel.didAuthenticate {
+                    .onChange(of: viewModel.didRegister) {
+                        if viewModel.didRegister {
                             DispatchQueue.main.async {
-                                onAuthSuccess()
+                                onRegisterSuccess(viewModel.email)
                             }
                         }
                     }
                 }
                 .padding(.horizontal, 24)
-                .alert("Hata", isPresented: .constant(viewModel.errorMessage != nil), actions: {
-                    Button("Tamam") { viewModel.errorMessage = nil }
-                }, message: { Text(viewModel.errorMessage ?? "") })
+                .alert(item: $viewModel.authError) { error in
+                    Alert(
+                        title: Text("Hata"),
+                        message: Text(error.errorDescription ?? "Bilinmeyen bir hata oluştu."),
+                        dismissButton: .default(Text("Tamam"))
+                    )
+                }
                 .onTapGesture {
                     endEditing()
                 }
@@ -77,5 +81,6 @@ struct RegisterView: View {
 }
 
 #Preview {
-    RegisterView(onAuthSuccess: {}, onNavigateToLogin: {})
+    RegisterView(onRegisterSuccess: {_ in }, onNavigateToLogin: {})
 }
+

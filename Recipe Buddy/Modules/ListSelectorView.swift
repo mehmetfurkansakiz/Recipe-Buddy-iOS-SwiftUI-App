@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ListSelectorView: View {
     var onListSelected: (ShoppingList) async -> Void
+    var onCreateNewList: () -> Void
     var onCancel: () -> Void
     
     @State private var lists: [ShoppingList] = []
@@ -9,50 +10,97 @@ struct ListSelectorView: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if isLoading {
-                    ProgressView()
-                } else if lists.isEmpty {
-                    Text("Hiç alışveriş listeniz yok.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    listBody
+            ZStack {
+                Color.FBFBFB.ignoresSafeArea()
+                
+                Group {
+                    if isLoading {
+                        ProgressView()
+                    } else {
+                        // Listeyi veya boş görünümü göstermek için ScrollView kullan
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                if lists.isEmpty {
+                                    emptyList
+                                } else {
+                                    listBody
+                                }
+                            }
+                            .padding(.top) // Listenin üstüne biraz boşluk ekle
+                        }
+                    }
                 }
-            }
-            .navigationTitle("Listeye Ekle")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("İptal", action: onCancel)
+                .navigationTitle("Listeye Ekle")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("İptal", action: onCancel)
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("Yeni Liste", systemImage: "plus", action: onCreateNewList)
+                    }
                 }
-            }
-            .task {
-                await fetchLists()
+                .tint(Color.EBA_72_B)
+                .task {
+                    await fetchLists()
+                }
             }
         }
     }
     
+    private var emptyList: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "list.bullet.clipboard")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("Hiç Alışveriş Listeniz Yok")
+                .font(.headline)
+            Text("Yukarıdaki \"Yeni Liste\" butonuna basarak seçili malzemelerle yeni bir liste oluşturabilirsiniz.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .center)
+        .listRowBackground(Color.clear)
+    }
+    
     private var listBody: some View {
-        List {
-            // TODO: Yeni liste oluşturma butonu için de bir closure eklenmeli.
-            
-            ForEach(lists) { list in
-                Button(action: {
-                    Task {
-                        await onListSelected(list)
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "checklist")
-                        Text(list.name)
-                        Spacer()
-                        Text("\(list.itemCount) adet")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+        ForEach(lists) { list in
+            Button(action: {
+                Task {
+                    await onListSelected(list)
                 }
-                .tint(.primary)
+            }) {
+                HStack {
+                    Text(list.name)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color("303030"))
+                    
+                    Circle()
+                        .frame(width: 4, height: 4)
+                        .foregroundStyle(Color("A3A3A3").opacity(0.5))
+                    
+                    Text("\(list.itemCount) öge")
+                        .font(.callout)
+                        .foregroundStyle(Color("A3A3A3"))
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color("A3A3A3"))
+                }
+                .padding()
+                .background(.thinMaterial.opacity(0.3)) // Arka plan
+                .clipShape(RoundedRectangle(cornerRadius: 12)) // Köşeleri yuvarla
+                .overlay(RoundedRectangle(cornerRadius: 12) // Kenarlık ekle
+                    .stroke(Color("A3A3A3").opacity(0.5), lineWidth: 1))
+                .padding(.horizontal)
             }
+            .buttonStyle(.plain)
         }
     }
     
@@ -68,3 +116,7 @@ struct ListSelectorView: View {
     }
 }
 
+
+#Preview {
+    ListSelectorView(onListSelected: {_ in }, onCreateNewList: {}, onCancel: {})
+}

@@ -2,7 +2,7 @@ import SwiftUI
 import NukeUI
 
 struct ProfileView: View {
-    @StateObject var viewModel: ProfileViewModel
+    @ObservedObject var viewModel: ProfileViewModel
     @EnvironmentObject var dataManager: DataManager
     
     var body: some View {

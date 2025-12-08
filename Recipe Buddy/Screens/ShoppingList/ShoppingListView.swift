@@ -3,6 +3,7 @@ import SwiftUI
 struct ShoppingListView: View {
     @StateObject var viewModel: ShoppingListViewModel
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
         ZStack {
@@ -42,13 +43,13 @@ struct ShoppingListView: View {
             }
         }
         .task {
-            await viewModel.fetchAllLists()
+            await viewModel.fetchAllLists(dataManager: dataManager)
         }
         .sheet(isPresented: $viewModel.isShowingEditSheet) {
             ListEditView(
                 viewModel: viewModel,
                 onSave: {
-                    Task { await viewModel.saveList() }
+                    Task { await viewModel.saveList(dataManager: dataManager) }
                 },
                 onCancel: { viewModel.isShowingEditSheet = false }
             )
@@ -71,16 +72,16 @@ struct ShoppingListView: View {
                             Task { await viewModel.toggleItemCheck(item) }
                         },
                         onListDelete: {
-                            Task { await viewModel.deleteList(list) }
+                            Task { await viewModel.deleteList(list, dataManager: dataManager) }
                         },
                         onListEdit: {
                             Task { await viewModel.presentListEditSheetForUpdate(list) }
                         },
                         onToggleCheckAll: {
-                            Task { await viewModel.toggleCheckAllItems(in: list) }
+                            Task { await viewModel.toggleCheckAllItems(in: list, dataManager: dataManager) }
                         },
                         onClearChecked: {
-                            Task { await viewModel.clearCheckedItems(in: list) }
+                            Task { await viewModel.clearCheckedItems(in: list, dataManager: dataManager) }
                         }
                     )
                 }
@@ -112,6 +113,25 @@ struct ShoppingListSectionView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+                .contextMenu {
+                    Button(action: onListEdit) {
+                        Label("Listeyi Düzenle", systemImage: "pencil")
+                    }
+                    
+                    Button(action: onClearChecked) {
+                        Label("İşaretlileri Temizle", systemImage: "eraser")
+                    }
+                    
+                    Button(action: onToggleCheckAll) {
+                        Label("Tümünü İşaretle/Kaldır", systemImage: "checklist")
+                    }
+                    
+                    Divider()
+                    
+                    Button(role: .destructive, action: onListDelete) {
+                        Label("Listeyi Sil", systemImage: "trash")
+                    }
+                }
             
             if isExpanded {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -132,52 +152,43 @@ struct ShoppingListSectionView: View {
     }
     
     private var header: some View {
-        HStack {
-            Text(list.name)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundStyle(areAllItemsChecked ? .A_3_A_3_A_3 : ._303030)
-                .strikethrough(areAllItemsChecked, color: .A_3_A_3_A_3)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(list.name)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundStyle(areAllItemsChecked ? .A_3_A_3_A_3 : ._303030)
+                    .strikethrough(areAllItemsChecked, color: .A_3_A_3_A_3)
+                    .lineLimit(1)
+                
+                Circle()
+                    .frame(width: 4, height: 4)
+                    .foregroundStyle(.A_3_A_3_A_3)
+                    .opacity(0.5)
+                
+                Text("\(list.itemCount) adet")
+                    .font(.callout)
+                    .foregroundStyle(.A_3_A_3_A_3)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : -90))
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onHeaderTap)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
             
-            Circle()
-                .frame(width: 4, height: 4)
-                .foregroundStyle(.A_3_A_3_A_3)
-                .opacity(0.5)
-            
-            Text("\(list.itemCount) adet")
-                .font(.callout)
-                .foregroundStyle(.A_3_A_3_A_3)
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            if !list.formattedDate.isEmpty {
+                Text(list.formattedDate)
+                    .font(.caption)
+                    .foregroundStyle(.C_2_C_2_C_2)
+            }
         }
         .padding()
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onHeaderTap)
-        .contextMenu {
-            Button(action: onListEdit) {
-                Label("Listeyi Düzenle", systemImage: "pencil")
-            }
-            
-            Button(action: onClearChecked) {
-                Label("İşaretlileri Temizle", systemImage: "eraser")
-            }
-            
-            Button(action: onToggleCheckAll) {
-                Label("Tümünü İşaretle/Kaldır", systemImage: "checklist")
-            }
-            
-            Divider()
-            
-            Button(role: .destructive, action: onListDelete) {
-                Label("Listeyi Sil", systemImage: "trash")
-            }
-        }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
     }
 }
 

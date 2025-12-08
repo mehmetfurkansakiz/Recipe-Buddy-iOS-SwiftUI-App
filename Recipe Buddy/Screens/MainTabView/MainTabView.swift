@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @StateObject var coordinator: AppCoordinator
+    @ObservedObject var coordinator: AppCoordinator
     @State private var selectedTab: ContentTab = .home
     @State private var navigationPath = NavigationPath()
     

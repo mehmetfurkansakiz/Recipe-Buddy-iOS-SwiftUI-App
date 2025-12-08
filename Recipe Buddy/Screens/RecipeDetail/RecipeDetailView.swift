@@ -5,6 +5,7 @@ struct RecipeDetailView: View {
     @StateObject var viewModel: RecipeDetailViewModel
     @Environment(\.dismiss) private var dismiss: DismissAction
     @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var dataManager: DataManager
     
     init(viewModel: RecipeDetailViewModel, navigationPath: Binding<NavigationPath>) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -14,32 +15,26 @@ struct RecipeDetailView: View {
     var body: some View {
         ZStack(alignment: .top) {
             
-            if viewModel.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        recipeImageHeader
-                        
-                        VStack(alignment: .leading, spacing: 16) {
-                            recipeInfoSection
-                            Divider()
-                            ingredientsSection
-                            Divider()
-                            preparationSection
-                            Divider()
-                            addToShoppingListButton
-                            Spacer(minLength: 64)
-                        }
-                        .padding()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    recipeImageHeader
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        recipeInfoSection
+                        Divider()
+                        ingredientsSection
+                        Divider()
+                        addToShoppingListButton
+                        Divider()
+                        preparationSection
+                        Spacer(minLength: 64)
                     }
+                    .padding()
                 }
             }
         }
         .navigationBarBackButtonHidden()
         .ignoresSafeArea(edges: .top)
-        .animation(.default, value: viewModel.isLoading)
         .task {
             await viewModel.loadData()
         }
@@ -119,6 +114,15 @@ struct RecipeDetailView: View {
                             .resizable()
                             .foregroundStyle(viewModel.userCurrentRating != nil ? Color.FFCB_1_F : Color.A_3_A_3_A_3)
                             .frame(width: 24, height: 24)
+                    }
+                    .contextMenu {
+                        if viewModel.userCurrentRating != nil {
+                            Button(role: .destructive) {
+                                Task { await viewModel.removeRating() }
+                            } label: {
+                                Label("Puanı Kaldır", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 
@@ -200,15 +204,13 @@ struct RecipeDetailView: View {
                     
                     Spacer()
                     
-                    if recipeIngredient.ingredientId != nil {
-                        Button(action: {
-                            viewModel.toggleIngredientSelection(recipeIngredient)
-                        }) {
-                            Image(viewModel.isIngredientSelected(recipeIngredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
-                                .resizable()
-                                .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient) ? Color("33C759") : Color("A3A3A3"))
-                                .frame(width: 18, height: 18)
-                        }
+                    Button(action: {
+                        viewModel.toggleIngredientSelection(recipeIngredient)
+                    }) {
+                        Image(viewModel.isIngredientSelected(recipeIngredient) ? "checkbox.check.icon" : "checkbox.unchecked.icon")
+                            .resizable()
+                            .foregroundStyle(viewModel.isIngredientSelected(recipeIngredient) ? Color("33C759") : Color("A3A3A3"))
+                            .frame(width: 18, height: 18)
                     }
                 }
                 .padding(.vertical, 4)
@@ -250,7 +252,6 @@ struct RecipeDetailView: View {
     private var addToShoppingListButton: some View {
         Button(action: {
             viewModel.addSelectedIngredientsToShoppingList()
-            viewModel.showingShoppingListAlert = true
         }) {
             VStack {
                 HStack(spacing: 8) {
@@ -275,35 +276,68 @@ struct RecipeDetailView: View {
         .opacity(viewModel.selectedIngredients.isEmpty ? 0.6 : 1)
         .sheet(isPresented: $viewModel.showListSelector) {
             let selectedIngredients = viewModel.recipe.ingredients.filter { recipeIngredient in
-                guard let id = recipeIngredient.ingredientId else { return false }
-                return viewModel.selectedIngredients.contains(id)
+                return viewModel.selectedIngredients.contains(recipeIngredient.id)
             }
             
             ListSelectorView(
                 onListSelected: { selectedList in
                     await viewModel.add(ingredients: selectedIngredients, to: selectedList)
                     viewModel.showListSelector = false
+                }, onCreateNewList: {
+                    viewModel.showListSelector = false
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        viewModel.prepareAndShowListCreator()
+                    }
                 }, onCancel: {
                     viewModel.showListSelector = false
                 }
             )
             .presentationDetents([.medium])
         }
+        .sheet(isPresented: $viewModel.shoppingListViewModel.isShowingEditSheet) {
+            ListEditView(
+                viewModel: viewModel.shoppingListViewModel,
+                onSave: {
+                    Task {
+                        await viewModel.shoppingListViewModel.saveList(dataManager: dataManager)
+                        
+                        viewModel.statusMessage = "Yeni liste oluşturuldu ve malzemeler eklendi!"
+                    }
+                },
+                onCancel: {
+                    viewModel.shoppingListViewModel.isShowingEditSheet = false
+                }
+            )
+        }
         .overlay(alignment: .bottom) {
             if let message = viewModel.statusMessage {
-                Text(message)
-                    .padding()
-                    .background(.black.opacity(0.8))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                viewModel.statusMessage = nil
-                            }
+                HStack(spacing: 12) {
+                    Text(message)
+                        .foregroundColor(.white)
+                    if viewModel.canUndoRatingChange {
+                        Button("Geri Al") {
+                            Task { await viewModel.undoRatingChange() }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.1))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
+                .background(.black.opacity(0.8))
+                .cornerRadius(12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            viewModel.statusMessage = nil
+                            viewModel.canUndoRatingChange = false
                         }
                     }
+                }
             }
         }
         .animation(.spring(), value: viewModel.statusMessage)
@@ -313,6 +347,11 @@ struct RecipeDetailView: View {
                 onSave: { newRating in
                     Task {
                         await viewModel.submitRating(newRating)
+                    }
+                },
+                onClear: {
+                    Task {
+                        await viewModel.removeRating()
                     }
                 }
             )

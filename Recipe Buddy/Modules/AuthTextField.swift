@@ -4,6 +4,7 @@ struct AuthTextField: View {
     var placeholder: String
     @Binding var text: String
     var isSecure: Bool = false
+    var contentType: UITextContentType? = nil
     
     var body: some View {
         Group {
@@ -16,6 +17,8 @@ struct AuthTextField: View {
         .padding()
         .tint(Color("EBA72B"))
         .autocapitalization(.none)
+        .textContentType(contentType)
+        .autocorrectionDisabled(true)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 12)

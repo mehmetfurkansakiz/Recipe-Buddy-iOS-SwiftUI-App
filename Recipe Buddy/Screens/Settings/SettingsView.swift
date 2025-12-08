@@ -2,7 +2,7 @@ import SwiftUI
 import NukeUI
 
 struct SettingsView: View {
-    @StateObject var viewModel: SettingsViewModel
+    @ObservedObject var viewModel: SettingsViewModel
     @Binding var navigationPath: NavigationPath
     @EnvironmentObject var dataManager: DataManager
     

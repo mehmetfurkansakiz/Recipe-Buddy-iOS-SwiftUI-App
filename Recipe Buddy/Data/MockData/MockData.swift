@@ -121,7 +121,8 @@ extension ShoppingList {
                 name: "Haftalık Pazar Alışverişi",
                 userId: MockData.currentUserId,
                 itemCount: 3,
-                checkedItemCount: 1
+                checkedItemCount: 1,
+                createdAt: Date()
             ),
             
             ShoppingList(
@@ -129,7 +130,8 @@ extension ShoppingList {
                 name: "Doğum Günü Partisi",
                 userId: MockData.currentUserId,
                 itemCount: 5,
-                checkedItemCount: 5
+                checkedItemCount: 5,
+                createdAt: Calendar.current.date(byAdding: .day, value: -10, to: Date())
             )
         ]
     }

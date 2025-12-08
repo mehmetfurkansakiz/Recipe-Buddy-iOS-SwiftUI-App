@@ -7,7 +7,7 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var recipe: Recipe
     
     // UI State
-    @Published var selectedIngredients: Set<UUID> = []
+    @Published var selectedIngredients: Set<Int> = []
     @Published var isFavorite: Bool = false
     @Published var userCurrentRating: Int?
     
@@ -16,17 +16,21 @@ class RecipeDetailViewModel: ObservableObject {
     @Published var isAuthenticated = false
     
     // UI Control State
-    @Published var isLoading = true
     @Published var isSaving: Bool = false
     @Published var showRatingSheet = false
     @Published var showListSelector = false
     @Published var statusMessage: String?
     @Published var shouldDismiss = false
-    @Published var showingShoppingListAlert: Bool = false
+    @Published var showListCreator = false
+    @Published var canUndoRatingChange: Bool = false
+    
+    // Shopping List ViewModel
+    @Published var shoppingListViewModel = ShoppingListViewModel()
     
     // Private Properties
     private let recipeId: UUID
     private let recipeService = RecipeService.shared
+    private var previousUserRating: Int?
     
     // Computed Properties
     var areAllIngredientsSelected: Bool {
@@ -50,8 +54,6 @@ class RecipeDetailViewModel: ObservableObject {
     }
     
     func loadData() async {
-        self.isLoading = true
-        
         do {
             let freshRecipe: Recipe = try await supabase.from("recipes")
                 .select(Recipe.selectQuery)
@@ -72,8 +74,6 @@ class RecipeDetailViewModel: ObservableObject {
             print("❌ Detay verisi çekilirken hata oluştu: \(error)")
             self.shouldDismiss = true
         }
-        
-        self.isLoading = false
     }
     
     private func checkAuthAndOwnershipStatus() async {
@@ -103,18 +103,29 @@ class RecipeDetailViewModel: ObservableObject {
         }
     }
     
+    private func refreshRecipe() async {
+        do {
+            let freshRecipe: Recipe = try await supabase.from("recipes")
+                .select(Recipe.selectQuery)
+                .eq("id", value: self.recipeId)
+                .single().execute().value
+            self.recipe = freshRecipe
+        } catch {
+            print("❌ Recipe refresh failed: \(error)")
+        }
+    }
+    
     func isIngredientSelected(_ recipeIngredient: RecipeIngredientJoin) -> Bool {
-        guard let id = recipeIngredient.ingredientId else { return false }
-        return selectedIngredients.contains(id)
+        return selectedIngredients.contains(recipeIngredient.id)
     }
     
     func toggleIngredientSelection(_ recipeIngredient: RecipeIngredientJoin) {
-        guard let ingredientId = recipeIngredient.ingredientId else { return }
+        let joinId = recipeIngredient.id
         
-        if selectedIngredients.contains(ingredientId) {
-            selectedIngredients.remove(ingredientId)
+        if selectedIngredients.contains(joinId) {
+            selectedIngredients.remove(joinId)
         } else {
-            selectedIngredients.insert(ingredientId)
+            selectedIngredients.insert(joinId)
         }
     }
     
@@ -123,9 +134,7 @@ class RecipeDetailViewModel: ObservableObject {
             selectedIngredients.removeAll()
         } else {
             recipe.ingredients.forEach { recipeIngredient in
-                if let ingredientId = recipeIngredient.ingredientId {
-                    selectedIngredients.insert(ingredientId)
-                }
+                selectedIngredients.insert(recipeIngredient.id)
             }
         }
     }
@@ -158,6 +167,8 @@ class RecipeDetailViewModel: ObservableObject {
     func submitRating(_ rating: Int) async {
         guard let currentUserId = try? await supabase.auth.session.user.id else { return }
         
+        self.previousUserRating = self.userCurrentRating
+        
         let ratingData = NewRating(
             recipeId: self.recipe.id,
             userId: currentUserId,
@@ -170,16 +181,60 @@ class RecipeDetailViewModel: ObservableObject {
                 .execute()
             
             self.userCurrentRating = rating
+            self.statusMessage = "Puan kaydedildi"
+            self.canUndoRatingChange = true
+            await refreshRecipe()
         } catch {
             print("❌ Error submitting rating: \(error)")
+        }
+    }
+    
+    func removeRating() async {
+        self.previousUserRating = self.userCurrentRating
+        
+        guard previousUserRating != nil else { return }
+        do {
+            try await recipeService.deleteUserRating(for: recipe.id)
+            self.userCurrentRating = nil
+            self.statusMessage = "Puan kaldırıldı"
+            self.canUndoRatingChange = true
+            await refreshRecipe()
+        } catch {
+            self.statusMessage = "Puan kaldırılamadı"
+            print("❌ Error removing rating: \(error)")
+        }
+    }
+    
+    func undoRatingChange() async {
+        do {
+            if let previous = previousUserRating {
+                guard let currentUserId = try? await supabase.auth.session.user.id else { return }
+                let ratingData = NewRating(
+                    recipeId: self.recipe.id,
+                    userId: currentUserId,
+                    rating: previous
+                )
+                try await supabase.from("recipe_ratings")
+                    .upsert(ratingData)
+                    .execute()
+                self.userCurrentRating = previous
+            } else {
+                try await recipeService.deleteUserRating(for: recipe.id)
+                self.userCurrentRating = nil
+            }
+            self.statusMessage = "Değişiklik geri alındı"
+            self.canUndoRatingChange = false
+            await refreshRecipe()
+        } catch {
+            self.statusMessage = "Geri alma başarısız"
+            print("❌ Error undoing rating change: \(error)")
         }
     }
     
     /// start adding ingredients to shopping list
     func addSelectedIngredientsToShoppingList() {
         let selected = recipe.ingredients.filter {
-            guard let id = $0.ingredientId else { return false }
-            return selectedIngredients.contains(id)
+            return selectedIngredients.contains($0.id)
         }
         
         guard !selected.isEmpty else {
@@ -188,6 +243,26 @@ class RecipeDetailViewModel: ObservableObject {
         }
         
         showListSelector = true
+    }
+    
+    func prepareAndShowListCreator() {
+        let selected = recipe.ingredients.filter {
+            return selectedIngredients.contains($0.id)
+        }
+        
+        let editableItems = selected.map {
+            EditableShoppingItem(
+                id: UUID(), // temporary ID for editing UI
+                name: $0.name,
+                amount: $0.formattedAmount,
+                unit: $0.unit,
+                originalIngredientId: $0.ingredientId)
+        }
+        
+        shoppingListViewModel.listToEdit = nil
+        shoppingListViewModel.listNameForSheet = ""
+        shoppingListViewModel.itemsForEditingList = editableItems
+        shoppingListViewModel.isShowingEditSheet = true
     }
     
     /// selected items add to shopping list

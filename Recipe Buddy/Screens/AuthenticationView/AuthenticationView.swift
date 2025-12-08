@@ -5,10 +5,11 @@ struct AuthenticationView: View {
     
     var onAuthSuccess: () -> Void
     
-    enum AuthScreen {
+    enum AuthScreen: Equatable {
         case login
         case register
         case forgotPassword
+        case emailConfirmation(email: String, isNewUser: Bool)
     }
 
     var body: some View {
@@ -20,9 +21,15 @@ struct AuthenticationView: View {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .register
                         }
-                    }, onNavigateToForgotPassword: {
+                    },
+                    onNavigateToForgotPassword: {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .forgotPassword
+                        }
+                    },
+                    onNavigateToConfirmation: { email in
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .emailConfirmation(email: email, isNewUser: false)
                         }
                     }
                 )
@@ -31,7 +38,11 @@ struct AuthenticationView: View {
 
             if currentAuthScreen == .register {
                 RegisterView(
-                    onAuthSuccess: onAuthSuccess,
+                    onRegisterSuccess: { email in
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .emailConfirmation(email: email, isNewUser: true)
+                        }
+                    } ,
                     onNavigateToLogin: {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .login
@@ -44,6 +55,17 @@ struct AuthenticationView: View {
             if currentAuthScreen == .forgotPassword {
                 ForgotPasswordView(
                     onNavigateToLogin: {
+                        withAnimation(.easeInOut) {
+                            currentAuthScreen = .login
+                        }
+                    }
+                )
+                .transition(.move(edge: .trailing))
+            }
+            
+            if case .emailConfirmation(let email, let isNewUser) = currentAuthScreen {
+                EmailConfirmationView(
+                    email: email, isNewUser: isNewUser, onConfirmed: onAuthSuccess, onNavigateBack: {
                         withAnimation(.easeInOut) {
                             currentAuthScreen = .login
                         }

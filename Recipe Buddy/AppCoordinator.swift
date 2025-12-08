@@ -2,20 +2,79 @@ import SwiftUI
 
 @MainActor
 class AppCoordinator: ObservableObject {
-    @Published var rootView: AnyView
+    @Published var currentView: AppView = .splash
     let dataManager: DataManager
+    
+    enum AppView {
+        case splash
+        case auth
+        case main
+    }
+    
+    var rootView: AnyView {
+        switch currentView {
+        case .splash:
+            return AnyView(SplashView(coordinator: self))
+        case .auth:
+            return AnyView(AuthenticationView(onAuthSuccess: {
+                Task { await self.setupMainApp()}
+            }))
+        case .main:
+            return AnyView(MainTabView(coordinator: self))
+        }
+    }
     
     init() {
         let dm = DataManager()
         self.dataManager = dm
-        
-        self.rootView = AnyView(EmptyView())
         configureNavigationBarAppearance()
         
+        listenForAuthStateChanges()
+        
         Task {
-            try? await Task.sleep(for: .seconds(1))
             await checkAuthenticationStatus()
         }
+    }
+    
+    private func listenForAuthStateChanges() {
+        Task {
+            for await state in supabase.auth.authStateChanges {
+                if state.event == .signedIn, state.session != nil {
+                    print("✅ E-posta onayı veya giriş algılandı, ana uygulama kuruluyor...")
+                    await setupMainApp()
+                }
+            }
+        }
+    }
+    
+    func checkAuthenticationStatus() async {
+        try? await Task.sleep(for: .seconds(1))
+        
+        do {
+            let session = try await supabase.auth.session
+            if !session.isExpired {
+                await setupMainApp()
+            } else {
+                showAuthenticationView()
+            }
+        } catch {
+            // User is not authenticated, show authentication view
+            print("❌ Kullanıcı giriş yapmamış, kimlik doğrulama ekranına yönlendiriliyor.")
+            showAuthenticationView()
+        }
+    }
+    
+    private func setupMainApp() async {
+        print("✅ Veriler yükleniyor...")
+        await dataManager.loadInitialUserData()
+        await dataManager.loadHomePageData()
+        print("✅ Veriler yüklendi, ana ekrana yönlendiriliyor.")
+        currentView = .main
+    }
+    
+    func showAuthenticationView() {
+        dataManager.clearUserData()
+        currentView = .auth
     }
     
     private func configureNavigationBarAppearance() {
@@ -35,42 +94,5 @@ class AppCoordinator: ObservableObject {
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
-    }
-    
-    func checkAuthenticationStatus() async {
-        do {
-            let session = try await supabase.auth.session
-            if !session.isExpired {
-                // User is authenticated, show main tab view
-                print("✅ Kullanıcı giriş yapmış, veriler yükleniyor...")
-                await dataManager.loadInitialUserData()
-                await dataManager.loadHomePageData()
-                print("✅ Veriler yüklendi, ana ekrana yönlendiriliyor.")
-                showMainTabView()
-            }
-        } catch {
-            // User is not authenticated, show authentication view
-            print("❌ Kullanıcı giriş yapmamış, kimlik doğrulama ekranına yönlendiriliyor.")
-            dataManager.clearUserData()
-            showAuthenticationView()
-        }
-    }
-    
-    func showMainTabView() {
-        self.rootView = AnyView(
-            MainTabView(coordinator: self)
-        )
-    }
-    
-    func showAuthenticationView() {
-        self.rootView = AnyView(
-            AuthenticationView(onAuthSuccess: {
-                Task {
-                    await self.dataManager.loadInitialUserData()
-                    await self.dataManager.loadHomePageData()
-                    self.showMainTabView()
-                }
-            })
-        )
     }
 }

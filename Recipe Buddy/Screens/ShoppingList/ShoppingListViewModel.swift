@@ -39,34 +39,52 @@ class ShoppingListViewModel: ObservableObject {
     }
     
     /// Fetches all shopping lists by calling the service layer.
-    func fetchAllLists() async {
-        isLoading = true
+    func fetchAllLists(dataManager: DataManager) async {
+        if !dataManager.cachedShoppingLists.isEmpty {
+            self.shoppingLists = dataManager.cachedShoppingLists
+            self.itemsByListID = dataManager.cachedShoppingListItems
+            
+            if dataManager.isShoppingListLoaded {
+                isLoading = false
+            }
+        } else {
+            isLoading = true
+        }
+        
         defer { isLoading = false }
         
         do {
-            self.shoppingLists = try await service.fetchListsWithCounts()
+            let fetchedLists = try await service.fetchListsWithCounts()
             
-            if let firstList = shoppingLists.first {
+            self.shoppingLists = fetchedLists
+            dataManager.cachedShoppingLists = fetchedLists
+            
+            if let firstList = fetchedLists.first {
                 self.expandedListID = firstList.id
-                await fetchItems(for: firstList.id)
+                await fetchItems(for: firstList.id, dataManager: dataManager)
             }
+            
+            dataManager.isShoppingListLoaded = true
+            
         } catch {
             print("❌ Error fetching lists: \(error.localizedDescription)")
         }
     }
     
     /// Fetches the items for a specific list by calling the service.
-    private func fetchItems(for listId: UUID) async {
-        // This guard prevents re-fetching if data is already loaded.
-        guard itemsByListID[listId] == nil else { return }
+    private func fetchItems(for listId: UUID, dataManager: DataManager? = nil) async {
+        if let cachedItems = dataManager?.cachedShoppingListItems[listId], !cachedItems.isEmpty {
+            self.itemsByListID[listId] = cachedItems
+        }
         
         do {
             let items = try await service.fetchItems(for: listId)
-            itemsByListID[listId] = items
+            self.itemsByListID[listId] = items
+            dataManager?.cachedShoppingListItems[listId] = items
         } catch {
             print("❌ Error fetching items for list \(listId): \(error.localizedDescription)")
             // On failure, set an empty array to prevent repeated failed attempts.
-            itemsByListID[listId] = []
+            self.itemsByListID[listId] = []
         }
     }
     
@@ -106,7 +124,7 @@ class ShoppingListViewModel: ObservableObject {
     
     /// Toggles the checked state of all items in a list.
     /// If some are unchecked, it checks all. If all are checked, it unchecks all.
-    func toggleCheckAllItems(in list: ShoppingList) async {
+    func toggleCheckAllItems(in list: ShoppingList, dataManager: DataManager) async {
         if itemsByListID[list.id] == nil {
                 await fetchItems(for: list.id)
             }
@@ -131,16 +149,17 @@ class ShoppingListViewModel: ObservableObject {
                         name: shoppingLists[index].name,
                         userId: shoppingLists[index].userId,
                         itemCount: shoppingLists[index].itemCount,
-                        checkedItemCount: newCheckedCount
+                        checkedItemCount: newCheckedCount,
+                        createdAt: .now
                     )
                     
                     shoppingLists[index] = updatedList
                 }
                 
             } catch {
-                print("❌ Error toggling all items: \(error.localizedDescription)")
-                // On error, a full refresh is a good idea to re-sync with the database.
-                await fetchAllLists()
+                    print("❌ Error toggling all items: \(error.localizedDescription)")
+                    // On error, a full refresh is a good idea to re-sync with the database.
+                    await fetchAllLists(dataManager: dataManager)
             }
     }
     
@@ -155,7 +174,7 @@ class ShoppingListViewModel: ObservableObject {
     }
     
     /// delete checked items from the database
-    func clearCheckedItems(in list: ShoppingList) async {
+    func clearCheckedItems(in list: ShoppingList, dataManager: DataManager) async {
         let checkedItemIds = (itemsByListID[list.id] ?? []).filter { $0.isChecked }.map { $0.id }
         guard !checkedItemIds.isEmpty else { return }
         
@@ -165,7 +184,7 @@ class ShoppingListViewModel: ObservableObject {
             itemsByListID[list.id]?.removeAll { $0.isChecked }
             
             if itemsByListID[list.id]?.isEmpty ?? false {
-                await deleteList(list)
+                await deleteList(list, dataManager: dataManager)
             }
         } catch {
             print("❌ Error clearing checked items: \(error)")
@@ -178,15 +197,15 @@ class ShoppingListViewModel: ObservableObject {
     }
     
     /// confirm clearing all items in the list
-    func confirmClearAllItems() async {
+    func confirmClearAllItems(dataManager: DataManager) async {
         guard let listToClear = showingClearAlertForList else { return }
         defer { showingClearAlertForList = nil }
         
-        await deleteList(listToClear)
+        await deleteList(listToClear, dataManager: dataManager)
     }
     
     /// Deletes a shopping list by calling the service layer.
-    func deleteList(_ list: ShoppingList) async {
+    func deleteList(_ list: ShoppingList, dataManager: DataManager) async {
         isLoading = true
         do {
             try await service.deleteList(list)
@@ -195,7 +214,7 @@ class ShoppingListViewModel: ObservableObject {
         } catch {
             print("❌ Error deleting list: \(error.localizedDescription)")
             // If the deletion fails, refetch from the server to ensure UI is in sync.
-            await fetchAllLists()
+            await fetchAllLists(dataManager: dataManager)
         }
         isLoading = false
     }
@@ -258,7 +277,7 @@ class ShoppingListViewModel: ObservableObject {
     // MARK: - Create / Update Logic
     
     /// Saves changes by calling the appropriate service method.
-    func saveList() async {
+    func saveList(dataManager: DataManager) async {
         let name = listNameForSheet.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         
@@ -309,7 +328,7 @@ class ShoppingListViewModel: ObservableObject {
         }
         
         // Refresh everything
-        await fetchAllLists()
+        await fetchAllLists(dataManager: dataManager)
     }
 
     // MARK: - Helpers

@@ -142,6 +142,19 @@ class RecipeService {
         }
     }
     
+    /// Deletes the current user's rating for a specific recipe
+    func deleteUserRating(for recipeId: UUID) async throws {
+        guard let userId = try? await supabase.auth.session.user.id else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        
+        try await supabase.from("recipe_ratings")
+            .delete()
+            .eq("user_id", value: userId)
+            .eq("recipe_id", value: recipeId)
+            .execute()
+    }
+    
     // MARK: - Checks and Toggle
     
     /// Checks if a recipe is favorited by the current user

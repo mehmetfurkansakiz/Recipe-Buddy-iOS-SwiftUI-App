@@ -28,7 +28,9 @@ class ForgotPasswordViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            try await supabase.auth.resetPasswordForEmail(email)
+            try await supabase.auth.resetPasswordForEmail(
+                email
+            )
             self.didSendLink = true
             startTimer()
         } catch {

@@ -115,14 +115,20 @@ class ShoppingListService {
     /// add ingredients to a shopping list
     func addIngredients(_ ingredients: [RecipeIngredientJoin], to list: ShoppingList) async throws {
         for recipeIngredient in ingredients {
-            // check if the ingredient already exists in the shopping list
-            let existingItems: [ShoppingListItem] = try await supabase.from("shopping_list_items")
-                .select("id, amount")
+            
+            var query = supabase.from("shopping_list_items")
+                .select("*")
                 .eq("list_id", value: list.id)
-                .eq("ingredient_id", value: recipeIngredient.ingredientId)
                 .eq("unit", value: recipeIngredient.unit)
-                .execute()
-                .value
+            
+            if let ingredientId = recipeIngredient.ingredientId {
+                query = query.eq("ingredient_id", value: ingredientId)
+            } else {
+                query = query.filter("ingredient_id", operator: "is", value: "null")
+                query = query.eq("name", value: recipeIngredient.name)
+            }
+            
+            let existingItems: [ShoppingListItem] = try await query.execute().value
 
             if let existingItem = existingItems.first {
                 // if existing item found, update the amount

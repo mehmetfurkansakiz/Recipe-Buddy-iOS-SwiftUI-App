@@ -5,6 +5,7 @@ struct LoginView: View {
     var onAuthSuccess: () -> Void
     var onNavigateToRegister: () -> Void
     var onNavigateToForgotPassword: () -> Void
+    var onNavigateToConfirmation: (String) -> Void
     
     var body: some View {
         ZStack {
@@ -27,9 +28,9 @@ struct LoginView: View {
                 
                 // Login form
                 VStack(spacing: 16) {
-                    AuthTextField(placeholder: "E-posta Adresi", text: $viewModel.email)
+                    AuthTextField(placeholder: "E-posta Adresi", text: $viewModel.email, contentType: .emailAddress)
                         .keyboardType(.emailAddress)
-                    AuthTextField(placeholder: "Şifre", text: $viewModel.password, isSecure: true)
+                    AuthTextField(placeholder: "Şifre", text: $viewModel.password, isSecure: true, contentType: .password)
                 }
                 
                 // Forgot password link
@@ -70,15 +71,25 @@ struct LoginView: View {
                         }   
                     }
                 }
+                .onChange(of: viewModel.shouldNavigateToConfirmation) {
+                    if viewModel.shouldNavigateToConfirmation {
+                        onNavigateToConfirmation(viewModel.email)
+                        viewModel.shouldNavigateToConfirmation = false
+                    }
+                }
             }
             .padding(.horizontal, 24)
-            .alert("Hata", isPresented: .constant(viewModel.errorMessage != nil), actions: {
-                Button("Tamam") { viewModel.errorMessage = nil }
-            }, message: { Text(viewModel.errorMessage ?? "") })
+            .alert(item: $viewModel.authError) { error in
+                Alert(
+                    title: Text("Hata"),
+                    message: Text(error.errorDescription ?? "Bilinmeyen bir hata oluştu."),
+                    dismissButton: .default(Text("Tamam"))
+                )
+            }
         }
     }
 }
 
 #Preview {
-    LoginView(onAuthSuccess: {}, onNavigateToRegister: {}, onNavigateToForgotPassword: {})
+    LoginView(onAuthSuccess: {}, onNavigateToRegister: {}, onNavigateToForgotPassword: {}, onNavigateToConfirmation: {_ in })
 }
