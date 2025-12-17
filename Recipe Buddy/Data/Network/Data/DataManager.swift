@@ -7,6 +7,10 @@ class DataManager: ObservableObject {
     @Published var currentUser: User?
     @Published var ownedRecipes: [Recipe] = []
     @Published var favoritedRecipes: [Recipe] = []
+    @Published var ownedRecipesTotalCount: Int = 0
+    @Published var totalFavoritesReceived: Int = 0
+    @Published var averageRating: Double = 0.0
+    @Published var areProfileStatsLoaded: Bool = false
     
     /// properties for home page sections and categories
     @Published var homeSections: [RecipeSection] = []
@@ -52,10 +56,21 @@ class DataManager: ObservableObject {
             async let userTask = userService.fetchCurrentUser()
             async let ownedTask = recipeService.fetchOwnedRecipes(page: 0, limit: 10)
             async let favoritesTask = recipeService.fetchFavoriteRecipes()
+            async let favoritesReceivedTask = recipeService.fetchTotalFavoritesReceivedCount()
+            async let ownedCountTask = recipeService.fetchOwnedRecipesCount()
             
-            self.currentUser = try await userTask
+            let user = try await userTask
+            self.currentUser = user
             self.ownedRecipes = try await ownedTask
             self.favoritedRecipes = try await favoritesTask
+            self.ownedRecipesTotalCount = try await ownedCountTask
+            
+            // Profile stats
+            self.totalFavoritesReceived = try await favoritesReceivedTask
+            let points = user?.totalRatingPoints ?? 0
+            let received = user?.totalRatingsReceived ?? 0
+            self.averageRating = received > 0 ? Double(points) / Double(received) : 0.0
+            self.areProfileStatsLoaded = true
             
             self.ownedRecipesPage = 1
             print("✅ DataManager: Tüm kullanıcı verileri başarıyla yüklendi.")
@@ -156,6 +171,10 @@ class DataManager: ObservableObject {
         self.currentUser = nil
         self.ownedRecipes = []
         self.favoritedRecipes = []
+        self.ownedRecipesTotalCount = 0
+        self.totalFavoritesReceived = 0
+        self.averageRating = 0.0
+        self.areProfileStatsLoaded = false
         print("ℹ️ DataManager: Kullanıcı verileri temizlendi.")
         
         self.cachedShoppingLists = []
@@ -182,6 +201,8 @@ class DataManager: ObservableObject {
         for i in 0..<homeSections.count {
             homeSections[i].recipes.removeAll { $0.id == deletedRecipeID }
         }
+        
+        if self.ownedRecipesTotalCount > 0 { self.ownedRecipesTotalCount -= 1 }
     }
 
     @objc private func handleRecipeUpdated(notification: Notification) {
@@ -205,6 +226,7 @@ class DataManager: ObservableObject {
         guard let userInfo = notification.userInfo, let newRecipe = userInfo["newRecipe"] as? Recipe else { return }
         // add new recipe to the top of the owned recipes list
         ownedRecipes.insert(newRecipe, at: 0)
+        self.ownedRecipesTotalCount += 1
     }
     
     @objc private func handleFavoriteStatusChanged(notification: Notification) {
@@ -229,3 +251,4 @@ class DataManager: ObservableObject {
         }
     }
 }
+

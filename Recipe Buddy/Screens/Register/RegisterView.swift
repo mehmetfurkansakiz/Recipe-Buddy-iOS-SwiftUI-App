@@ -31,8 +31,8 @@ struct RegisterView: View {
                         AuthTextField(placeholder: "Kullanıcı Adı", text: $viewModel.username, contentType: .username)
                         AuthTextField(placeholder: "E-posta Adresi", text: $viewModel.email, contentType: .emailAddress)
                             .keyboardType(.emailAddress)
-                        AuthTextField(placeholder: "Şifre", text: $viewModel.password, isSecure: true, contentType: .newPassword)
-                        AuthTextField(placeholder: "Şifre (Tekrar)", text: $viewModel.confirmPassword, isSecure: true, contentType: .newPassword)
+                        AuthTextField(placeholder: "Şifre", text: $viewModel.password, isSecure: true, contentType: .oneTimeCode)
+                        AuthTextField(placeholder: "Şifre (Tekrar)", text: $viewModel.confirmPassword, isSecure: true, contentType: .oneTimeCode)
                     }
                     
                     AuthButton(

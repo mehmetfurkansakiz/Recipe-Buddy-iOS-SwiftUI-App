@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ShoppingListView: View {
     @StateObject var viewModel: ShoppingListViewModel
@@ -16,32 +17,42 @@ struct ShoppingListView: View {
             } else {
                 listContent
             }
-        }
-        .toolbarBackground(.thinMaterial, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Text("Alışveriş Listelerim")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.EBA_72_B)
-            }
-            ToolbarItem(placement: .topBarTrailing) {
+            
+            // Floating Action Button (FAB)
+            VStack {
+                Spacer()
                 HStack {
-                    Text("Liste Oluştur")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.EBA_72_B)
-                    Image("plus.icon")
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                        .foregroundStyle(.EBA_72_B)
+                    Spacer()
+                    Button(action: {
+                        viewModel.presentListEditSheetForCreate()
+                    }) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.EBA_72_B)
+                                .frame(width: 56, height: 56)
+                                .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                )
+                            
+                            Image("plus.icon")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 24, height: 24)
+                                .foregroundStyle(Color.white)
+                        }
+                    }
+                    .accessibilityLabel("Liste Oluştur")
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
                 }
-                .onTapGesture(perform: {
-                    viewModel.presentListEditSheetForCreate()
-                })
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
+        // Navigation title and appearance with helper modifier
+        .navigationTitle("Alışveriş Listelerim")
+        .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
         .task {
             await viewModel.fetchAllLists(dataManager: dataManager)
         }
@@ -142,7 +153,8 @@ struct ShoppingListSectionView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
-                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                .transition(.opacity
+                    .combined(with: .scale(scale: 0.95, anchor: .top)))
             }
         }
         .overlay(RoundedRectangle(cornerRadius: 12)
@@ -196,6 +208,10 @@ struct ShoppingListSectionView: View {
 
 #Preview() {
     NavigationStack {
-        ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: .constant(NavigationPath()))
+        ShoppingListView(
+            viewModel: ShoppingListViewModel(forPreview: true),
+            navigationPath: .constant(NavigationPath())
+        )
+        .environmentObject(DataManager())
     }
 }
