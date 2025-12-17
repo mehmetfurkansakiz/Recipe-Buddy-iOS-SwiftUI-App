@@ -43,6 +43,8 @@ struct MainTabView: View {
                     ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))
                 case .favoriteRecipes:
                     FavoriteRecipesView(navigationPath: $navigationPath)
+                case .settings:
+                    SettingsView(viewModel: SettingsViewModel(coordinator: coordinator), navigationPath: $navigationPath)
                 }
             }
         }
@@ -63,7 +65,7 @@ struct TabContent: View {
         case .shoppingList:
             ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: $navigationPath)
         case .settings:
-            SettingsView(viewModel: SettingsViewModel(coordinator: coordinator), navigationPath: $navigationPath)
+            ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))
         }
     }
 }

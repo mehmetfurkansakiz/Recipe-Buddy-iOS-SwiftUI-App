@@ -7,7 +7,7 @@ class ProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isSigningOut = false
     
-    private let coordinator: AppCoordinator
+    let coordinator: AppCoordinator
     private let recipeService = RecipeService.shared
     
     init(coordinator: AppCoordinator) {
@@ -40,22 +40,6 @@ class ProfileViewModel: ObservableObject {
             
         } catch {
             print("❌ Error fetching profile data: \(error.localizedDescription)")
-        }
-    }
-    
-    /// Signs the user out.
-    func signOut(dataManager: DataManager) async {
-        isSigningOut = true
-        
-        try? await Task.sleep(for: .seconds(1))
-        
-        do {
-            try await supabase.auth.signOut()
-            dataManager.clearUserData()
-            coordinator.showAuthenticationView()
-        } catch {
-            print("❌ Error signing out from profile: \(error.localizedDescription)")
-            isSigningOut = false
         }
     }
 }

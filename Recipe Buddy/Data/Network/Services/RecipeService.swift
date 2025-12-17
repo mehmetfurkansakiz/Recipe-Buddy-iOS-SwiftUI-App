@@ -98,6 +98,15 @@ class RecipeService {
             .value
     }
     
+    func fetchOwnedRecipesCount() async throws -> Int {
+        guard let userId = try? await supabase.auth.session.user.id else { return 0 }
+        let response = try await supabase.from("recipes")
+            .select(count: .exact)
+            .eq("user_id", value: userId)
+            .execute()
+        return response.count ?? 0
+    }
+    
     /// Fetches recipes favorited by the current user.
     func fetchFavoriteRecipes() async throws -> [Recipe] {
         struct FavoritedRecipeResult: Decodable { let recipe: Recipe }

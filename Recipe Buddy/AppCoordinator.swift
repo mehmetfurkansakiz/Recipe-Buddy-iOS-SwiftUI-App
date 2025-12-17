@@ -96,3 +96,4 @@ class AppCoordinator: ObservableObject {
         UINavigationBar.appearance().compactAppearance = appearance
     }
 }
+

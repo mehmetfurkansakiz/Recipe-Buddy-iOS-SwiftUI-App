@@ -7,79 +7,159 @@ struct SettingsView: View {
     @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
-                if let user = dataManager.currentUser {
-                    profileHeader(user: user)
-                } else {
-                    ProgressView()
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 32) {
+                    accountSection
+                    notificationsSection
+                    appearanceSection
+                    dataPrivacySection
+                    helpSupportSection
+                    aboutSection
+                    dangerZoneSection
+                    
+                    Spacer(minLength: 72)
                 }
-                accountSection
-                aboutSection
-                
-                Spacer()
+                .padding()
             }
-            .padding()
-        }
-        .background(Color("FBFBFB"))
-        .toolbarBackground(.thinMaterial, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Text("Ayarlar")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.EBA_72_B)
+            .background(Color("FBFBFB"))
+            .navigationTitle("Ayarlar")
+            .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
+            .alert("Yakında", isPresented: $viewModel.showPremiumAlert) {
+                Button("Tamam", role: .cancel) { }
+            } message: {
+                Text("Bu özellik yakında sizlerle olacak!")
             }
-        }
-        .alert("Yakında", isPresented: $viewModel.showPremiumAlert) {
-            Button("Tamam", role: .cancel) { }
-        } message: {
-            Text("Bu özellik yakında sizlerle olacak!")
         }
     }
     
-    /// A header view that displays the user's profile information.
-    private func profileHeader(user: User) -> some View {
-        HStack(spacing: 16) {
-            LazyImage(url: user.avatarPublicURL()) { state in
-                if let image = state.image {
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.gray.opacity(0.3))
-                }
-            }
-            .frame(width: 60, height: 60)
-            .clipShape(Circle())
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(user.fullName ?? "İsimsiz")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                Text(user.username ?? "")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .onTapGesture {
-            navigationPath.append(AppNavigation.profile)
-        }
-    }
-    
-    /// Section for account-related actions.
+    /// Section for account-related actions, expanded with edit profile and more.
     private var accountSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("HESAP")
-                .font(.caption).foregroundStyle(.secondary).padding(.leading, 4)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 4)
             
             VStack(spacing: 0) {
-                // Premium Button
                 Button(action: { viewModel.showPremiumAlert = true }) {
                     SettingsRowView(title: "Üyeliği Yönet", icon: "crown.fill", iconColor: .EBA_72_B)
+                }
+                
+                Divider().padding(.leading)
+                
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "Profili Düzenle", icon: "pencil", iconColor: .EBA_72_B)
+                }
+                
+                Divider().padding(.leading)
+                
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "Parolayı Değiştir", icon: "key.fill", iconColor: .EBA_72_B)
+                }
+                
+                Divider().padding(.leading)
+                
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "E-posta Tercihleri", icon: "envelope.fill", iconColor: .EBA_72_B)
+                }
+            }
+            .background(.thinMaterial.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
+        }
+    }
+    
+    /// Section for notification settings.
+    private var notificationsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("BİLDİRİMLER")
+                .font(.caption)
+                .foregroundStyle(.A_3_A_3_A_3)
+                .padding(.leading, 4)
+            
+            VStack(spacing: 0) {
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "Bildirimleri Yönet", icon: "bell.fill", iconColor: .A_3_A_3_A_3)
+                }
+            }
+            .background(.thinMaterial.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
+        }
+    }
+    
+    /// Section for appearance and theme settings.
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("GÖRÜNÜM")
+                .font(.caption)
+                .foregroundStyle(.A_3_A_3_A_3)
+                .padding(.leading, 4)
+            
+            VStack(spacing: 0) {
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "Tema", icon: "paintbrush.fill", iconColor: .A_3_A_3_A_3)
+                }
+            }
+            .background(.thinMaterial.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
+        }
+    }
+    
+    /// Section for data & privacy related settings.
+    private var dataPrivacySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("VERİ & GİZLİLİK")
+                .font(.caption)
+                .foregroundStyle(.A_3_A_3_A_3)
+                .padding(.leading, 4)
+            
+            VStack(spacing: 0) {
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "Veri İzni", icon: "lock.shield.fill", iconColor: .A_3_A_3_A_3)
+                }
+            }
+            .background(.thinMaterial.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
+        }
+    }
+    
+    /// Section for help and support related settings.
+    private var helpSupportSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("YARDIM & DESTEK")
+                .font(.caption)
+                .foregroundStyle(.A_3_A_3_A_3)
+                .padding(.leading, 4)
+            
+            VStack(spacing: 0) {
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "Yardım Merkezi", icon: "questionmark.circle.fill", iconColor: .A_3_A_3_A_3)
+                }
+                
+                Divider().padding(.leading)
+                
+                Button {
+                    viewModel.showPremiumAlert = true
+                } label: {
+                    SettingsRowView(title: "Geri Bildirim Gönder", icon: "paperplane.fill", iconColor: .A_3_A_3_A_3)
                 }
             }
             .background(.thinMaterial.opacity(0.3))
@@ -97,7 +177,6 @@ struct SettingsView: View {
                 .padding(.leading, 4)
             
             VStack(spacing: 0) {
-                // These will open a web browser
                 Link(destination: URL(string: "https://www.yourapp.com/privacy")!) {
                     SettingsRowView(title: "Gizlilik Politikası", icon: "shield.fill", iconColor: .A_3_A_3_A_3)
                 }
@@ -116,6 +195,39 @@ struct SettingsView: View {
                     iconColor: .A_3_A_3_A_3,
                     version: appVersion()
                 )
+            }
+            .background(.thinMaterial.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
+        }
+    }
+    
+    /// Section with destructive actions pinned at the bottom.
+    private var dangerZoneSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("HESAP İŞLEMLERİ")
+                .font(.caption)
+                .foregroundStyle(.A_3_A_3_A_3)
+                .padding(.leading, 4)
+            
+            VStack(spacing: 0) {
+                Button {
+                    Task { await viewModel.signOut(dataManager: dataManager) }
+                } label: {
+                    SettingsRowView(title: "Çıkış Yap", icon: "rectangle.portrait.and.arrow.right", iconColor: .red)
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+                
+                Divider().padding(.leading)
+                
+                Button(role: .destructive) {
+                    // TODO: Implement account deletion action
+                } label: {
+                    SettingsRowView(title: "Hesabı Sil", icon: "trash.fill", iconColor: .red)
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
             }
             .background(.thinMaterial.opacity(0.3))
             .clipShape(RoundedRectangle(cornerRadius: 12))
