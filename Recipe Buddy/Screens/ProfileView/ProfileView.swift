@@ -53,18 +53,7 @@ struct ProfileView: View {
                     }
                 }
             }
-            .task { }
-            // SignOut Progress Overlay
-            if viewModel.isSigningOut {
-                Color.black.opacity(0.4).ignoresSafeArea()
-                ProgressView("Çıkış Yapılıyor...")
-                    .padding(20)
-                    .background(.thinMaterial)
-                    .cornerRadius(12)
-                    .transition(.opacity)
-            }
         }
-        .animation(.default, value: viewModel.isSigningOut)
     }
     
     /// The main header with avatar, name, and username.

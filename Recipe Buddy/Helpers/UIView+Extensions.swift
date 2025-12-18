@@ -91,6 +91,31 @@ extension View {
                         .font: scaledFont
                     ]
 
+                    let tint = UIColor(titleColor)
+
+                    appearance.buttonAppearance.normal.titleTextAttributes = [
+                        .foregroundColor: tint
+                    ]
+                    appearance.buttonAppearance.highlighted.titleTextAttributes = [
+                        .foregroundColor: tint
+                    ]
+
+                    appearance.doneButtonAppearance.normal.titleTextAttributes = [
+                        .foregroundColor: tint
+                    ]
+                    appearance.doneButtonAppearance.highlighted.titleTextAttributes = [
+                        .foregroundColor: tint
+                    ]
+
+                    appearance.backButtonAppearance.normal.titleTextAttributes = [
+                        .foregroundColor: tint
+                    ]
+                    appearance.backButtonAppearance.highlighted.titleTextAttributes = [
+                        .foregroundColor: tint
+                    ]
+
+                    // Ensure bar button items and back indicator use the tint color
+                    nav.navigationBar.tintColor = tint
                     nav.navigationBar.standardAppearance = appearance
                     nav.navigationBar.compactAppearance = appearance
                     nav.navigationBar.scrollEdgeAppearance = appearance
