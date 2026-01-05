@@ -1,5 +1,6 @@
 import Foundation
 import Supabase
+import UIKit
 
 @MainActor
 class RecipeService {
@@ -198,8 +199,15 @@ class RecipeService {
                 throw URLError(.userAuthenticationRequired)
             }
             
+            if let uiImage = UIImage(data: imageData) {
+                let decision = await NSFWModerationService.shared.check(image: uiImage)
+                if case .rejected = decision {
+                    throw NSError(domain: "Moderation", code: 403, userInfo: [NSLocalizedDescriptionKey: "Uygunsuz içerik tespit edildi (NSFW)."])
+                }
+            }
+            
             // 1. Upload Image
-            let imagePath = try await ImageUploaderService.shared.uploadImage(imageData: imageData)
+            let imagePath = try await ImageUploaderService.shared.uploadRecipeImage(imageData: imageData)
             
             // 2. Insert Base Recipe
             let stepTexts = viewModel.steps.map { $0.text }
@@ -256,12 +264,18 @@ class RecipeService {
            let originalImageData = try? await URLSession.shared.data(from: viewModel.recipeToEdit!.imagePublicURL()!).0,
            newImageData != originalImageData {
             
+            if let uiImage = UIImage(data: newImageData) {
+                let decision = await NSFWModerationService.shared.check(image: uiImage)
+                if case .rejected = decision {
+                    throw NSError(domain: "Moderation", code: 403, userInfo: [NSLocalizedDescriptionKey: "Uygunsuz içerik tespit edildi (NSFW). Skor: "]) }
+            }
+            
             // delete old image from s3 storage
             if !imagePath.isEmpty {
                 try await ImageUploaderService.shared.deleteImage(for: imagePath)
             }
             // upload new image
-            imagePath = try await ImageUploaderService.shared.uploadImage(imageData: newImageData)
+            imagePath = try await ImageUploaderService.shared.uploadRecipeImage(imageData: newImageData)
         }
         
         // update other recipe details
@@ -349,3 +363,4 @@ class RecipeService {
         return RecipeSection(title: title, recipes: recipes, style: style)
     }
 }
+

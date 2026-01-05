@@ -6,14 +6,23 @@ struct User: Codable, Identifiable, Hashable {
     let email: String
     let username: String?
     let avatarUrl: String?
+    let profession: String?
     let totalRatingPoints: Int?
     let totalRatingsReceived: Int?
+    let city: String? = nil
+    let showCity: Bool? = nil
+    let bio: String? = nil
+    let birthDate: Date? = nil
+    let showBirthDate: Bool? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, username, email
+        case id, username, email, profession, city, bio
         case fullName = "full_name"
         case avatarUrl = "avatar_url"
         case totalRatingPoints = "total_rating_points"
         case totalRatingsReceived = "total_ratings_received"
+        case showCity = "show_city"
+        case birthDate = "birth_date"
+        case showBirthDate = "show_birth_date"
     }
 }
