@@ -11,6 +11,8 @@ class DataManager: ObservableObject {
     @Published var totalFavoritesReceived: Int = 0
     @Published var averageRating: Double = 0.0
     @Published var areProfileStatsLoaded: Bool = false
+    @Published var isProfessionEnabled: Bool = false
+    @Published var professionText: String = ""
     
     /// properties for home page sections and categories
     @Published var homeSections: [RecipeSection] = []
@@ -61,6 +63,9 @@ class DataManager: ObservableObject {
             
             let user = try await userTask
             self.currentUser = user
+            let loadedProfession = user?.profession ?? ""
+            self.professionText = loadedProfession
+            self.isProfessionEnabled = !loadedProfession.isEmpty
             self.ownedRecipes = try await ownedTask
             self.favoritedRecipes = try await favoritesTask
             self.ownedRecipesTotalCount = try await ownedCountTask
@@ -175,12 +180,48 @@ class DataManager: ObservableObject {
         self.totalFavoritesReceived = 0
         self.averageRating = 0.0
         self.areProfileStatsLoaded = false
+        self.isProfessionEnabled = false
+        self.professionText = ""
         print("ℹ️ DataManager: Kullanıcı verileri temizlendi.")
         
         self.cachedShoppingLists = []
         self.cachedShoppingListItems = [:]
         self.isShoppingListLoaded = false
         print("ℹ️ DataManager: Alışveriş listesi verileri temizlendi.")
+    }
+    
+    // MARK: - Profile Update
+    func updateProfile(
+        fullName: String?,
+        city: String?,
+        showCity: Bool,
+        bio: String?,
+        birthDate: Date?,
+        showBirthDate: Bool,
+        profession: String?,
+        avatarImageData: Data?
+    ) async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let updatedUser = try await userService.updateUserProfile(
+                fullName: fullName,
+                city: city,
+                showCity: showCity,
+                bio: bio,
+                birthDate: birthDate,
+                showBirthDate: showBirthDate,
+                profession: profession,
+                avatarImageData: avatarImageData
+            )
+            self.currentUser = updatedUser
+            let loadedProfession = updatedUser.profession ?? ""
+            self.professionText = loadedProfession
+            self.isProfessionEnabled = !loadedProfession.isEmpty
+            print("✅ DataManager: Profil güncellendi.")
+        } catch {
+            print("❌ DataManager: Profil güncellenirken hata: \(error)")
+        }
     }
     
     // MARK: - Notification Handlers

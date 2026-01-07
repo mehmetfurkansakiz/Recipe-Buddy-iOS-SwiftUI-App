@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @MainActor
 class AppCoordinator: ObservableObject {
@@ -88,9 +89,13 @@ class AppCoordinator: ObservableObject {
         appearance.largeTitleTextAttributes = [
             .foregroundColor: UIColor(named: "181818") ?? UIColor(named: "000000")!
         ]
+        // Ensure custom back indicator is used during transitions
+        if let backImage = UIImage(systemName: "chevron.backward")?.withRenderingMode(.alwaysTemplate) {
+            appearance.setBackIndicatorImage(backImage, transitionMaskImage: backImage)
+        }
         
-        UINavigationBar.appearance().tintColor = UIColor(named: "EBA72B")
-        
+        UINavigationBar.appearance().tintColor = UIColor(Color.EBA_72_B) 
+        UIBarButtonItem.appearance().tintColor = UIColor(Color.EBA_72_B)
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance

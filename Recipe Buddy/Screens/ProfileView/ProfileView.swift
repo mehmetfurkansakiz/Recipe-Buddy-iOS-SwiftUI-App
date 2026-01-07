@@ -39,7 +39,6 @@ struct ProfileView: View {
             .background(Color.FBFBFB)
             .navigationTitle("Profilim")
             .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
-            .tint(.EBA_72_B)
             .navigationDestination(isPresented: $goToSettings) {
                 SettingsView(viewModel: SettingsViewModel(coordinator: viewModel.coordinator), navigationPath: .constant(NavigationPath()))
             }
@@ -53,18 +52,7 @@ struct ProfileView: View {
                     }
                 }
             }
-            .task { }
-            // SignOut Progress Overlay
-            if viewModel.isSigningOut {
-                Color.black.opacity(0.4).ignoresSafeArea()
-                ProgressView("Çıkış Yapılıyor...")
-                    .padding(20)
-                    .background(.thinMaterial)
-                    .cornerRadius(12)
-                    .transition(.opacity)
-            }
         }
-        .animation(.default, value: viewModel.isSigningOut)
     }
     
     /// The main header with avatar, name, and username.
@@ -94,14 +82,18 @@ struct ProfileView: View {
                     .foregroundStyle(.A_3_A_3_A_3)
             }
             
-            // TODO: Navigate to an edit screen
-            Button("Profili Düzenle") { }
-                .fontWeight(.semibold)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 8)
-                .background(.thinMaterial.opacity(0.3))
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color(.systemGray4), lineWidth: 1))
+            NavigationLink {
+                EditProfileView(viewModel: EditProfileViewModel())
+            } label: {
+                Text("Profili Düzenle")
+                    .tint(.EBA_72_B)
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial.opacity(0.3))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color(.systemGray4), lineWidth: 1))
+            }
         }
         .frame(maxWidth: .infinity)
     }
@@ -125,16 +117,42 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("HAKKIMDA")
                 .font(.caption).foregroundStyle(.secondary).padding(.leading, 4)
-            Text(dataManager.currentUser?.fullName ?? "İsimsiz")
-                .font(.headline)
-            Text("Ev yapımı makarna ve tatlılar meraklısı. Akdeniz mutfağı favorim.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            
+            VStack(alignment: .leading, spacing: 6) {
+                let user = dataManager.currentUser
+                Text(user?.fullName ?? "İsimsiz")
+                    .font(.headline)
+
+                if let bio = user?.bio, !bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(bio)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    if let profession = user?.profession, !profession.isEmpty {
+                        Label(profession, systemImage: "briefcase")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    if (user?.showCity ?? false), let city = user?.city, !city.isEmpty {
+                        Label(city, systemImage: "mappin.and.ellipse")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    if (user?.showBirthDate ?? false), let date = user?.birthDate {
+                        let age = Calendar.current.dateComponents([.year], from: date, to: .now).year ?? 0
+                        Label("\(age) yaş", systemImage: "calendar")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(.thinMaterial.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
         }
-        .padding()
-        .background(.thinMaterial.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
     }
     
     // MARK: - Recent Recipes (Horizontal)
@@ -186,6 +204,11 @@ struct ProfileView: View {
                         Text("Henüz tarifin yok.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(.thinMaterial.opacity(0.3))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
                     }
                 }
                 .padding(.vertical, 4)

@@ -6,6 +6,20 @@ import AWSSDKIdentity
 
 @MainActor
 class ImageUploaderService {
+    enum UploadFolder {
+        case avatar
+        case recipes
+        case custom(String)
+        
+        var pathComponent: String {
+            switch self {
+            case .avatar: return "public/avatar"
+            case .recipes: return "public/recipes"
+            case .custom(let p): return p
+            }
+        }
+    }
+    
     static let shared = ImageUploaderService()
     
     private let s3Client: S3Client
@@ -34,7 +48,7 @@ class ImageUploaderService {
     
     // MARK: - Upload
     /// Uploads image data to the S3 bucket and returns the unique key (path).
-    func uploadImage(imageData: Data, maxLength: CGFloat = 720) async throws -> String {
+    func uploadImage(imageData: Data, maxLength: CGFloat = 720, folder: UploadFolder = .recipes) async throws -> String {
         guard let image = UIImage(data: imageData) else {
             throw NSError(domain: "ImageUploader", code: -1, userInfo: [NSLocalizedDescriptionKey: "Image decoding failed"])
         }
@@ -46,7 +60,7 @@ class ImageUploaderService {
         }
         
         // Create a unique name for the image file
-        let key = "public/\(UUID().uuidString).jpg"
+        let key = "\(folder.pathComponent)/\(UUID().uuidString).jpg"
         let body = ByteStream.data(finalData)
         
         let input = PutObjectInput(
@@ -59,6 +73,16 @@ class ImageUploaderService {
         _ = try await s3Client.putObject(input: input)
         print("✅ Successfully uploaded image to S3 with key: \(key)")
         return key
+    }
+    
+    /// Convenience: Uploads an avatar image to the avatar folder
+    func uploadAvatar(imageData: Data, maxLength: CGFloat = 720) async throws -> String {
+        return try await uploadImage(imageData: imageData, maxLength: maxLength, folder: .avatar)
+    }
+
+    /// Convenience: Uploads a recipe image to the recipes folder
+    func uploadRecipeImage(imageData: Data, maxLength: CGFloat = 720) async throws -> String {
+        return try await uploadImage(imageData: imageData, maxLength: maxLength, folder: .recipes)
     }
     
     private func resizeImageMaintainingAspect(image: UIImage, maxLength: CGFloat) -> UIImage {
@@ -90,3 +114,4 @@ class ImageUploaderService {
         print("🗑️ Deleted image with key: \(key)")
     }
 }
+

@@ -7,7 +7,7 @@ struct SettingsView: View {
     @EnvironmentObject var dataManager: DataManager
     
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 32) {
                     accountSection
@@ -22,6 +22,7 @@ struct SettingsView: View {
                 }
                 .padding()
             }
+            .allowsHitTesting(!viewModel.isSigningOut)
             .background(Color("FBFBFB"))
             .navigationTitle("Ayarlar")
             .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
@@ -29,6 +30,15 @@ struct SettingsView: View {
                 Button("Tamam", role: .cancel) { }
             } message: {
                 Text("Bu özellik yakında sizlerle olacak!")
+            }
+            
+            if viewModel.isSigningOut {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                ProgressView("Çıkış Yapılıyor...")
+                    .padding(20)
+                    .background(.thinMaterial)
+                    .cornerRadius(12)
+                    .transition(.opacity)
             }
         }
     }
@@ -48,8 +58,8 @@ struct SettingsView: View {
                 
                 Divider().padding(.leading)
                 
-                Button {
-                    viewModel.showPremiumAlert = true
+                NavigationLink {
+                    EditProfileView(viewModel: EditProfileViewModel())
                 } label: {
                     SettingsRowView(title: "Profili Düzenle", icon: "pencil", iconColor: .EBA_72_B)
                 }

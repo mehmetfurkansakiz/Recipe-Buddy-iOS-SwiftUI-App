@@ -5,7 +5,6 @@ class ProfileViewModel: ObservableObject {
     @Published var totalFavoritesReceived: Int = 0
     @Published var averageRating: Double = 0.0
     @Published var isLoading = false
-    @Published var isSigningOut = false
     
     let coordinator: AppCoordinator
     private let recipeService = RecipeService.shared
