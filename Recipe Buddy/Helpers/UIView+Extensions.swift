@@ -13,6 +13,30 @@ extension View {
     }
 }
 
+public extension View {
+    /// Adds a gesture recognizer to the view that dismisses the keyboard when tapping anywhere outside input fields.
+    func hideKeyboardOnTap() -> some View {
+        self
+            .overlay(
+                Color.clear
+                    .ignoresSafeArea(.keyboard)
+                    .allowsHitTesting(false)
+            )
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                }
+            )
+    }
+    
+}
+
+
 struct ShimmerEffect: ViewModifier {
     @State private var phase: CGFloat = -1.5
     

@@ -9,6 +9,7 @@ struct RecipeBuddyApp: App {
             coordinator.rootView
                 .preferredColorScheme(.light)
                 .environmentObject(coordinator.dataManager)
+                .hideKeyboardOnTap()
                 .onOpenURL { url in
                     print("➡️ onOpenURL tetiklendi: \(url)")
                     if url.scheme == "com.mehmetfurkansakiz.Recipe-Buddy" && url.host == "auth-callback" {

@@ -10,6 +10,7 @@ struct EditProfileView: View {
 
     // Image Picker (with editing/cropping)
     @State private var showImagePicker = false
+    @State private var showRemoveAvatarAlert = false
 
     var body: some View {
         ZStack {
@@ -33,6 +34,14 @@ struct EditProfileView: View {
                 Button("Tamam") { dismiss() }
             } message: {
                 Text("Profil bilgilerin güncellendi.")
+            }
+            .alert("Fotoğrafı kaldır?", isPresented: $showRemoveAvatarAlert) {
+                Button("Kaldır", role: .destructive) {
+                    viewModel.removeAvatarSelection()
+                }
+                Button("Vazgeç", role: .cancel) {}
+            } message: {
+                Text("Profil fotoğrafın kaldırılacak. İşlem Kaydet'e bastığında uygulanır.")
             }
 
             if viewModel.isSaving {
@@ -101,23 +110,48 @@ struct EditProfileView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Button(action: { showImagePicker = true }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "photo.on.rectangle.angled")
-                            Text("Fotoğrafı Değiştir")
-                                .fontWeight(.semibold)
+                    HStack(spacing: 8) {
+                        Button(action: { showImagePicker = true }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                Text("Fotoğrafı Değiştir")
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                                    .truncationMode(.tail)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(.thinMaterial)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color(.systemGray4), lineWidth: 1))
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(.thinMaterial)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color(.systemGray4), lineWidth: 1))
+                        .tint(.EBA_72_B)
+                        .layoutPriority(1)
+
+                        Button(role: .destructive, action: { showRemoveAvatarAlert = true }) {
+                            Image(systemName: "trash")
+                                .font(.body)
+                                .padding(10)
+                                .background(.thinMaterial)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color(.systemGray4), lineWidth: 1))
+                                .accessibilityLabel("Fotoğrafı Kaldır")
+                        }
+                        .disabled(!(viewModel.selectedImageData != nil || dataManager.currentUser?.avatarPublicURL() != nil) || viewModel.wantsToRemoveAvatar)
+                        .tint(.red)
                     }
-                    .tint(.EBA_72_B)
 
                     Text("Fotoğraf seçtikten sonra kırpma ekranı açılır.")
                         .font(.caption)
                         .foregroundStyle(.A_3_A_3_A_3)
+
+                    if viewModel.wantsToRemoveAvatar {
+                        Text("Fotoğraf kaldırılacak. Kaydet'e bastığınızda uygulanır.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
             }
             .padding()

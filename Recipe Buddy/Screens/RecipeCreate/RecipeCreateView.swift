@@ -65,6 +65,7 @@ struct RecipeCreateView: View {
                     .transition(.opacity)
             }
         }
+        .tint(Color("EBA72B"))
         .animation(.easeInOut(duration: 0.25), value: viewModel.isSaving)
         .animation(.default, value: viewModel.selection)
         // Sheets
@@ -115,12 +116,23 @@ struct StepNavigation: View {
     
     var body: some View {
         HStack {
+            if viewModel.selection == 0 {
+                Toggle("Herkesle Paylaş", isOn: $viewModel.isPublic)
+                    .tint(Color("EBA72B"))
+                    .toggleStyle(SwitchToggleStyle(tint: Color("EBA72B")))
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(.thinMaterial)
+                    .clipShape(Capsule())
+            }
+            
             if viewModel.selection > 0 {
                 Button { viewModel.selection -= 1 } label: {
                     Label("Geri", systemImage: "chevron.left")
                         .padding().frame(maxWidth: .infinity)
                 }
                 .background(.gray.opacity(0.2))
+                .foregroundStyle(._181818)
                 .clipShape(Capsule())
                 .contentShape(Rectangle())
             }

@@ -22,7 +22,7 @@ class UserService {
         return user
     }
     
-    /// Updates the current user's profile fields in Supabase. Optionally uploads a new avatar to S3 and stores its key.
+    /// Backward-compatible update without explicit remove flag
     func updateUserProfile(
         fullName: String?,
         city: String?,
@@ -33,16 +33,44 @@ class UserService {
         profession: String?,
         avatarImageData: Data?
     ) async throws -> User {
+        return try await updateUserProfileWithAvatarControl(
+            fullName: fullName,
+            city: city,
+            showCity: showCity,
+            bio: bio,
+            birthDate: birthDate,
+            showBirthDate: showBirthDate,
+            profession: profession,
+            avatarImageData: avatarImageData,
+            removeAvatar: false
+        )
+    }
+
+    /// Updates the current user's profile with explicit control over avatar removal
+    func updateUserProfileWithAvatarControl(
+        fullName: String?,
+        city: String?,
+        showCity: Bool,
+        bio: String?,
+        birthDate: Date?,
+        showBirthDate: Bool,
+        profession: String?,
+        avatarImageData: Data?,
+        removeAvatar: Bool
+    ) async throws -> User {
         guard let userId = try? await supabase.auth.session.user.id else {
             throw URLError(.userAuthenticationRequired)
         }
 
-        var avatarKey: String? = nil
-        if let data = avatarImageData {
-            avatarKey = try await ImageUploaderService.shared.uploadAvatar(imageData: data)
+        var avatarKey: String?? = nil
+        if removeAvatar {
+            avatarKey = .some(nil) // Explicitly set to NULL in DB
+        } else if let data = avatarImageData {
+            let uploadedKey = try await ImageUploaderService.shared.uploadAvatar(imageData: data)
+            avatarKey = .some(uploadedKey)
         }
 
-        let payload = UserUpdatePayload(
+        let payload = UserUpdatePayloadWithNull(
             full_name: fullName?.nilIfBlank(),
             city: city?.nilIfBlank(),
             show_city: showCity,
@@ -53,13 +81,11 @@ class UserService {
             profession: profession?.nilIfBlank()
         )
 
-        // Update users table
         try await supabase.from("users")
             .update(payload)
             .eq("id", value: userId)
             .execute()
 
-        // Fetch and return the updated user
         let updated: User = try await supabase.from("users")
             .select()
             .eq("id", value: userId)
@@ -77,6 +103,17 @@ private struct UserUpdatePayload: Encodable {
     let birth_date: Date?
     let show_birth_date: Bool?
     let avatar_url: String?
+    let profession: String?
+}
+
+private struct UserUpdatePayloadWithNull: Encodable {
+    let full_name: String?
+    let city: String?
+    let show_city: Bool?
+    let bio: String?
+    let birth_date: Date?
+    let show_birth_date: Bool?
+    let avatar_url: String?? // Double optional: nil => no update, .some(nil) => set NULL, .some("key") => set value
     let profession: String?
 }
 
