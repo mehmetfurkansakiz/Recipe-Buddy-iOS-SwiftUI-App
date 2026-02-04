@@ -89,7 +89,9 @@ extension View {
         textStyle: UIFont.TextStyle = .headline,
         weight: UIFont.Weight = .bold,
         hidesOnSwipe: Bool = true,
-        transparentBackground: Bool = true
+        transparentBackground: Bool = true,
+        showBackButtonTitle: Bool = false,
+        backButtonTitle: String = "Geri"
     ) -> some View {
         self
             .toolbarTitleDisplayMode(.inline)
@@ -141,11 +143,18 @@ extension View {
                     nav.navigationBar.compactAppearance = appearance
                     nav.navigationBar.scrollEdgeAppearance = appearance
                     
-                    // Back Button Fix
-                    if let topVC = nav.topViewController {
-                        let backButton = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
-                        backButton.tintColor = tint
-                        topVC.navigationItem.backBarButtonItem = backButton
+                    // Back Button Configuration
+                    if showBackButtonTitle {
+                        if let backItem = nav.navigationBar.backItem {
+                            let backButton = UIBarButtonItem(title: backButtonTitle, style: .plain, target: nil, action: nil)
+                            backItem.backBarButtonItem = backButton
+                        }
+                    } else {
+                        if let topVC = nav.topViewController {
+                            let backButton = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
+                            backButton.tintColor = tint
+                            topVC.navigationItem.backBarButtonItem = backButton
+                        }
                     }
                 }
             )

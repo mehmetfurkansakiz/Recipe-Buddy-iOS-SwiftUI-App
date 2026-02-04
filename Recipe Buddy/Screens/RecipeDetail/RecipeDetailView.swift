@@ -33,8 +33,16 @@ struct RecipeDetailView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden()
         .ignoresSafeArea(edges: .top)
+        .inlineColoredNavigationBar(
+            titleColor: .FFFFFF,
+            tintColor: .FFFFFF,
+            textStyle: .headline,
+            weight: .bold,
+            hidesOnSwipe: true,
+            transparentBackground: true
+        )
+        .modifier(LegacyBackButtonHider())
         .task {
             await viewModel.loadData()
         }
@@ -66,23 +74,22 @@ struct RecipeDetailView: View {
                 .clipped()
                 .offset(y: geo.frame(in: .global).minY > 0 ? -geo.frame(in: .global).minY : 0)
                 
-                // BackButton
-                Button(action: {
-                    dismiss()
-                }) {
-                    ZStack(alignment: .center) {
-                        Circle()
-                            .fill(Color("000000").opacity(0.5))
-                            .frame(width: 48, height: 48)
-                        
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .foregroundStyle(Color("FFFFFF"))
-                            
+                if #unavailable(iOS 26) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        ZStack(alignment: .center) {
+                            Circle()
+                                .fill(._000000.opacity(0.5))
+                                .frame(width: 48, height: 48)
+                            Image(systemName: "chevron.left")
+                                .font(.title2)
+                                .foregroundStyle(.FFFFFF)
+                        }
                     }
+                    .padding(.leading, 16)
+                    .padding(.top, 48)
                 }
-                .padding(.leading, 16)
-                .padding(.top, 48)
             }
         }
         .frame(minHeight: 300)
@@ -142,15 +149,34 @@ struct RecipeDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(Color("303030"))
             
-            if let recipeAuthor = viewModel.recipe.user?.fullName {
-                HStack {
-                    Image("user.icon")
-                        .font(.caption)
-                    Text("\(recipeAuthor)")
-                        .font(.caption)
+            if let author = viewModel.recipe.user {
+                HStack(spacing: 8) {
+                    if let url = author.avatarPublicURL() {
+                        LazyImage(url: url) { state in
+                            if let image = state.image {
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } else {
+                                Color.gray.opacity(0.2)
+                            }
+                        }
+                        .frame(width: 24, height: 24)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color(.systemGray4), lineWidth: 0.5))
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .foregroundStyle(Color("A3A3A3").opacity(0.8))
+                    }
+                    Text(author.fullName ?? author.username ?? "İsimsiz")
+                        .font(.subheadline)
                 }
-                .foregroundStyle(Color("A3A3A3"))
+                .foregroundStyle(.C_2_C_2_C_2)
                 .padding(.top, 4)
+                .padding(.bottom, 8)
             }
             
             HStack {
@@ -360,6 +386,16 @@ struct RecipeDetailView: View {
     }
 }
 
+private struct LegacyBackButtonHider: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+        } else {
+            content.navigationBarBackButtonHidden()
+        }
+    }
+}
+
 #Preview() {
     NavigationStack {
         let viewModel = RecipeDetailViewModel(
@@ -369,3 +405,4 @@ struct RecipeDetailView: View {
         RecipeDetailView(viewModel: viewModel, navigationPath: .constant(NavigationPath()))
     }
 }
+
