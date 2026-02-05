@@ -66,8 +66,8 @@ struct SettingsView: View {
                 
                 Divider().padding(.leading)
                 
-                Button {
-                    viewModel.showPremiumAlert = true
+                NavigationLink {
+                    ChangePasswordView()
                 } label: {
                     SettingsRowView(title: "Parolayı Değiştir", icon: "key.fill", iconColor: .EBA_72_B)
                 }
@@ -284,6 +284,16 @@ struct SettingsRowView: View {
             }
         }
         .padding()
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SettingsView(
+            viewModel: SettingsViewModel(coordinator: AppCoordinator()),
+            navigationPath: .constant(NavigationPath())
+        )
+        .environmentObject(DataManager())
     }
 }
 
