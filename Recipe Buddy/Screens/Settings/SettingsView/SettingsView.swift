@@ -66,8 +66,8 @@ struct SettingsView: View {
                 
                 Divider().padding(.leading)
                 
-                NavigationLink {
-                    ChangePasswordView()
+                Button {
+                    navigationPath.append(AppNavigation.changePassword)
                 } label: {
                     SettingsRowView(title: "Parolayı Değiştir", icon: "key.fill", iconColor: .EBA_72_B)
                 }

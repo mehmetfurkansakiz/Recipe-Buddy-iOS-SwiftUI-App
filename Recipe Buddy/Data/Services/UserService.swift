@@ -12,14 +12,16 @@ class UserService {
             return nil
         }
         
-        let user: User = try await supabase.from("users")
-            .select()
-            .eq("id", value: userId)
-            .single()
-            .execute()
-            .value
-        
-        return user
+        do {
+            let user: User = try await supabase
+                .rpc("get_my_profile")
+                .execute()
+                .value
+            
+            return user
+        } catch {
+            throw error
+        }
     }
     
     /// Backward-compatible update without explicit remove flag
@@ -87,34 +89,13 @@ class UserService {
             .execute()
 
         let updated: User = try await supabase.from("users")
-            .select()
+            .select("id, email, full_name, username")
             .eq("id", value: userId)
             .single()
             .execute()
             .value
         return updated
     }
-}
-private struct UserUpdatePayload: Encodable {
-    let full_name: String?
-    let city: String?
-    let show_city: Bool?
-    let bio: String?
-    let birth_date: Date?
-    let show_birth_date: Bool?
-    let avatar_url: String?
-    let profession: String?
-}
-
-private struct UserUpdatePayloadWithNull: Encodable {
-    let full_name: String?
-    let city: String?
-    let show_city: Bool?
-    let bio: String?
-    let birth_date: Date?
-    let show_birth_date: Bool?
-    let avatar_url: String?? // Double optional: nil => no update, .some(nil) => set NULL, .some("key") => set value
-    let profession: String?
 }
 
 extension String {

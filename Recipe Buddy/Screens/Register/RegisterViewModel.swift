@@ -21,11 +21,39 @@ class RegisterViewModel: ObservableObject {
     
     func signUp() async {
         guard isSignUpFormValid else { return }
-        
+
         isLoading = true
+        errorMessage = nil
         defer { isLoading = false }
-        
+
         do {
+            // 1) Preflight: Check if email already exists in our public.users table
+            let emailCheckResponse = try await supabase
+                .from("users")
+                .select("id", count: .exact)
+                .eq("email", value: email)
+                .limit(1)
+                .execute()
+
+            if (emailCheckResponse.count ?? 0) > 0 {
+                self.errorMessage = "Bu e‑posta ile zaten hesap var. Lütfen giriş yapın."
+                return
+            }
+
+            // 2) Preflight: Check if username already exists
+            let usernameCheckResponse = try await supabase
+                .from("users")
+                .select("id", count: .exact)
+                .eq("username", value: username)
+                .limit(1)
+                .execute()
+
+            if (usernameCheckResponse.count ?? 0) > 0 {
+                self.errorMessage = "Bu kullanıcı adı zaten alınmış. Lütfen başka bir kullanıcı adı deneyin."
+                return
+            }
+
+            // 3) Proceed with sign up. Include metadata for full_name and username
             let _ = try await supabase.auth.signUp(
                 email: email,
                 password: password,
@@ -34,6 +62,7 @@ class RegisterViewModel: ObservableObject {
                     "username": .string(username)
                 ]
             )
+
             self.didRegister = true
         } catch {
             self.authError = AuthError.from(supabaseError: error)
