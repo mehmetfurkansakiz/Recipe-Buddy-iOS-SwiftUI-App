@@ -46,7 +46,9 @@ struct MainTabView: View {
                 case .settings:
                     SettingsView(viewModel: SettingsViewModel(coordinator: coordinator), navigationPath: $navigationPath)
                 case .changePassword:
-                    ChangePasswordView()
+                    ChangePasswordView(viewModel: ChangePasswordViewModel())
+                case .emailPreferences:
+                    EmailPreferencesView(viewModel: EmailPreferencesViewModel())
                 }
             }
         }

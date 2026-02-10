@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ChangePasswordView: View {
-    @StateObject var viewModel = ChangePasswordViewModel()
+    @ObservedObject var viewModel: ChangePasswordViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -70,5 +70,5 @@ struct ChangePasswordView: View {
 }
 
 #Preview {
-    NavigationStack { ChangePasswordView() }
+    NavigationStack { ChangePasswordView(viewModel: ChangePasswordViewModel()) }
 }

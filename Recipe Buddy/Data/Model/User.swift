@@ -14,6 +14,9 @@ struct User: Codable, Identifiable, Hashable {
     let bio: String? = nil
     let birthDate: Date? = nil
     let showBirthDate: Bool? = nil
+    let emailNewsletter: Bool?
+    let emailProductUpdates: Bool?
+    let emailRecipeTips: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, username, email, profession, city, bio
@@ -24,5 +27,8 @@ struct User: Codable, Identifiable, Hashable {
         case showCity = "show_city"
         case birthDate = "birth_date"
         case showBirthDate = "show_birth_date"
+        case emailNewsletter = "email_newsletter"
+        case emailProductUpdates = "email_product_updates"
+        case emailRecipeTips = "email_recipe_tips"
     }
 }

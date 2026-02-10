@@ -8,7 +8,6 @@ class UserService {
     /// Fetches the complete profile for the currently logged-in user.
     func fetchCurrentUser() async throws -> User? {
         guard let userId = try? await supabase.auth.session.user.id else {
-            // No user is logged in
             return nil
         }
         
@@ -20,6 +19,7 @@ class UserService {
             
             return user
         } catch {
+            print("❌ [UserService] fetchCurrentUser Hatası: \(error)")
             throw error
         }
     }
@@ -47,6 +47,37 @@ class UserService {
             removeAvatar: false
         )
     }
+    
+    func updateEmailPreferences(newsletter: Bool, productUpdates: Bool, recipeTips: Bool) async throws -> User {
+            guard let _ = try? await supabase.auth.session.user.id else {
+                throw URLError(.userAuthenticationRequired)
+            }
+
+            struct UpdateEmailPreferencesParams: Encodable {
+                let new_newsletter: Bool
+                let new_product_updates: Bool
+                let new_recipe_tips: Bool
+            }
+
+            let params = UpdateEmailPreferencesParams(
+                new_newsletter: newsletter,
+                new_product_updates: productUpdates,
+                new_recipe_tips: recipeTips
+            )
+
+            do {
+                let updatedUser: User = try await supabase
+                    .rpc("update_email_preferences", params: params)
+                    .execute()
+                    .value
+                
+                print("✅ [UserService] Tercihler güncellendi.")
+                return updatedUser
+            } catch {
+                print("❌ [UserService] updateEmailPreferences Hatası: \(error)")
+                throw error
+            }
+        }
 
     /// Updates the current user's profile with explicit control over avatar removal
     func updateUserProfileWithAvatarControl(

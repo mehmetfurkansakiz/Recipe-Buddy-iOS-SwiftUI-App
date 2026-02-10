@@ -8,4 +8,5 @@ enum AppNavigation: Hashable {
     case favoriteRecipes
     case settings
     case changePassword
+    case emailPreferences
 }

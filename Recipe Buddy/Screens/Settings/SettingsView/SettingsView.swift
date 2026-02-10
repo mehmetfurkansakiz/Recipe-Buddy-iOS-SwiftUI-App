@@ -75,7 +75,7 @@ struct SettingsView: View {
                 Divider().padding(.leading)
                 
                 Button {
-                    viewModel.showPremiumAlert = true
+                    navigationPath.append(AppNavigation.emailPreferences)
                 } label: {
                     SettingsRowView(title: "E-posta Tercihleri", icon: "envelope.fill", iconColor: .EBA_72_B)
                 }
