@@ -41,6 +41,8 @@ struct MainTabView: View {
                     RecipeCreateView(viewModel: RecipeCreateViewModel(recipeToEdit: recipe))
                 case .profile:
                     ProfileView(viewModel: ProfileViewModel(coordinator: coordinator), navigationPath: $navigationPath)
+                case .editProfile:
+                    EditProfileView(viewModel: EditProfileViewModel())
                 case .favoriteRecipes:
                     FavoriteRecipesView(navigationPath: $navigationPath)
                 case .settings:
@@ -49,6 +51,8 @@ struct MainTabView: View {
                     ChangePasswordView(viewModel: ChangePasswordViewModel())
                 case .emailPreferences:
                     EmailPreferencesView(viewModel: EmailPreferencesViewModel())
+                case .notificationPreferences:
+                    NotificationPreferencesView(viewModel: NotificationPreferencesViewModel())
                 }
             }
         }

@@ -28,6 +28,7 @@ struct EmailPreferencesView: View {
                         }
                     }
                     .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.thinMaterial.opacity(0.3))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))
@@ -79,6 +80,7 @@ struct EmailPreferencesView: View {
                             viewModel.savePreferences()
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.thinMaterial.opacity(0.3))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4), lineWidth: 1))

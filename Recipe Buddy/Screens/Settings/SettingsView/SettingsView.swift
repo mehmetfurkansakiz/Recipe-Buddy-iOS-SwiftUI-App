@@ -58,8 +58,8 @@ struct SettingsView: View {
                 
                 Divider().padding(.leading)
                 
-                NavigationLink {
-                    EditProfileView(viewModel: EditProfileViewModel())
+                Button {
+                    navigationPath.append(AppNavigation.editProfile)
                 } label: {
                     SettingsRowView(title: "Profili Düzenle", icon: "pencil", iconColor: .EBA_72_B)
                 }
@@ -96,7 +96,7 @@ struct SettingsView: View {
             
             VStack(spacing: 0) {
                 Button {
-                    viewModel.showPremiumAlert = true
+                    navigationPath.append(AppNavigation.notificationPreferences)
                 } label: {
                     SettingsRowView(title: "Bildirimleri Yönet", icon: "bell.fill", iconColor: .A_3_A_3_A_3)
                 }

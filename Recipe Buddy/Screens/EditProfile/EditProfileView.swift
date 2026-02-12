@@ -4,7 +4,7 @@ import NukeUI
 import UIKit
 
 struct EditProfileView: View {
-    @StateObject var viewModel: EditProfileViewModel
+    @ObservedObject var viewModel: EditProfileViewModel
     @EnvironmentObject var dataManager: DataManager
     @Environment(\.dismiss) private var dismiss
 

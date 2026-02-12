@@ -29,8 +29,6 @@ class EmailPreferencesViewModel: ObservableObject {
                 self.emailNewsletter = user.emailNewsletter ?? false
                 self.emailProductUpdates = user.emailProductUpdates ?? false
                 self.emailRecipeTips = user.emailRecipeTips ?? false
-                
-                print("📥 [VM] Veriler yüklendi: \(self.emailNewsletter), \(self.emailProductUpdates), \(self.emailRecipeTips)")
             }
         } catch {
             self.errorMessage = "Ayarlar yüklenirken bir hata oluştu."
