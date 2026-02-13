@@ -4,6 +4,19 @@ import PhotosUI
 struct Step1_BasicInfo: View {
     @ObservedObject var viewModel: RecipeCreateViewModel
     
+    @State private var activePicker: ActivePicker?
+
+    enum ActivePicker: Identifiable {
+        case servings
+        case time
+        var id: String {
+            switch self {
+            case .servings: return "servings"
+            case .time: return "time"
+            }
+        }
+    }
+    
     var body: some View {
         let imageData = viewModel.selectedImageData
         
@@ -40,8 +53,29 @@ struct Step1_BasicInfo: View {
                 
                 // Text Fields
                 VStack(spacing: 16) {
-                    TextField("Tarif Adı", text: $viewModel.name)
-                    TextField("Açıklama (Örn: Annemin meşhur tarifi...)", text: $viewModel.description, axis: .vertical)
+                    // Name
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("Tarif Adı", text: $viewModel.name)
+                            .textInputAutocapitalization(.words)
+                            .disableAutocorrection(true)
+                            .onChange(of: viewModel.name) { oldValue, newValue in
+                                let clamped = viewModel.clamp(newValue, to: viewModel.nameMaxLength)
+                                if clamped != newValue { viewModel.name = clamped }
+                            }
+                    }
+
+                    // Description
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("Açıklama (Örn: Annemin meşhur tarifi...)", text: $viewModel.description, axis: .vertical)
+                            .textInputAutocapitalization(.sentences)
+                            .disableAutocorrection(false)
+                            .onChange(of: viewModel.description) { oldValue, newValue in
+                                let clamped = viewModel.clamp(newValue, to: viewModel.descriptionMaxLength)
+                                if clamped != newValue { viewModel.description = clamped }
+                            }
+                            .lineLimit(3, reservesSpace: true)
+                            .frame(minHeight: 60)
+                    }
                 }
                 .textFieldStyle(CustomTextFieldStyle())
                 
@@ -73,23 +107,88 @@ struct Step1_BasicInfo: View {
                 }
                 .buttonStyle(CustomPickerStyle())
                 
-                // Pickers and Toggle
-                HStack {
-                    Picker("Porsiyon", selection: $viewModel.servings) {
-                        ForEach(1...20, id: \.self) { Text("\($0) kişilik").tag($0) }
-                    }.pickerStyle(.menu)
-                    
-                    Picker("Süre", selection: $viewModel.cookingTime) {
-                        ForEach(Array(stride(from: 5, through: 240, by: 5)), id: \.self) { Text("\($0) dk").tag($0) }
-                    }.pickerStyle(.menu)
+                // Porsiyon ve Süre: adaptive grid ile iki sütun, dar alanda alta geçer
+                LazyVGrid(columns: [
+                    GridItem(.adaptive(minimum: 160), spacing: 12)
+                ], spacing: 12) {
+                    // Servings selector button
+                    Button(action: { activePicker = .servings }) {
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Porsiyon")
+                                    .foregroundStyle(Color("A3A3A3"))
+                                Text("\(viewModel.servings) kişilik")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Color("181818"))
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.down")
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                    }
+                    .buttonStyle(CustomPickerStyle())
+
+                    // Cooking time selector button
+                    Button(action: { activePicker = .time }) {
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Süre")
+                                    .foregroundStyle(Color("A3A3A3"))
+                                Text("\(viewModel.cookingTime) dk")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Color("181818"))
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.down")
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                    }
+                    .buttonStyle(CustomPickerStyle())
                 }
-                .tint(Color("EBA72B"))
-                .buttonStyle(CustomPickerStyle())
-                
-                Toggle("Herkesle Paylaş", isOn: $viewModel.isPublic)
-                    .tint(Color("EBA72B"))
             }
             .padding()
+            .sheet(item: $activePicker) { picker in
+                VStack(spacing: 0) {
+                    HStack {
+                        Spacer()
+                        Button("Bitti") { activePicker = nil }
+                            .tint(Color("EBA72B"))
+                    }
+                    .padding()
+
+                    switch picker {
+                    case .servings:
+                        Picker("Porsiyon", selection: $viewModel.servings) {
+                            ForEach(viewModel.servingsOptions, id: \.self) { value in
+                                Text("\(value) kişilik").tag(value)
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .labelsHidden()
+                        .tint(Color("EBA72B"))
+
+                    case .time:
+                        Picker("Süre", selection: $viewModel.cookingTime) {
+                            ForEach(viewModel.timeOptions, id: \.self) { value in
+                                Text(viewModel.formattedDuration(minutes: value)).tag(value)
+                            }
+                        }
+                        .pickerStyle(.wheel)
+                        .labelsHidden()
+                        .tint(Color("EBA72B"))
+                    }
+                }
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 }
@@ -119,3 +218,4 @@ struct CustomPickerStyle: ButtonStyle {
 #Preview {
     Step1_BasicInfo(viewModel: RecipeCreateViewModel())
 }
+

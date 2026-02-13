@@ -37,6 +37,18 @@ class RecipeCreateViewModel: ObservableObject {
     
     // Service 
     private let recipeService = RecipeService.shared
+
+    // Limits for text inputs
+    let nameMaxLength: Int = 60
+    let descriptionMaxLength: Int = 240
+
+    func clamp(_ text: String, to max: Int) -> String {
+        if text.count > max {
+            let idx = text.index(text.startIndex, offsetBy: max)
+            return String(text[..<idx])
+        }
+        return text
+    }
     
     // Navigation Title for steps
     var navigationTitle: String {
@@ -64,7 +76,43 @@ class RecipeCreateViewModel: ObservableObject {
     }
     
     let servingsOptions = Array(1...20)
-    let timeOptions: [Int] = Array(stride(from: 5, through: 240, by: 5))
+    var timeOptions: [Int] {
+        var values = Set<Int>()
+        func addRange(from: Int, to: Int, step: Int) {
+            var v = from
+            while v <= to {
+                values.insert(v)
+                v += step
+            }
+        }
+        // 0-60 dk: 5'er
+        addRange(from: 5, to: 60, step: 5)
+        // 70-120 dk: 10'ar
+        addRange(from: 70, to: 120, step: 10)
+        // 135-240 dk: 15'er
+        addRange(from: 135, to: 240, step: 15)
+        // 240-480 dk (4-8 saat): 30'ar
+        addRange(from: 240, to: 480, step: 30)
+        // 480-720 dk (8-12 saat): 60'ar
+        addRange(from: 480, to: 720, step: 60)
+        // 720-1440 dk (12-24 saat): 120'şer
+        addRange(from: 720, to: 1440, step: 120)
+        // mevcut seçim listede değilse ekle (özellikle düzenleme modunda)
+        values.insert(cookingTime)
+        return values.sorted()
+    }
+    
+    func formattedDuration(minutes: Int) -> String {
+        let hours = minutes / 60
+        let mins = minutes % 60
+        if hours > 0 && mins > 0 {
+            return "\(hours) saat \(mins) dakika"
+        } else if hours > 0 {
+            return "\(hours) saat"
+        } else {
+            return "\(mins) dakika"
+        }
+    }
 
     var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -201,3 +249,4 @@ class RecipeCreateViewModel: ObservableObject {
         if steps.count > 1 { steps.remove(at: index) }
     }
 }
+

@@ -3,7 +3,6 @@ import SwiftUI
 struct FavoriteRecipesView: View {
     @EnvironmentObject var dataManager: DataManager
     @Binding var navigationPath: NavigationPath
-    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ScrollView {
@@ -26,29 +25,7 @@ struct FavoriteRecipesView: View {
                 }
             }
         }
-        .toolbarBackground(.thinMaterial, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(action: {
-                    dismiss()
-                }) {
-                    HStack {
-                        Image(systemName: "chevron.left")
-                            .font(.headline.weight(.semibold))
-                        Text("Geri")
-                    }
-                    .foregroundStyle(.EBA_72_B)
-                }
-            }
-            
-            ToolbarItem(placement: .principal) {
-                Text("Favori Tariflerim")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.EBA_72_B)
-            }
-        }
+        .navigationTitle("Favori Tariflerim")
+        .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
     }
 }

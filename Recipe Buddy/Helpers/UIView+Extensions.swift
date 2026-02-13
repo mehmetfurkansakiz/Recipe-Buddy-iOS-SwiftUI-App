@@ -13,6 +13,30 @@ extension View {
     }
 }
 
+public extension View {
+    /// Adds a gesture recognizer to the view that dismisses the keyboard when tapping anywhere outside input fields.
+    func hideKeyboardOnTap() -> some View {
+        self
+            .overlay(
+                Color.clear
+                    .ignoresSafeArea(.keyboard)
+                    .allowsHitTesting(false)
+            )
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                }
+            )
+    }
+    
+}
+
+
 struct ShimmerEffect: ViewModifier {
     @State private var phase: CGFloat = -1.5
     
@@ -61,10 +85,13 @@ extension View {
     // Applies an inline navigation bar style with custom title color/font and optional hide-on-swipe
     func inlineColoredNavigationBar(
         titleColor: Color,
+        tintColor: Color = .EBA_72_B,
         textStyle: UIFont.TextStyle = .headline,
         weight: UIFont.Weight = .bold,
         hidesOnSwipe: Bool = true,
-        transparentBackground: Bool = true
+        transparentBackground: Bool = true,
+        showBackButtonTitle: Bool = false,
+        backButtonTitle: String = "Geri"
     ) -> some View {
         self
             .toolbarTitleDisplayMode(.inline)
@@ -77,11 +104,13 @@ extension View {
                     let appearance = UINavigationBarAppearance()
                     if transparentBackground {
                         appearance.configureWithTransparentBackground()
+                        appearance.backgroundColor = .clear
+                        appearance.shadowColor = .clear
                     } else {
                         appearance.configureWithDefaultBackground()
                     }
 
-                    // Build a Dynamic Type–aware bold font for the given textStyle
+                    // Title Text Color and Font
                     let base = UIFont.preferredFont(forTextStyle: textStyle)
                     let font = UIFont.systemFont(ofSize: base.pointSize, weight: weight)
                     let scaledFont = UIFontMetrics(forTextStyle: textStyle).scaledFont(for: font)
@@ -91,36 +120,43 @@ extension View {
                         .font: scaledFont
                     ]
 
-                    let tint = UIColor(titleColor)
+                    // Button ve icon colors
+                    let tint = UIColor(tintColor)
 
-                    appearance.buttonAppearance.normal.titleTextAttributes = [
-                        .foregroundColor: tint
-                    ]
-                    appearance.buttonAppearance.highlighted.titleTextAttributes = [
-                        .foregroundColor: tint
-                    ]
+                    // Butonların yazı rengi
+                    let buttonAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: tint]
+                    
+                    appearance.buttonAppearance.normal.titleTextAttributes = buttonAttributes
+                    appearance.buttonAppearance.highlighted.titleTextAttributes = buttonAttributes
+                    
+                    appearance.doneButtonAppearance.normal.titleTextAttributes = buttonAttributes
+                    appearance.doneButtonAppearance.highlighted.titleTextAttributes = buttonAttributes
+                    
+                    appearance.backButtonAppearance.normal.titleTextAttributes = buttonAttributes
+                    appearance.backButtonAppearance.highlighted.titleTextAttributes = buttonAttributes
 
-                    appearance.doneButtonAppearance.normal.titleTextAttributes = [
-                        .foregroundColor: tint
-                    ]
-                    appearance.doneButtonAppearance.highlighted.titleTextAttributes = [
-                        .foregroundColor: tint
-                    ]
-
-                    appearance.backButtonAppearance.normal.titleTextAttributes = [
-                        .foregroundColor: tint
-                    ]
-                    appearance.backButtonAppearance.highlighted.titleTextAttributes = [
-                        .foregroundColor: tint
-                    ]
-
-                    // Ensure bar button items and back indicator use the tint color
+                    // genel tintColor
                     nav.navigationBar.tintColor = tint
+                    
+                    // appearance usage
                     nav.navigationBar.standardAppearance = appearance
                     nav.navigationBar.compactAppearance = appearance
                     nav.navigationBar.scrollEdgeAppearance = appearance
+                    
+                    // Back Button Configuration
+                    if showBackButtonTitle {
+                        if let backItem = nav.navigationBar.backItem {
+                            let backButton = UIBarButtonItem(title: backButtonTitle, style: .plain, target: nil, action: nil)
+                            backItem.backBarButtonItem = backButton
+                        }
+                    } else {
+                        if let topVC = nav.topViewController {
+                            let backButton = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
+                            backButton.tintColor = tint
+                            topVC.navigationItem.backBarButtonItem = backButton
+                        }
+                    }
                 }
             )
     }
 }
-

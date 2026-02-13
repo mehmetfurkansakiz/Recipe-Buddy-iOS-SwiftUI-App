@@ -28,6 +28,7 @@ class EditProfileViewModel: ObservableObject {
     // Image state
     @Published var selectedImageData: Data? = nil
     @Published var selectedImagePreview: UIImage? = nil
+    @Published var wantsToRemoveAvatar: Bool = false
 
     // Legacy PhotosPicker flow (kept for compatibility if needed)
     @Published var photoItem: PhotosPickerItem? = nil {
@@ -48,6 +49,8 @@ class EditProfileViewModel: ObservableObject {
         self.professionText = loadedProfession
         self.isProfessionEnabled = !loadedProfession.isEmpty
         self.currentAvatarPath = user?.avatarUrl
+        self.selectedImageData = nil
+        self.wantsToRemoveAvatar = false
     }
 
     private func loadImage(from item: PhotosPickerItem) async {
@@ -63,6 +66,7 @@ class EditProfileViewModel: ObservableObject {
     // Called by ImagePicker (cropped image)
     func setImageFromPicker(_ image: UIImage?) {
         guard let image else { return }
+        self.wantsToRemoveAvatar = false
         // Resize to max 720 and compress around ~0.1 MB similar to ImageUploaderService
         let resized = resizeImageMaintainingAspect(image: image, maxLength: 720)
         if let compressed = resized.compressedData(maxSizeInMB: 0.1) {
@@ -72,13 +76,23 @@ class EditProfileViewModel: ObservableObject {
         }
     }
 
+    func removeAvatarSelection() {
+        self.selectedImageData = nil
+        self.selectedImagePreview = nil
+        self.wantsToRemoveAvatar = true
+    }
+
     func save(dataManager: DataManager) async {
         isSaving = true
         defer { isSaving = false }
 
         do {
-            // NSFW check for avatar (if a new image is selected)
-            if let data = selectedImageData, let uiImage = UIImage(data: data) {
+            let newImageData = selectedImageData
+            let wantsRemoval = wantsToRemoveAvatar
+            let oldPath = currentAvatarPath
+
+            // NSFW check for avatar (if a new image is selected and not removing)
+            if let data = newImageData, let uiImage = UIImage(data: data), !wantsRemoval {
                 let decision = await NSFWModerationService.shared.check(image: uiImage)
                 if case .rejected = decision {
                     print("❌ NSFW detected for avatar.")
@@ -87,13 +101,19 @@ class EditProfileViewModel: ObservableObject {
                 }
             }
             
-            if let oldPath = currentAvatarPath, !oldPath.isEmpty {
+            let professionToSave = isProfessionEnabled ? professionText.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+
+            if wantsRemoval, let oldPath, !oldPath.isEmpty {
                 print("🗑️ Eski görsel siliniyor: \(oldPath)")
+                try? await ImageUploaderService.shared.deleteImage(for: oldPath)
+                self.currentAvatarPath = nil
+            }
+            else if newImageData != nil, let oldPath, !oldPath.isEmpty {
+                print("🗑️ Eski görsel (değişim) siliniyor: \(oldPath)")
                 try? await ImageUploaderService.shared.deleteImage(for: oldPath)
             }
 
-            let professionToSave = isProfessionEnabled ? professionText.trimmingCharacters(in: .whitespacesAndNewlines) : nil
-            await dataManager.updateProfile(
+            await dataManager.updateProfileWithAvatarControl(
                 fullName: fullName.trimmingCharacters(in: .whitespacesAndNewlines),
                 city: city.trimmingCharacters(in: .whitespacesAndNewlines),
                 showCity: showCity,
@@ -101,7 +121,8 @@ class EditProfileViewModel: ObservableObject {
                 birthDate: showBirthDate ? birthDate : nil,
                 showBirthDate: showBirthDate,
                 profession: professionToSave,
-                avatarImageData: selectedImageData
+                avatarImageData: newImageData,
+                removeAvatar: wantsRemoval
             )
             showSavedAlert = true
         }

@@ -40,11 +40,19 @@ struct MainTabView: View {
                 case .recipeEdit(let recipe):
                     RecipeCreateView(viewModel: RecipeCreateViewModel(recipeToEdit: recipe))
                 case .profile:
-                    ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))
+                    ProfileView(viewModel: ProfileViewModel(coordinator: coordinator), navigationPath: $navigationPath)
+                case .editProfile:
+                    EditProfileView(viewModel: EditProfileViewModel())
                 case .favoriteRecipes:
                     FavoriteRecipesView(navigationPath: $navigationPath)
                 case .settings:
                     SettingsView(viewModel: SettingsViewModel(coordinator: coordinator), navigationPath: $navigationPath)
+                case .changePassword:
+                    ChangePasswordView(viewModel: ChangePasswordViewModel())
+                case .emailPreferences:
+                    EmailPreferencesView(viewModel: EmailPreferencesViewModel())
+                case .notificationPreferences:
+                    NotificationPreferencesView(viewModel: NotificationPreferencesViewModel())
                 }
             }
         }
@@ -65,7 +73,7 @@ struct TabContent: View {
         case .shoppingList:
             ShoppingListView(viewModel: ShoppingListViewModel(), navigationPath: $navigationPath)
         case .settings:
-            ProfileView(viewModel: ProfileViewModel(coordinator: coordinator))
+            ProfileView(viewModel: ProfileViewModel(coordinator: coordinator), navigationPath: $navigationPath)
         }
     }
 }

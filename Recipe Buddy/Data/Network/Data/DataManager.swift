@@ -224,6 +224,41 @@ class DataManager: ObservableObject {
         }
     }
     
+    func updateProfileWithAvatarControl(
+        fullName: String?,
+        city: String?,
+        showCity: Bool,
+        bio: String?,
+        birthDate: Date?,
+        showBirthDate: Bool,
+        profession: String?,
+        avatarImageData: Data?,
+        removeAvatar: Bool
+    ) async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let updatedUser = try await userService.updateUserProfileWithAvatarControl(
+                fullName: fullName,
+                city: city,
+                showCity: showCity,
+                bio: bio,
+                birthDate: birthDate,
+                showBirthDate: showBirthDate,
+                profession: profession,
+                avatarImageData: avatarImageData,
+                removeAvatar: removeAvatar
+            )
+            self.currentUser = updatedUser
+            let loadedProfession = updatedUser.profession ?? ""
+            self.professionText = loadedProfession
+            self.isProfessionEnabled = !loadedProfession.isEmpty
+            print("✅ DataManager: Profil güncellendi (avatar control).")
+        } catch {
+            print("❌ DataManager: Profil güncellenirken hata (avatar control): \(error)")
+        }
+    }
+    
     // MARK: - Notification Handlers
     
     private func addObservers() {

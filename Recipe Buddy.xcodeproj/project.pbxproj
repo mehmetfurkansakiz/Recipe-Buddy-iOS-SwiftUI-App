@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0F2025862E55345800EDC16A /* AWSSDKIdentity in Frameworks */ = {isa = PBXBuildFile; productRef = 0F2025852E55345800EDC16A /* AWSSDKIdentity */; };
+		0FBD6FD02F3CA4D8004F8ECC /* NotificationPreferencesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FBD6FCF2F3CA4D7004F8ECC /* NotificationPreferencesService.swift */; };
 		0FBF6B1B2E52AF700014EB7C /* AWSClientRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 0FBF6B1A2E52AF700014EB7C /* AWSClientRuntime */; };
 		0FBF6B1D2E52AF700014EB7C /* AWSS3 in Frameworks */ = {isa = PBXBuildFile; productRef = 0FBF6B1C2E52AF700014EB7C /* AWSS3 */; };
 		0FCA0A1E2DF255EC0088358B /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 0FCA0A1D2DF255EC0088358B /* Storage */; };
@@ -20,6 +21,7 @@
 
 /* Begin PBXFileReference section */
 		0F232DF52DAF2490002F758D /* Recipe Buddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Recipe Buddy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0FBD6FCF2F3CA4D7004F8ECC /* NotificationPreferencesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferencesService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -56,6 +58,7 @@
 				0F232DF72DAF2490002F758D /* Recipe Buddy */,
 				0FE591742DED11D8005EF0D8 /* Frameworks */,
 				0F232DF62DAF2490002F758D /* Products */,
+				0FBD6FCF2F3CA4D7004F8ECC /* NotificationPreferencesService.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -162,6 +165,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0FBD6FD02F3CA4D8004F8ECC /* NotificationPreferencesService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,11 +304,12 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Recipe-Buddy-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Recipe Buddy";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -334,11 +339,12 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Recipe-Buddy-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Recipe Buddy";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

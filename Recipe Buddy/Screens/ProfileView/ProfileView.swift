@@ -3,6 +3,7 @@ import NukeUI
 
 struct ProfileView: View {
     @ObservedObject var viewModel: ProfileViewModel
+    @Binding var navigationPath: NavigationPath
     @EnvironmentObject var dataManager: DataManager
     @State private var goToSettings = false
     
@@ -39,13 +40,10 @@ struct ProfileView: View {
             .background(Color.FBFBFB)
             .navigationTitle("Profilim")
             .inlineColoredNavigationBar(titleColor: .EBA_72_B, textStyle: .headline, weight: .bold, hidesOnSwipe: true, transparentBackground: true)
-            .navigationDestination(isPresented: $goToSettings) {
-                SettingsView(viewModel: SettingsViewModel(coordinator: viewModel.coordinator), navigationPath: .constant(NavigationPath()))
-            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        goToSettings = true
+                        navigationPath.append(AppNavigation.settings)
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .foregroundStyle(.EBA_72_B)
@@ -474,7 +472,10 @@ struct ProfileStatView: View {
 }
 
 #Preview {
-    ProfileView(viewModel: ProfileViewModel(coordinator: AppCoordinator()))
-        .environmentObject(DataManager())
+    let coordinator = AppCoordinator()
+    return NavigationStack {
+        ProfileView(viewModel: ProfileViewModel(coordinator: coordinator), navigationPath: .constant(NavigationPath()))
+            .environmentObject(DataManager())
+    }
 }
 

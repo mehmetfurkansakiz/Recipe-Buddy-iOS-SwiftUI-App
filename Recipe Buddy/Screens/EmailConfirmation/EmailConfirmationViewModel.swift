@@ -73,9 +73,15 @@ class EmailConfirmationViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            try await supabase.auth.signInWithOTP(email: email)
+            // For signup email verification, request a SIGNUP-type OTP (6-digit code)
+            try await supabase.auth.resend(email: email, type: .signup)
 
             self.didSendEmail = true
+            // Persist last sent timestamp for cooldown logic
+            UserDefaults.standard.set(Date(), forKey: lastOTPSentKey)
+            // Optional: clear previous input so user starts fresh with the new code
+            self.otpCode = Array(repeating: "", count: self.codeLength)
+
             startTimer(from: countdownDuration)
         } catch {
             self.errorMessage = "Onay kodu gönderilemedi: \(error.localizedDescription)"
